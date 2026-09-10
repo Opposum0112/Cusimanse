@@ -7,6 +7,9 @@ document stage (01–11 plus runbook bootstrap).
 The in-repo Go module [`packages/labprobe`](../packages/labprobe) is the
 pinned target for `go-install-001`.
 
+Host install (clone, apt, Lima, first `labctl` run) is documented in the
+root [README Installation](../README.md#installation) section.
+
 ## Commands
 
 ```bash

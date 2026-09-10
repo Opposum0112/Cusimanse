@@ -14,6 +14,8 @@ disposable VMs and a harness-neutral agent stack.
 It is a **personal lab**, not a hosted product. Untrusted work runs in
 throwaway VMs. Host credentials stay off those VMs.
 
+**Install:** jump to [Installation](#installation) (clone → apt → Lima → `labctl`).
+
 ![Lab architecture](ai-security-lab-architecture.png)
 
 ## Why this exists
@@ -96,6 +98,7 @@ ai-security-lab/
 
 | File | Purpose |
 |---|---|
+| [Installation](#installation) | Clone, host packages, Lima, `labctl`, first experiment |
 | [01-deployment-architecture.md](01-deployment-architecture.md) | Authoritative architecture and component responsibilities |
 | [02-system-requirements.md](02-system-requirements.md) | Host, VM, storage, memory and software requirements |
 | [03-deployment-runbook.md](03-deployment-runbook.md) | Ordered installation and configuration procedure |
@@ -124,37 +127,177 @@ ai-security-lab/
 
 Full agent rules: [AGENTS.md](AGENTS.md).
 
-## Getting started
+## Installation
 
-Create the infrastructure files and per-stage experiments, then follow the
-runbook. `labctl` is stdlib Python 3 — no pip install.
+Do this **in order**. Do not skip preflight. Do not install unknown
+packages on the host when they can run inside a disposable VM.
+
+Target host: **Parrot OS**, Intel x86_64, 16 GB RAM, 50 GB+ free disk,
+VT-x / KVM. Full spec: [02-system-requirements.md](02-system-requirements.md).
+
+### 1. Clone this repository
+
+The repo is private. Use an account that can read
+`Opposum0112/ai-security-lab`.
 
 ```bash
+git clone https://github.com/Opposum0112/ai-security-lab.git
+cd ai-security-lab
+```
+
+SSH:
+
+```bash
+git clone git@github.com:Opposum0112/ai-security-lab.git
+cd ai-security-lab
+```
+
+### 2. Install host packages (Parrot / Debian)
+
+Pick **one** container runtime (Podman *or* Docker), not both.
+
+```bash
+sudo apt update
+sudo apt install -y \
+  git curl wget ca-certificates \
+  python3 python3-venv \
+  build-essential \
+  golang-go \
+  qemu-system-x86 qemu-utils \
+  jq ripgrep miller \
+  strace lsof tcpdump \
+  podman
+```
+
+If you prefer Docker instead of Podman:
+
+```bash
+sudo apt install -y docker.io
+sudo usermod -aG docker "$USER"
+# log out and back in so the group applies
+```
+
+`yq` is often not in the default repos. If `apt install yq` fails, skip it
+for now — `labctl` does not need it.
+
+### 3. Install Lima
+
+Lima is required for disposable experiment VMs. Review the installer
+**before** running it.
+
+```bash
+curl -fsSL https://lima-vm.io/install.sh -o /tmp/lima-install.sh
+less /tmp/lima-install.sh
+sh /tmp/lima-install.sh
+limactl --version
+qemu-system-x86_64 --version
+```
+
+### 4. Confirm virtualization
+
+```bash
+uname -m          # expect x86_64
+nproc
+free -h           # expect ~16 GB class
+df -h .
+ls -l /dev/kvm    # must exist and be readable
+```
+
+If `/dev/kvm` is missing, fix VT-x / KVM on the host before continuing.
+
+### 5. Bootstrap the lab with `labctl`
+
+`labctl` is stdlib Python 3. No `pip install`.
+
+```bash
+chmod +x scripts/bin/labctl
 ./scripts/bin/labctl stages
 ./scripts/bin/labctl init
-./scripts/bin/labctl preflight
+./scripts/bin/labctl preflight --apply
 ./scripts/bin/labctl accept
 ```
 
-1. Confirm the host matches [02-system-requirements.md](02-system-requirements.md)
-   (Intel x86_64, 16 GB RAM, Parrot OS, VT-x / KVM).
-2. Work through [03-deployment-runbook.md](03-deployment-runbook.md)
-   (Git bootstrap → host preflight → harnesses → Lima/QEMU → gateway → MCP →
-   Aegis → Numbat → observability → instrumentation).
-3. Record versions and choices in [`state.yaml`](state.yaml). Never put API keys
-   in Git. Copy `infra/gateway/.env.example` → `infra/gateway/.env` locally.
-4. Run **only** [`experiments/go-install-001`](experiments/go-install-001)
-   as the first integration test. The pinned workload is
-   [`packages/labprobe`](packages/labprobe). See [08-go-install-001.md](08-go-install-001.md).
-5. Do not start a second experiment until `go-install-001` has passed, or its
-   failure is fully documented and committed.
+| Command | What it does |
+|---|---|
+| `init` | Writes `infra/`, `policies/`, and one experiment per document stage |
+| `preflight --apply` | Checks CPU, RAM, disk, KVM, QEMU, Lima; records facts in `state.yaml` |
+| `accept` | Prints the seven-level matrix from [10-validation-and-acceptance.md](10-validation-and-acceptance.md) |
 
-`labctl` writes repository files by default. Starting containers, recording
-live host state, or executing a VM workload requires `--apply`. It will not
-pipe `curl | bash` for third-party installers.
+`init` only writes files. Starting processes needs `--apply` (next steps).
 
-On 16 GB RAM, keep **one** heavy Lima VM active, leave several GB of host
-headroom, and prefer hosted model APIs over large local models.
+Expected first-run scores: host tools **PASS** or **PARTIAL**. Gateway,
+Phoenix, and `go-install-001` stay **NOT_DEPLOYED** until you start them.
+
+### 6. Optional — observability stack (localhost only)
+
+Binds `127.0.0.1:6006` (Phoenix) and `127.0.0.1:4317` (OTel). Do not publish
+these ports.
+
+```bash
+./scripts/bin/labctl stack up observability --apply
+```
+
+Stop later with:
+
+```bash
+./scripts/bin/labctl stack down observability --apply
+```
+
+### 7. Optional — model gateway (localhost only)
+
+LiteLLM **or** OmniRoute, not both. This repo ships the LiteLLM option.
+
+```bash
+cp infra/gateway/.env.example infra/gateway/.env
+# edit infra/gateway/.env — never commit it
+./scripts/bin/labctl stack up gateway --apply
+```
+
+The gateway listens on `127.0.0.1:4000`.
+
+### 8. Optional — Antigravity CLI
+
+`labctl` will **not** run this for you. Review the script, then install from
+the [official docs](https://antigravity.google/docs/cli/install/):
+
+```bash
+curl -fsSL https://antigravity.google/cli/install.sh -o /tmp/agy-install.sh
+less /tmp/agy-install.sh
+bash /tmp/agy-install.sh
+agy --help
+```
+
+Workspace agents and skills are already in [`.agents/`](.agents) and
+[`antigravity/`](antigravity). Other harnesses (OpenCode, Goose, Codex) are
+optional — install only what the current milestone needs.
+
+### 9. First experiment (`go-install-001`)
+
+Do not run any other experiment until this one finishes or its failure is
+committed. Workload: in-repo Go module
+[`packages/labprobe`](packages/labprobe) inside a disposable Lima VM.
+
+```bash
+./scripts/bin/labctl experiment list
+./scripts/bin/labctl experiment run go-install-001
+# after reviewing experiments/go-install-001/lima.yaml (mounts must stay empty):
+./scripts/bin/labctl experiment run go-install-001 --apply
+```
+
+Authoritative procedure: [08-go-install-001.md](08-go-install-001.md).
+
+### 10. Daily checks
+
+```bash
+./scripts/bin/labctl doctor
+./scripts/bin/labctl status
+```
+
+On 16 GB RAM: one heavy Lima VM at a time, several GB of host headroom,
+hosted model APIs instead of large local models.
+
+More commands: [scripts/README.md](scripts/README.md). Ordered install
+detail: [03-deployment-runbook.md](03-deployment-runbook.md).
 
 ## First milestone: `go-install-001`
 
