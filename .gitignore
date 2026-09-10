@@ -1,0 +1,44 @@
+# Local secrets and environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+id_rsa
+id_ed25519
+
+# Runtime / evidence (keep templates, not captures)
+evidence/**
+!evidence/.gitkeep
+**/evidence/**
+blackboard/*.json
+blackboard/*.jsonl
+!blackboard/.gitkeep
+*.pcap
+*.pcapng
+*.log
+*.tmp
+
+# VM and local state
+*.qcow2
+*.img
+.lima/
+state.local.yaml
+
+# Language / tooling
+node_modules/
+__pycache__/
+.venv/
+venv/
+*.pyc
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# OS / editor
+Thumbs.db

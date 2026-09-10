@@ -1,0 +1,47 @@
+# Deployment state — edit during bootstrap
+schema_version: "1.0"
+
+host:
+  os: "Parrot OS"
+  architecture: "x86_64"
+  hardware: "MacBook Pro A1278"
+  ram_gb: 16
+  free_disk_gb: null
+  virtualization: "unknown"
+
+execution:
+  lima: "not-installed"
+  qemu: "not-installed"
+  container_runtime: "not-selected"
+
+harnesses:
+  antigravity: "not-installed"
+  grok_build: "not-installed"
+  opencode: "not-installed"
+  goose: "not-installed"
+  codex: "not-installed"
+
+routing:
+  harness_router: "not-deployed"
+  model_gateway: "not-selected"
+  gateway_choice: "litellm-or-omniroute"
+
+security:
+  mcp: "not-configured"
+  aegis: "not-deployed"
+  numbat: "not-deployed"
+
+observability:
+  opentelemetry: "not-deployed"
+  openinference: "not-configured"
+  phoenix: "not-deployed"
+
+experiment:
+  current: "go-install-001"
+  status: "not-started"
+
+git:
+  commit: null
+  dirty: true
+
+updated_at: null

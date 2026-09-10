@@ -1,0 +1,10 @@
+# Template only. Pin the actual image and resources during planning.
+vmType: "qemu"
+cpus: 2
+memory: "2GiB"
+disk: "20GiB"
+
+mounts: []
+
+# Configure networking explicitly according to the approved experiment policy.
+# Do not add host credential or unrestricted host filesystem mounts.
