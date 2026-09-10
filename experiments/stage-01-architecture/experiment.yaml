@@ -1,0 +1,23 @@
+id: stage-01-architecture
+name: Architecture plane contract
+objective: Confirm every architecture plane has a corresponding infra artifact.
+hypothesis: Harness-neutral routing can be represented as committed YAML without selecting a single vendor as the security boundary.
+document: 01-deployment-architecture.md
+stage: 01
+target:
+  command: python3 -m labctl stage run 01
+vm_profile: null
+network_policy: none
+instrumentation:
+  - filesystem
+evidence:
+  raw: true
+  reduced: true
+  hashes: true
+verification:
+  independent_agent: true
+cleanup:
+  delete_vm_after_evidence_preservation: false
+success_criteria:
+  - infra/harness-router.yaml exists
+  - each plane listed in 01-deployment-architecture.md has a file under infra/

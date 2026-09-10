@@ -1,0 +1,25 @@
+id: stage-03-runbook-stack
+name: Lima/QEMU and container runtime files
+objective: Materialize disposable VM profiles and a single container runtime choice.
+hypothesis: Empty host mounts plus qemu vmType are enough to boot a disposable experiment VM.
+document: 03-deployment-runbook.md
+stage: 03
+target:
+  command: python3 -m labctl stage run 03
+vm_profile: minimal
+network_policy: restricted
+instrumentation:
+  - process
+  - filesystem
+evidence:
+  raw: true
+  reduced: true
+  hashes: true
+verification:
+  independent_agent: true
+cleanup:
+  delete_vm_after_evidence_preservation: true
+success_criteria:
+  - "infra/lima/{minimal,default,security-research}.yaml exist"
+  - "mounts: [] in every profile"
+  - container runtime recorded in state.yaml

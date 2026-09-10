@@ -1,0 +1,17 @@
+# Disposable experiment VM — profile: default
+vmType: qemu
+cpus: 2
+memory: "2GiB"
+disk: "20GiB"
+mounts: []
+containerd:
+  system: false
+  user: false
+images:
+  - location: "https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-amd64.img"
+    arch: "x86_64"
+networks:
+  - lima: user-v2
+ssh:
+  localPort: 0
+  loadDotSSHPubKeys: false

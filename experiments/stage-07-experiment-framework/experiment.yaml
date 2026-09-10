@@ -1,0 +1,23 @@
+id: stage-07-experiment-framework
+name: Experiment directory contract
+objective: Verify every experiment has the required files from doc 07.
+hypothesis: A generator can keep 12 experiments consistent with the contract.
+document: 07-experiment-framework.md
+stage: 07
+target:
+  command: python3 -m labctl experiment list
+vm_profile: null
+network_policy: none
+instrumentation:
+  - filesystem
+evidence:
+  raw: true
+  reduced: true
+  hashes: true
+verification:
+  independent_agent: true
+cleanup:
+  delete_vm_after_evidence_preservation: false
+success_criteria:
+  - each experiment has experiment.yaml, README, capture/run/cleanup
+  - VM experiments have lima.yaml

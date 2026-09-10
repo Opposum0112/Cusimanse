@@ -1,0 +1,26 @@
+# Disposable experiment VM — profile: security-research
+# First used by experiments/go-install-001
+vmType: qemu
+cpus: 2
+memory: "2GiB"
+disk: "20GiB"
+mounts: []
+containerd:
+  system: false
+  user: false
+images:
+  - location: "https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-amd64.img"
+    arch: "x86_64"
+networks:
+  - lima: user-v2
+ssh:
+  localPort: 0
+  loadDotSSHPubKeys: false
+provision:
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -euxo pipefail
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get update -y
+      apt-get install -y --no-install-recommends ca-certificates curl git golang-go strace tcpdump iproute2 iputils-ping dnsutils

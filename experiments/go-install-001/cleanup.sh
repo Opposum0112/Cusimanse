@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-echo "Preserve and hash evidence first."
-echo "Then stop and delete the disposable Lima VM."
+echo "cleanup go-install-001"
+echo "1. Preserve and hash evidence"
+echo "2. Stop captures"
+echo "3. Stop and delete the disposable Lima VM if one was used"
+echo "4. Confirm no secrets leaked into Git"

@@ -1,47 +1,38 @@
-# Deployment state — edit during bootstrap
-schema_version: "1.0"
-
+# Deployment state — updated by labctl. Do not store secrets here.
+schema_version: 1.0
 host:
-  os: "Parrot OS"
-  architecture: "x86_64"
-  hardware: "MacBook Pro A1278"
+  os: Parrot OS
+  architecture: x86_64
+  hardware: MacBook Pro A1278
   ram_gb: 16
   free_disk_gb: null
-  virtualization: "unknown"
-
+  virtualization: unknown
 execution:
-  lima: "not-installed"
-  qemu: "not-installed"
-  container_runtime: "not-selected"
-
+  lima: not-installed
+  qemu: not-installed
+  container_runtime: not-selected
 harnesses:
-  antigravity: "not-installed"
-  grok_build: "not-installed"
-  opencode: "not-installed"
-  goose: "not-installed"
-  codex: "not-installed"
-
+  antigravity: not-installed
+  grok_build: not-installed
+  opencode: not-installed
+  goose: not-installed
+  codex: not-installed
 routing:
-  harness_router: "not-deployed"
-  model_gateway: "not-selected"
-  gateway_choice: "litellm-or-omniroute"
-
+  harness_router: not-deployed
+  model_gateway: not-selected
+  gateway_choice: litellm-or-omniroute
 security:
-  mcp: "not-configured"
-  aegis: "not-deployed"
-  numbat: "not-deployed"
-
+  mcp: not-configured
+  aegis: not-deployed
+  numbat: not-deployed
 observability:
-  opentelemetry: "not-deployed"
-  openinference: "not-configured"
-  phoenix: "not-deployed"
-
+  opentelemetry: not-deployed
+  openinference: not-configured
+  phoenix: not-deployed
 experiment:
-  current: "go-install-001"
-  status: "not-started"
-
+  current: go-install-001
+  status: not-started
 git:
   commit: null
   dirty: true
-
-updated_at: null
+updated_at: "2026-09-10T14:50:23Z"

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-echo "Start all required instrumentation before the target command."
-echo "Implement tool-specific collectors after the platform preflight passes."
+echo "capture go-install-001"
+echo "Instrumentation: process syscall filesystem dns network packet security-events"
+echo "Start collectors BEFORE the target. Prefer VM-side strace/tcpdump."
+echo "Do not capture host credential files."

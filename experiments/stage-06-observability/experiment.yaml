@@ -1,0 +1,25 @@
+id: stage-06-observability
+name: AI and runtime observability stack
+objective: Stand up localhost-only Phoenix + OTel collector files and capture helpers.
+hypothesis: Binding 127.0.0.1 prevents accidental public exposure of traces.
+document: 06-observability-and-evidence.md
+stage: 06
+target:
+  command: python3 -m labctl stack up --stack observability --dry-run
+vm_profile: null
+network_policy: localhost-only
+instrumentation:
+  - process
+  - network
+evidence:
+  raw: true
+  reduced: true
+  hashes: true
+verification:
+  independent_agent: true
+cleanup:
+  delete_vm_after_evidence_preservation: false
+success_criteria:
+  - compose binds 127.0.0.1
+  - no secrets in compose files
+  - evidence helpers hash artifacts

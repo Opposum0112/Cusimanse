@@ -1,0 +1,43 @@
+# Local policy gate (Aegis stand-in until the chosen product is wired).
+# Document 04 — Security Model. Default deny for privileged tiers.
+
+schema_version: "1.0"
+mode: monitor
+product: labctl-policy
+not_the_product_boundary: true
+
+tiers:
+  read:
+    default: allow
+    examples: [cat, rg, jq, git-diff]
+  project-write:
+    default: allow
+    workspace_only: true
+  git:
+    default: approval
+  vm:
+    default: controlled
+  network:
+    default: deny
+  credentials:
+    default: deny
+  host-root:
+    default: deny
+
+rules:
+  - id: DENY-HOST-CREDS
+    action: deny
+    match:
+      path_contains: [".ssh", ".aws", ".gnupg", ".config/gh"]
+  - id: DENY-SUDO
+    action: deny
+    match:
+      command_prefix: ["sudo", "pkexec"]
+  - id: DENY-UNRESTRICTED-MOUNT
+    action: deny
+    match:
+      lima_mounts_nonempty: true
+  - id: ALLOW-READ
+    action: allow
+    match:
+      command_prefix: ["cat", "rg", "jq", "yq", "git"]

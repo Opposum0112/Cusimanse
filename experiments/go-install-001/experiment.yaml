@@ -1,16 +1,13 @@
 id: go-install-001
-name: "Go package installation observation"
-objective: "Observe and analyze a pinned Go package installation inside a disposable Lima/QEMU VM."
-hypothesis: "The package installation will produce observable process, filesystem, DNS and network activity that can be correlated with expected Go module behavior."
-
+name: Pinned Go package installation observation
+objective: Observe a pinned in-repo Go install (packages/labprobe) inside a disposable Lima/QEMU VM.
+hypothesis: The install produces correlated process, filesystem, DNS and network evidence that matches Go module behavior.
+document: 08-go-install-001.md
+stage: 08
 target:
-  command: "go install <package>@<version>"
-  package: "<select-during-planning>"
-  version: "<select-during-planning>"
-
+  command: "go install github.com/Opposum0112/ai-security-lab/packages/labprobe@v0.1.0"
 vm_profile: security-research
 network_policy: controlled
-
 instrumentation:
   - process
   - syscall
@@ -19,14 +16,17 @@ instrumentation:
   - network
   - packet
   - security-events
-
 evidence:
   raw: true
   reduced: true
   hashes: true
-
 verification:
   independent_agent: true
-
 cleanup:
   delete_vm_after_evidence_preservation: true
+success_criteria:
+  - workload ran in the disposable VM
+  - evidence captured, hashed, reduced
+  - independent verification recorded
+  - VM deleted after evidence preservation
+  - result committed to Git

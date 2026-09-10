@@ -1,0 +1,24 @@
+id: stage-00-repo-bootstrap
+name: Repository layout bootstrap
+objective: Create the directory contract required by the deployment runbook.
+hypothesis: labctl init produces a complete, hashed layout without secrets.
+document: 03-deployment-runbook.md
+stage: 00
+target:
+  command: python3 -m labctl init
+vm_profile: null
+network_policy: none
+instrumentation:
+  - filesystem
+evidence:
+  raw: true
+  reduced: true
+  hashes: true
+verification:
+  independent_agent: true
+cleanup:
+  delete_vm_after_evidence_preservation: false
+success_criteria:
+  - infra/, policies/, blackboard/, experiments/ exist
+  - no secret files written
+  - PACKAGE-MANIFEST hashes match generated files

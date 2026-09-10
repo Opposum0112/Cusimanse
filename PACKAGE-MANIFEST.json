@@ -1,11 +1,33 @@
 {
   "package": "ai-security-lab",
-  "generated": "2026-09-10",
-  "repository": "https://github.com/Opposum0112/ai-security-lab",
   "license": "MIT",
   "spdx": "MIT",
-  "copyright": "Copyright (c) 2026 Opposum0112",
   "files": [
+    {
+      "path": ".agents/agents/forensics.md",
+      "sha256": "5578e7daeafd79a0429b404da4785ab61de8f7fc306485c06802252e4b896bc0",
+      "bytes": 335
+    },
+    {
+      "path": ".agents/agents/planner.md",
+      "sha256": "108b311353aeaab16b11cf875e8c6a1e4bd4804acf170889e032d488edc00cca",
+      "bytes": 355
+    },
+    {
+      "path": ".agents/agents/security-reviewer.md",
+      "sha256": "25a92387556f119cbdc3675a102e15ec0c98a06451eceb6f64f9fab91511d1fa",
+      "bytes": 382
+    },
+    {
+      "path": ".agents/mcp_config.json",
+      "sha256": "93999dbcd6d247a4bc9635920a820698ace4a90a1d65c43ab959f77204174cdd",
+      "bytes": 124
+    },
+    {
+      "path": ".agents/skills/evidence-reduction.md",
+      "sha256": "dc0e76afe88c348c7b603bc9bb2c735daa796c129b37b7a54cd92e71df9b6737",
+      "bytes": 330
+    },
     {
       "path": ".gitattributes",
       "sha256": "2ad9737ef1c58427a15ff964d6e96437a023e94b407e9109cd055cbc54116a27",
@@ -13,8 +35,8 @@
     },
     {
       "path": ".gitignore",
-      "sha256": "3f57a354dd9d2d4f71a3185322304764333e8aaeab766c841e3923f6900cca97",
-      "bytes": 492
+      "sha256": "d43ec53c1318e91c55ca70058f481c164c4c0322f0a91211276337ff95704613",
+      "bytes": 553
     },
     {
       "path": "01-deployment-architecture.md",
@@ -88,8 +110,8 @@
     },
     {
       "path": "README.md",
-      "sha256": "26bb7ff710b862b650d599684d4a3f724c7ecd5bd8bc51d74984b80903b60392",
-      "bytes": 9208
+      "sha256": "54feec00dc2a6efac60df458e491e46f22e1e301f945631782b7699e367c2de2",
+      "bytes": 10288
     },
     {
       "path": "SECURITY.md",
@@ -142,9 +164,44 @@
       "bytes": 1
     },
     {
+      "path": "blackboard/README.md",
+      "sha256": "2c782299b59974333b1e78741c10b51499a20a5508ba461ee8fa9a0e8d8444c4",
+      "bytes": 367
+    },
+    {
+      "path": "blackboard/evidence-index.example.json",
+      "sha256": "4fdb84b83329f1b4a34b37131d778eef4f892a19ee2414ce42c896e5177fb8a4",
+      "bytes": 207
+    },
+    {
+      "path": "blackboard/findings.example.jsonl",
+      "sha256": "5e91e58699db736945a4021aaad2d0624194e27ad6f041d70dafa82eacd54f03",
+      "bytes": 111
+    },
+    {
+      "path": "blackboard/plan.example.json",
+      "sha256": "89e865c2188e58e9b079654072807f5bdbebe5371f6a3e03679ad478e7bc056c",
+      "bytes": 375
+    },
+    {
+      "path": "blackboard/state.example.json",
+      "sha256": "00f4519fc6d6bdbb1628417da68b59be06bd3bfbf3fcd98a834f2560a66ac3bc",
+      "bytes": 129
+    },
+    {
+      "path": "blackboard/tasks.example.jsonl",
+      "sha256": "9e0dddc4c10dd3aa53653587cd2b7a16f6270282f27f31d6c6bb0bd106cfb461",
+      "bytes": 179
+    },
+    {
       "path": "blackboard-schema.md",
       "sha256": "8fa3bfd1097ea4a055b23b4415249a363c91a55215d6bc1a83ff5ce2baa5d2fd",
       "bytes": 1149
+    },
+    {
+      "path": "events/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
     },
     {
       "path": "evidence/.gitkeep",
@@ -153,38 +210,788 @@
     },
     {
       "path": "experiments/go-install-001/README.md",
-      "sha256": "7eabd3ff4b5ddd3f09839dcb21104a0de9a19f235d2177dacb27f12581966d47",
-      "bytes": 227
+      "sha256": "967c3b896b529f2bd09d12f1478f85dc4a25b57110048320763f3c708b388bca",
+      "bytes": 1271
+    },
+    {
+      "path": "experiments/go-install-001/analysis/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/go-install-001/baseline.sh",
+      "sha256": "b2c7435b15e4e94f0382818b782abf6db94315b907f58e2462f02f72bebcbdd5",
+      "bytes": 184
     },
     {
       "path": "experiments/go-install-001/capture.sh",
-      "sha256": "2711382d90dd50f14fd3627d0fde1d250f3f86c9ba2acdf609693b7b4725bac3",
-      "bytes": 187
+      "sha256": "1b535334045d7643105b812a13c38503a1839092e3242d6702d27cf59a41f7c8",
+      "bytes": 273
     },
     {
       "path": "experiments/go-install-001/cleanup.sh",
-      "sha256": "7e5d46da2b33a5ece0f66985298b8208f5c3deac927edd55f2bd10126b3b307d",
-      "bytes": 132
+      "sha256": "5966d5776c4400dde10ff7018c0a57abbc560545afe94622eee0f024b3a8f7df",
+      "bytes": 239
     },
     {
       "path": "experiments/go-install-001/experiment.yaml",
-      "sha256": "4faaeef31282776501f14549a9b163108a08ad973217ae3dbe778d8923b2d102",
-      "bytes": 775
+      "sha256": "c63bd60c90a00b7b35652186ed354262f70101d2090d1a3336f38415a35b62b4",
+      "bytes": 945
+    },
+    {
+      "path": "experiments/go-install-001/hypothesis.md",
+      "sha256": "23e3832e9b246a423c8a61a1f747880d4995df17e4acc0ae57f99b3fc397ee1d",
+      "bytes": 320
     },
     {
       "path": "experiments/go-install-001/lima.yaml",
-      "sha256": "3992c559f8160e6e1de9e8688c1f9d492ec4f39c9afcc30c32fdb7b5193d9300",
-      "bytes": 282
+      "sha256": "0ac2dfdf95777bb8321d804e6d8491f50a05b0abacb5d41bc8a82e116e534a69",
+      "bytes": 414
+    },
+    {
+      "path": "experiments/go-install-001/manifests/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/go-install-001/reports/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
     },
     {
       "path": "experiments/go-install-001/run.sh",
-      "sha256": "ab83394c67fb920cadceb4c1122ade1b4655088cee2fd3f7ae9e4a6cb333bac1",
-      "bytes": 202
+      "sha256": "30ebd16abd3e10994e496048db7873ec803eac84af5c24d719ead981e4c942da",
+      "bytes": 865
+    },
+    {
+      "path": "experiments/go-install-001/setup.sh",
+      "sha256": "8549d77ca319262d28f8450d80c72b7ded276f313a1a2dea64fe77d7b6797846",
+      "bytes": 138
+    },
+    {
+      "path": "experiments/stage-00-repo-bootstrap/README.md",
+      "sha256": "334259b2b1c6fedfa58b080f206d91da3c2655e295465379339a81646d679475",
+      "bytes": 876
+    },
+    {
+      "path": "experiments/stage-00-repo-bootstrap/analysis/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-00-repo-bootstrap/baseline.sh",
+      "sha256": "a92ac8b15235e167ced9d0f1d6ee5c56a635ffeb303730e9e35167f0970bc252",
+      "bytes": 193
+    },
+    {
+      "path": "experiments/stage-00-repo-bootstrap/capture.sh",
+      "sha256": "3f6f1efa37af6894c3a84428c293daa63fa5bad02f072926baf423aa9556d53d",
+      "bytes": 231
+    },
+    {
+      "path": "experiments/stage-00-repo-bootstrap/cleanup.sh",
+      "sha256": "91c7708ca8e7cd0f676ca8e65fccdf1e3227239ca0cd8d931716487f62f2b43c",
+      "bytes": 248
+    },
+    {
+      "path": "experiments/stage-00-repo-bootstrap/experiment.yaml",
+      "sha256": "e2dd3564a522e99a0637bc31ffd73c0cc7c18c2dd29b468d17d9a37756f8baba",
+      "bytes": 672
+    },
+    {
+      "path": "experiments/stage-00-repo-bootstrap/hypothesis.md",
+      "sha256": "3ec29016deb84e33528196787a2bd9c4fc0d0ea191d4803b4ba2afe819aba08f",
+      "bytes": 273
+    },
+    {
+      "path": "experiments/stage-00-repo-bootstrap/manifests/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-00-repo-bootstrap/reports/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-00-repo-bootstrap/run.sh",
+      "sha256": "47fa351fe29defdae370f7706002e38e1a84f706830b0713cf312a8edd1a203b",
+      "bytes": 215
+    },
+    {
+      "path": "experiments/stage-00-repo-bootstrap/setup.sh",
+      "sha256": "5c4d1dd833780a5e98163310d456728e9368c13881f28fab6367cd1851151914",
+      "bytes": 147
+    },
+    {
+      "path": "experiments/stage-01-architecture/README.md",
+      "sha256": "425d316e82d0cda925775da2373014e3babc6ab1bb1f45818ddbcc8dcc49eeb6",
+      "bytes": 937
+    },
+    {
+      "path": "experiments/stage-01-architecture/analysis/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-01-architecture/baseline.sh",
+      "sha256": "8be10c3e7707ab33f266108562bb1cc2e31c984a1e2e6479380eb0869ea9c801",
+      "bytes": 191
+    },
+    {
+      "path": "experiments/stage-01-architecture/capture.sh",
+      "sha256": "378c18ffc7356e2fcf9020663e67dd3fca5510f899c534b281a5aa9a4025f3ca",
+      "bytes": 229
+    },
+    {
+      "path": "experiments/stage-01-architecture/cleanup.sh",
+      "sha256": "b37e95ea1084de2549403a8fd7506b489bf704d9e1d9e9cb79d6f257a3f25879",
+      "bytes": 246
+    },
+    {
+      "path": "experiments/stage-01-architecture/experiment.yaml",
+      "sha256": "36cc33af5e2bb165faad5269c38efded7f8f433bc75fd5d2f0e9e665993b6fd7",
+      "bytes": 726
+    },
+    {
+      "path": "experiments/stage-01-architecture/hypothesis.md",
+      "sha256": "331ee08b287528c6539af53620fc04aa08485d3e595a91c74c11f03a52848146",
+      "bytes": 330
+    },
+    {
+      "path": "experiments/stage-01-architecture/manifests/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-01-architecture/reports/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-01-architecture/run.sh",
+      "sha256": "c8f6fdefd38f774e8c7e81004143fccbb4713e70b74f7ff027648c6e029575a4",
+      "bytes": 221
+    },
+    {
+      "path": "experiments/stage-01-architecture/setup.sh",
+      "sha256": "5319fddf67b7d0669a384739d8cbd3898fde82109f077eddb0549d9ca6737eaa",
+      "bytes": 145
+    },
+    {
+      "path": "experiments/stage-02-host-preflight/README.md",
+      "sha256": "674360aa59449a44742668ca548eff60316ed4e1c578809e6637a7a9bd7b7812",
+      "bytes": 889
+    },
+    {
+      "path": "experiments/stage-02-host-preflight/analysis/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-02-host-preflight/baseline.sh",
+      "sha256": "f7bb2d083d090baff0e6188e1f5d015afa655f1a5759d74c483b373ae1825442",
+      "bytes": 193
+    },
+    {
+      "path": "experiments/stage-02-host-preflight/capture.sh",
+      "sha256": "e86a164826e36e0e26a1c9a3fed0353201731f6ade915d38ae072d2048b5c138",
+      "bytes": 239
+    },
+    {
+      "path": "experiments/stage-02-host-preflight/cleanup.sh",
+      "sha256": "55c3a9b59f0a8da1e6b9d9607caf00f3de4e5f5894f62c4c330650887951eb87",
+      "bytes": 248
+    },
+    {
+      "path": "experiments/stage-02-host-preflight/experiment.yaml",
+      "sha256": "5e8da60d44ed2294020f478a1f0ecf2ca45bd720afb3d09fe1949b0915e26ab6",
+      "bytes": 687
+    },
+    {
+      "path": "experiments/stage-02-host-preflight/hypothesis.md",
+      "sha256": "34be56364e0a501062823eaa9e1ced9e06efaa52fcbb54649b7f3970afedaa72",
+      "bytes": 291
+    },
+    {
+      "path": "experiments/stage-02-host-preflight/manifests/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-02-host-preflight/reports/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-02-host-preflight/run.sh",
+      "sha256": "43958a901d122f654b367423961c3ab6d21bd87e640df69d1bec3dd72f162589",
+      "bytes": 220
+    },
+    {
+      "path": "experiments/stage-02-host-preflight/setup.sh",
+      "sha256": "dd4d49acf2c369033ada1c125dcf12faa630847861c900a7fa7c10f7da257380",
+      "bytes": 147
+    },
+    {
+      "path": "experiments/stage-03-runbook-stack/README.md",
+      "sha256": "77a68104c24da619fb780a72e98332c6cee31d2bed0c1feec1fa5dce8cc61f99",
+      "bytes": 931
+    },
+    {
+      "path": "experiments/stage-03-runbook-stack/analysis/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-03-runbook-stack/baseline.sh",
+      "sha256": "1be05d36a6f0011b28220e4bb521a879649ba056f525a1b5eaaf3ad667abaea1",
+      "bytes": 192
+    },
+    {
+      "path": "experiments/stage-03-runbook-stack/capture.sh",
+      "sha256": "eb8ef86eef5e3d916fdfd9d06397a0399c634e37f518919c5c5c411d2b66253b",
+      "bytes": 238
+    },
+    {
+      "path": "experiments/stage-03-runbook-stack/cleanup.sh",
+      "sha256": "d6c99332a51cd816ed75176b4b5353867808d33e0c309be96a41a33938e7e729",
+      "bytes": 247
+    },
+    {
+      "path": "experiments/stage-03-runbook-stack/experiment.yaml",
+      "sha256": "7161f6e43b0ad2eebccc751ea7e0fb9eeed2f34fd27988216bcb96571c1e455c",
+      "bytes": 745
+    },
+    {
+      "path": "experiments/stage-03-runbook-stack/hypothesis.md",
+      "sha256": "f6cced3b98e867db9d7700e1734dcf861392a1e67d778f531ae98a0bb5f234a8",
+      "bytes": 291
+    },
+    {
+      "path": "experiments/stage-03-runbook-stack/lima.yaml",
+      "sha256": "8f73afff3d87b7ae2b1044f9ee00b671cee44cfae5847dc6dfa12f643173a6a0",
+      "bytes": 412
+    },
+    {
+      "path": "experiments/stage-03-runbook-stack/manifests/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-03-runbook-stack/reports/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-03-runbook-stack/run.sh",
+      "sha256": "c6ed85bfc91afb829cbc60b629b5b21a82776f3ab4da4b783a20da2dce76c3d1",
+      "bytes": 222
+    },
+    {
+      "path": "experiments/stage-03-runbook-stack/setup.sh",
+      "sha256": "0498f8c0e48ceedd8a61d9d2f72b88eba41ff3761ad1fc0b8c024aadd87fad7d",
+      "bytes": 146
+    },
+    {
+      "path": "experiments/stage-04-security-model/README.md",
+      "sha256": "1d69f62511910cac93e9709727106ba860cffc75b9b2eab8b5036e637ed8defd",
+      "bytes": 875
+    },
+    {
+      "path": "experiments/stage-04-security-model/analysis/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-04-security-model/baseline.sh",
+      "sha256": "eea5b0558fcbd5a6619ab1c57cb898bd780f9878e156ade8f9daf0573583013e",
+      "bytes": 193
+    },
+    {
+      "path": "experiments/stage-04-security-model/capture.sh",
+      "sha256": "75f6c94df96ab768689cdef87d5e721b48ec78ed8386ac50812ef70a8ecedcec",
+      "bytes": 236
+    },
+    {
+      "path": "experiments/stage-04-security-model/cleanup.sh",
+      "sha256": "adee07876e0dce107ee11b15ff930a4451b77b1386b11e2d4b769792dec5ddc8",
+      "bytes": 248
+    },
+    {
+      "path": "experiments/stage-04-security-model/experiment.yaml",
+      "sha256": "6c18bbc568b9d5b058147d62db9106002b0f5cc868879feb972d619d6d21fb06",
+      "bytes": 675
+    },
+    {
+      "path": "experiments/stage-04-security-model/hypothesis.md",
+      "sha256": "961cece912bf621b78778065b48cba4365d89dc49eb4fac28e6a98ed99f5a7f0",
+      "bytes": 281
+    },
+    {
+      "path": "experiments/stage-04-security-model/manifests/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-04-security-model/reports/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-04-security-model/run.sh",
+      "sha256": "57b04571677fc99492b6d96cdd9a5f9f0ed31d7ca0a4c7411b2230837ce03330",
+      "bytes": 242
+    },
+    {
+      "path": "experiments/stage-04-security-model/setup.sh",
+      "sha256": "c8743b4abeb282021b5367b69bd374bff045d4b64dde759b9a8d78e4c0da2ede",
+      "bytes": 147
+    },
+    {
+      "path": "experiments/stage-05-multi-agent/README.md",
+      "sha256": "971522f42908f43d4833617c7e06198a0b8ce7a3e35b5a4ac679205fe28620dc",
+      "bytes": 914
+    },
+    {
+      "path": "experiments/stage-05-multi-agent/analysis/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-05-multi-agent/baseline.sh",
+      "sha256": "86353ba160a64f0d86ba064faddf0f5d1dabbd780346d8d8ad4d66a7525ff56b",
+      "bytes": 190
+    },
+    {
+      "path": "experiments/stage-05-multi-agent/capture.sh",
+      "sha256": "d753881d5ed40bcc097cfa3a9878a6d900346885e523179bce2443ed84f48e75",
+      "bytes": 228
+    },
+    {
+      "path": "experiments/stage-05-multi-agent/cleanup.sh",
+      "sha256": "58a198337512c1c6d0c1a2b319c963d75336f6e985f854f1204b3a9b65f39b5f",
+      "bytes": 245
+    },
+    {
+      "path": "experiments/stage-05-multi-agent/experiment.yaml",
+      "sha256": "c6be2c6b5e1a49f50ecd1df65647d2998db83f3572144708f865333a35bb77fe",
+      "bytes": 701
+    },
+    {
+      "path": "experiments/stage-05-multi-agent/hypothesis.md",
+      "sha256": "9b7ed0af61ebd5d8c893c285a9ce58af2b83dd12636da06283a73c18bc968044",
+      "bytes": 291
+    },
+    {
+      "path": "experiments/stage-05-multi-agent/manifests/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-05-multi-agent/reports/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-05-multi-agent/run.sh",
+      "sha256": "d9b34c90f7153b60b00dac485db3cb2dbd1f2a177a684e252cf44d33d03680e8",
+      "bytes": 220
+    },
+    {
+      "path": "experiments/stage-05-multi-agent/setup.sh",
+      "sha256": "da339ebc2f37de7e74e3e15b63374bac3e7164b7e9257c0981380cdb27c61511",
+      "bytes": 144
+    },
+    {
+      "path": "experiments/stage-06-observability/README.md",
+      "sha256": "0788cfed7aaca61e553d77a67c106d5fdb959069efa64b448211688197f64b90",
+      "bytes": 924
+    },
+    {
+      "path": "experiments/stage-06-observability/analysis/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-06-observability/baseline.sh",
+      "sha256": "ce7aec5fbee03346740d3ccb4a60442a69bb048558e56ff63c9962e5af857d97",
+      "bytes": 192
+    },
+    {
+      "path": "experiments/stage-06-observability/capture.sh",
+      "sha256": "3e09df233671aae13a2ac7f48c7848e605264b64c8b6bcc4914a96d81b4d4883",
+      "bytes": 235
+    },
+    {
+      "path": "experiments/stage-06-observability/cleanup.sh",
+      "sha256": "58d91ccecab1c908602049456097e0db928305b5308ac698706bdb33c5291405",
+      "bytes": 247
+    },
+    {
+      "path": "experiments/stage-06-observability/experiment.yaml",
+      "sha256": "b16d4a9bf04325920487a2a585d685829ce45ff995744ff683d168d3004e5387",
+      "bytes": 715
+    },
+    {
+      "path": "experiments/stage-06-observability/hypothesis.md",
+      "sha256": "89ea4b1924ce159edde89f61dd88ae94de259338fc7790eb5299e5fa479c43ad",
+      "bytes": 274
+    },
+    {
+      "path": "experiments/stage-06-observability/manifests/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-06-observability/reports/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-06-observability/run.sh",
+      "sha256": "5d2fd6461d54a62f2f8527677c5c5001250169a6dcac1cd40f2f78740fadabe7",
+      "bytes": 250
+    },
+    {
+      "path": "experiments/stage-06-observability/setup.sh",
+      "sha256": "29f0d6b5f5e10acdd3d7a42c3c1bece6b3b79340b0429cdb4fb3b7e8e76e55e6",
+      "bytes": 146
+    },
+    {
+      "path": "experiments/stage-07-experiment-framework/README.md",
+      "sha256": "b87d385b462bdba39956ad45c0dcf70e81f5f5e2ab62cdd68352afd61113c0bb",
+      "bytes": 867
+    },
+    {
+      "path": "experiments/stage-07-experiment-framework/analysis/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-07-experiment-framework/baseline.sh",
+      "sha256": "8131a1db1f6033a188045c72e332730a181e5d41cf27c7fcb6de5cfb80e7c80a",
+      "bytes": 199
+    },
+    {
+      "path": "experiments/stage-07-experiment-framework/capture.sh",
+      "sha256": "7eb004d17bf6e22991b82ffe4ad0a7283ed469ba6623e681a49ea3e65f752923",
+      "bytes": 237
+    },
+    {
+      "path": "experiments/stage-07-experiment-framework/cleanup.sh",
+      "sha256": "b4988f1c27a5a97742ecfdb61836e0f09fbca9abceafe4c2fcd4cb9bda301c6e",
+      "bytes": 254
+    },
+    {
+      "path": "experiments/stage-07-experiment-framework/experiment.yaml",
+      "sha256": "d91d390a91a98fc8a2a145719b3d54222e437761df356736b9fa48a795062358",
+      "bytes": 659
+    },
+    {
+      "path": "experiments/stage-07-experiment-framework/hypothesis.md",
+      "sha256": "c13f11ceb743e1a1dac83d2441a09734ea7d23079ae1f3cc0292173f937b009f",
+      "bytes": 275
+    },
+    {
+      "path": "experiments/stage-07-experiment-framework/manifests/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-07-experiment-framework/reports/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-07-experiment-framework/run.sh",
+      "sha256": "8ffd86bafe3de1c1312bfd0e18ba6b45e947b3a256d3ece650c9aae2f2292c8d",
+      "bytes": 232
+    },
+    {
+      "path": "experiments/stage-07-experiment-framework/setup.sh",
+      "sha256": "737480848abd59f5057b34c4f5af1e9178dd4231bcb2723e32807855d2dd238c",
+      "bytes": 153
+    },
+    {
+      "path": "experiments/stage-09-operations/README.md",
+      "sha256": "ff8c97a40654c4ec9fc6025a7a34173dc233b6bcf6d2ea98eab2dd34e3223450",
+      "bytes": 891
+    },
+    {
+      "path": "experiments/stage-09-operations/analysis/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-09-operations/baseline.sh",
+      "sha256": "883f41193412239e3bdd9ed1c1b1375c413621f794827f91b3b13c6edb4e5b14",
+      "bytes": 189
+    },
+    {
+      "path": "experiments/stage-09-operations/capture.sh",
+      "sha256": "1b7c2f96f7362f207a52dfa0cfa0c6cd165fc7704ae49133bdb54959ec577e67",
+      "bytes": 235
+    },
+    {
+      "path": "experiments/stage-09-operations/cleanup.sh",
+      "sha256": "b392181aae4af5a64ee2d5dd03596fa34055f9cc38c7a3bd1cf46c91d5118374",
+      "bytes": 244
+    },
+    {
+      "path": "experiments/stage-09-operations/experiment.yaml",
+      "sha256": "10a002f9af16e047088ddbcdcca707667aa3eaac9e9f8645490b94447eb173a2",
+      "bytes": 680
+    },
+    {
+      "path": "experiments/stage-09-operations/hypothesis.md",
+      "sha256": "e8f79143d55671a63c048fc236e52df04fddcf43146e42e2fa5d6f17cdfc17fa",
+      "bytes": 325
+    },
+    {
+      "path": "experiments/stage-09-operations/manifests/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-09-operations/reports/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-09-operations/run.sh",
+      "sha256": "676ff5ee614cbee3c985f780768670d38eba0428fb85f4e85973ff222f0155b4",
+      "bytes": 213
+    },
+    {
+      "path": "experiments/stage-09-operations/setup.sh",
+      "sha256": "27ddfe3c617e5dd6b4d1b3bb51f4b3cac52e36d01e661d9c9474ee390ee2f5a0",
+      "bytes": 143
+    },
+    {
+      "path": "experiments/stage-10-acceptance/README.md",
+      "sha256": "bd661a2442090721a996deea82b55aa636c52799a1b7a3cd49b8e3ef548199da",
+      "bytes": 866
+    },
+    {
+      "path": "experiments/stage-10-acceptance/analysis/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-10-acceptance/baseline.sh",
+      "sha256": "769c83912c0c7b5c1de09d853bbeb9c363bcbe90c3657600783a6cba732292e3",
+      "bytes": 189
+    },
+    {
+      "path": "experiments/stage-10-acceptance/capture.sh",
+      "sha256": "23dc5d748d10285262c515c6f6737a0fad8a039182abe7fac536313ee999cb36",
+      "bytes": 227
+    },
+    {
+      "path": "experiments/stage-10-acceptance/cleanup.sh",
+      "sha256": "cdb49936a9b915c4039893dfdab6c8861e464f5c3f2349b1fffe1138868ac5e4",
+      "bytes": 244
+    },
+    {
+      "path": "experiments/stage-10-acceptance/experiment.yaml",
+      "sha256": "096d79590aee543409b24501375ca19a331eac74c0f01a3f1bf85a1b13878652",
+      "bytes": 653
+    },
+    {
+      "path": "experiments/stage-10-acceptance/hypothesis.md",
+      "sha256": "8d272a01f9320e2b3861a69db349d10109daeaf322981ea165b1350ce19c0ad3",
+      "bytes": 280
+    },
+    {
+      "path": "experiments/stage-10-acceptance/manifests/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-10-acceptance/reports/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-10-acceptance/run.sh",
+      "sha256": "8615cce9d79d91f23b0717d8b54f672f087ff5c98d78be7b6d7242cdb1784c16",
+      "bytes": 213
+    },
+    {
+      "path": "experiments/stage-10-acceptance/setup.sh",
+      "sha256": "ea1b35d4dfd08b0231cfdb502793552f5039d751283fb98c5d75086cf1ca47c4",
+      "bytes": 143
+    },
+    {
+      "path": "experiments/stage-11-antigravity/README.md",
+      "sha256": "3f13d97d81cea61ff9b99d6a375a826fe308fd9731b14fe42867f11f1653437c",
+      "bytes": 965
+    },
+    {
+      "path": "experiments/stage-11-antigravity/analysis/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-11-antigravity/baseline.sh",
+      "sha256": "11415b9ea6728b7fbfdf020de7a38316bb869f2dcd38d446062f06616bcdbd68",
+      "bytes": 190
+    },
+    {
+      "path": "experiments/stage-11-antigravity/capture.sh",
+      "sha256": "9808d1accd0dfdea3df546ea06ec5e85ccdb52a76166d045f255e4448008f6a5",
+      "bytes": 228
+    },
+    {
+      "path": "experiments/stage-11-antigravity/cleanup.sh",
+      "sha256": "f1ab9ae41a1bdf41209e929b8ff2bad4f5fb736ee96efeb915fee51e9273afe0",
+      "bytes": 245
+    },
+    {
+      "path": "experiments/stage-11-antigravity/experiment.yaml",
+      "sha256": "3895b7c8673ac947d144677d813ef3698ba7a98377a64aafb26eed15130440b2",
+      "bytes": 748
+    },
+    {
+      "path": "experiments/stage-11-antigravity/hypothesis.md",
+      "sha256": "f14036e95d8c0f2428ddca3eefed4f658e30f3279812a8b059a92643d524a1cc",
+      "bytes": 284
+    },
+    {
+      "path": "experiments/stage-11-antigravity/manifests/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-11-antigravity/reports/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "experiments/stage-11-antigravity/run.sh",
+      "sha256": "129fc44123eb12291593b5909af8b8ab2b382844e505b5ca78a1212ea3f720b9",
+      "bytes": 220
+    },
+    {
+      "path": "experiments/stage-11-antigravity/setup.sh",
+      "sha256": "316628872e1f21439f91c581ea4fc8305e00b94bba60bdc1db59bf1221b3a0eb",
+      "bytes": 144
+    },
+    {
+      "path": "infra/README.md",
+      "sha256": "fb3463488f90392625a1ca10e46414e7f03fa10a1ce5e0c29210a550dc5e2b57",
+      "bytes": 879
+    },
+    {
+      "path": "infra/aegis/policy.yaml",
+      "sha256": "8748d6eb9337cee71562baef42181f6c5b72ee4bb8c00678ff5ba104ff4a9d3d",
+      "bytes": 923
+    },
+    {
+      "path": "infra/gateway/.env.example",
+      "sha256": "a8cb7f5130683bece53e45ac64ba440f2056c7a0eab0c2a7edb4d7ab94202a78",
+      "bytes": 162
+    },
+    {
+      "path": "infra/gateway/docker-compose.yml",
+      "sha256": "a97172c59cf07bbb03dd6bc9ca5217e12182f4b0e8565dc1c7e3a10ad174b0ff",
+      "bytes": 608
+    },
+    {
+      "path": "infra/gateway/litellm_config.yaml",
+      "sha256": "1115b57ebca94f0b70c81177f2c80f270a68e92b65fa1229acfa36dd4dab869c",
+      "bytes": 949
+    },
+    {
+      "path": "infra/harness-router.yaml",
+      "sha256": "8d7946943d8753d17863afd9dfc3910fd197ff6d874529fa23ed8bd1de80764c",
+      "bytes": 730
+    },
+    {
+      "path": "infra/instrumentation/start-capture.sh",
+      "sha256": "7c0b3bc523a4dfd7a56ae83b47a3fbd98f679b4d0f47ffa2d4dbc2165d570740",
+      "bytes": 484
+    },
+    {
+      "path": "infra/instrumentation/stop-capture.sh",
+      "sha256": "06f5d758c5abec3b2cfb964dc6ba1e4d5c77cb112905444fc1a0500986404a4f",
+      "bytes": 257
+    },
+    {
+      "path": "infra/lima/default.yaml",
+      "sha256": "fceb6976eda68a745bd9d8f2554df1aede616a5ffb5a4b66cd82cfd625f7e1fb",
+      "bytes": 363
+    },
+    {
+      "path": "infra/lima/minimal.yaml",
+      "sha256": "b15a73ddbc3d1c85dcf3beca15be46e483843e5f94e3a474d00f1a38207b2cc1",
+      "bytes": 560
+    },
+    {
+      "path": "infra/lima/security-research.yaml",
+      "sha256": "440f8750987613abd8e77e81a452097d4196ef44e96c1c4d8c7003c62c46a3af",
+      "bytes": 699
+    },
+    {
+      "path": "infra/mcp/mcp_config.json",
+      "sha256": "a8b878af2dbd4916fd52303218c3e16e266a626e09d68f580a3e842495bdcbe6",
+      "bytes": 421
+    },
+    {
+      "path": "infra/numbat/config.yaml",
+      "sha256": "19da4c36f9d354e12d4aec6e7fdfb48d660574cfe0d264c01a22953dca5eec69",
+      "bytes": 372
+    },
+    {
+      "path": "infra/observability/.env.example",
+      "sha256": "103bf3852dcfab0c328f4e7629d84abf33f225e19c089a98b17ce8849b718517",
+      "bytes": 118
+    },
+    {
+      "path": "infra/observability/docker-compose.yml",
+      "sha256": "06ce4384570d8152d4ab84bfe8e4edf379437531cfc9370d5f28beef774d5b00",
+      "bytes": 592
+    },
+    {
+      "path": "infra/observability/otel-collector.yaml",
+      "sha256": "42e63d9aeb8e900dc0421a06bff23623a9e125a0994cacde9e68a624fd6ff1f3",
+      "bytes": 469
+    },
+    {
+      "path": "infra/versions.env",
+      "sha256": "6473f710d1995409db65702629ef4b014a970ee7f2ebcc8f5fc1cfc980a251c0",
+      "bytes": 393
     },
     {
       "path": "manifests/.gitkeep",
       "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
       "bytes": 1
+    },
+    {
+      "path": "packages/labprobe/README.md",
+      "sha256": "ba5988c4d906a5a8895c030a45a430acfabc88889872a1dfcb1f4eb31727424f",
+      "bytes": 677
+    },
+    {
+      "path": "packages/labprobe/go.mod",
+      "sha256": "78de43a968c764c833a6c6b01e44aaf10a15d3506382048eed164e05858d2ccc",
+      "bytes": 73
+    },
+    {
+      "path": "packages/labprobe/main.go",
+      "sha256": "eb6e94e17e6d046c2e36653167764c902be4af16a768d1af2cf1b57e31a9b68d",
+      "bytes": 950
+    },
+    {
+      "path": "policies/mount-denylist.yaml",
+      "sha256": "6bb3d425be31b3cb8d3e8cd054b352761a692e21f4d63f6282e12c6212d8a61f",
+      "bytes": 351
+    },
+    {
+      "path": "policies/permission-tiers.yaml",
+      "sha256": "82bae7991089981c51c9d13331f1e6f33fa5d28576f6ee9b698f7ccc1fa96fd8",
+      "bytes": 489
     },
     {
       "path": "profiles.yaml",
@@ -195,6 +1002,106 @@
       "path": "reports/.gitkeep",
       "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
       "bytes": 1
+    },
+    {
+      "path": "scripts/README.md",
+      "sha256": "bb4d76be40a8ff2d6058ffa4705fb7ca126c633643470f131f102a4be2d7921d",
+      "bytes": 2599
+    },
+    {
+      "path": "scripts/bin/labctl",
+      "sha256": "f8899320df441d6ea2cee9efa412013a3cdc11175b3826791da2601a6db68171",
+      "bytes": 205
+    },
+    {
+      "path": "scripts/labctl/__init__.py",
+      "sha256": "81bce4156f734f6b261024993ff30b40c89d3f71a8585890f7a3111cb8b0ab8c",
+      "bytes": 105
+    },
+    {
+      "path": "scripts/labctl/__main__.py",
+      "sha256": "6bcf7248c405c886d11c2bb688d51913d98cb74478d62811274af3a239758dde",
+      "bytes": 85
+    },
+    {
+      "path": "scripts/labctl/accept.py",
+      "sha256": "3d4eb0e77ec7b63bb4bb894205c3524becb770e3d057e9f2b8448821d409a322",
+      "bytes": 6136
+    },
+    {
+      "path": "scripts/labctl/catalog.py",
+      "sha256": "1664a6003b95b7dfe3fe8df79969fa4487eb0d30b6cfc6991ddfc45a810784b9",
+      "bytes": 14452
+    },
+    {
+      "path": "scripts/labctl/cli.py",
+      "sha256": "5e94eba1366133c886ade5a353586124b734461d4de7871199b2cbfe16c10c6c",
+      "bytes": 13806
+    },
+    {
+      "path": "scripts/labctl/experiments.py",
+      "sha256": "3c73a868241c0c9f7ceeefc1c4aeb405173b9dcba3a1ac5b016046e19ebc6587",
+      "bytes": 6717
+    },
+    {
+      "path": "scripts/labctl/files.py",
+      "sha256": "4861be58671e6043637c707576125dd37d3792dada3a708fcd15337b87a9fbc9",
+      "bytes": 1467
+    },
+    {
+      "path": "scripts/labctl/hashing.py",
+      "sha256": "bb4da173478147ea75736a85c6fca6b71b94b7a25c91643c284dd6978f1a4631",
+      "bytes": 1034
+    },
+    {
+      "path": "scripts/labctl/host.py",
+      "sha256": "e96a7eeaed933a4461d13f6fad16215f2facfd30000f5960a9afb8e111f4ccf2",
+      "bytes": 4815
+    },
+    {
+      "path": "scripts/labctl/infra.py",
+      "sha256": "5e0ddd5fa9a38fe03d85b38ebf41033ef8325de8f78d3ecd2e6f00e3918430c2",
+      "bytes": 4862
+    },
+    {
+      "path": "scripts/labctl/paths.py",
+      "sha256": "5d2c078f641eb9596ef6fd5ef8d2687cf5c3f937014bb96b279848a509823c01",
+      "bytes": 896
+    },
+    {
+      "path": "scripts/labctl/policy.py",
+      "sha256": "c6d922b439894dd5d5f624f16c2d686f8f85913d99c53e697a752af483977fff",
+      "bytes": 1995
+    },
+    {
+      "path": "scripts/labctl/statefile.py",
+      "sha256": "c0083a7cef8e37ac257821f732244d3abed3810ac4b952f5e4a94e700cd216f1",
+      "bytes": 1449
+    },
+    {
+      "path": "scripts/labctl/templates.py",
+      "sha256": "2887f1c5e5ecdd12a72698d1db340bcf4500b51fed45484bb9dbb1d9d1b556f7",
+      "bytes": 13575
+    },
+    {
+      "path": "scripts/labctl/yamlio.py",
+      "sha256": "72b2309932ca3052d192a00ef7872b1eaa6aca0197b12fd8b4be8e6312531ca2",
+      "bytes": 5716
+    },
+    {
+      "path": "scripts/lib/common.sh",
+      "sha256": "31ee62560ce6e1a7187ee725a1e582bfc7673807a76893e8be235378da110b3f",
+      "bytes": 567
+    },
+    {
+      "path": "scripts/lib/evidence.sh",
+      "sha256": "0723a70465c0da5fc649ae9c91acafb472b15c88213c50caf98a35ce6347bc03",
+      "bytes": 257
+    },
+    {
+      "path": "scripts/tests/test_labctl.py",
+      "sha256": "14c5390038958257f5736724d96c5ab93e888f44c01aef1538540b7846d6c50b",
+      "bytes": 4590
     },
     {
       "path": "skills-registry.md",

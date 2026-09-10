@@ -1,0 +1,26 @@
+# HarnessRouter — document 01 / 05. Preferred roles, not a security boundary.
+schema_version: "1.0"
+
+roles:
+  planner: antigravity
+  researcher: opencode
+  builder: grok-build
+  security-reviewer: goose
+  executor: controlled
+  forensics: opencode
+  verifier: codex
+  reporter: antigravity
+  archivist: antigravity
+
+models:
+  cheap-code: cheap-code
+  medium-code: medium-code
+  strong-reasoning: strong-reasoning
+  premium-verifier: premium-verifier
+  long-context: long-context
+  free: free
+
+rules:
+  - "Antigravity CLI is a first-class harness, not the security boundary."
+  - "Independent verifier must not inherit unverified conclusions as facts."
+  - "LiteLLM and OmniRoute are alternatives; do not stack them by default."

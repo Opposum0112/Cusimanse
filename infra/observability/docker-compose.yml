@@ -1,0 +1,21 @@
+# AI observability — OpenTelemetry + Phoenix. Localhost only.
+name: lab-observability
+
+services:
+  phoenix:
+    image: ${PHOENIX_IMAGE:-arizephoenix/phoenix:latest}
+    ports:
+      - "127.0.0.1:6006:6006"
+    restart: unless-stopped
+
+  otel-collector:
+    image: ${OTEL_COLLECTOR_IMAGE:-otel/opentelemetry-collector-contrib:0.110.0}
+    command: ["--config", "/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
+    depends_on:
+      - phoenix
+    restart: unless-stopped

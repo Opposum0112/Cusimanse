@@ -1,0 +1,24 @@
+id: stage-09-operations
+name: Daily operations probe
+objective: Inspect git, disk, VM inventory and compose health without changing the stack.
+hypothesis: Layered troubleshooting (host → QEMU → Lima → MCP → gateway) localizes failures faster than a full restart.
+document: 09-operations-and-maintenance.md
+stage: 09
+target:
+  command: python3 -m labctl doctor
+vm_profile: null
+network_policy: none
+instrumentation:
+  - process
+  - filesystem
+evidence:
+  raw: true
+  reduced: true
+  hashes: true
+verification:
+  independent_agent: true
+cleanup:
+  delete_vm_after_evidence_preservation: false
+success_criteria:
+  - report written under reports/
+  - no secrets in the report

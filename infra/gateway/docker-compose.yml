@@ -1,0 +1,20 @@
+# Model gateway — LiteLLM option. Bind localhost only.
+# Alternative: OmniRoute (do not run both unless testing composition).
+
+name: lab-gateway
+
+services:
+  litellm:
+    image: ${LITELLM_IMAGE:-ghcr.io/berriai/litellm:main-stable}
+    env_file:
+      - .env
+    environment:
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-}
+    command: ["--config", "/app/config.yaml", "--host", "127.0.0.1", "--port", "4000"]
+    volumes:
+      - ./litellm_config.yaml:/app/config.yaml:ro
+    ports:
+      - "127.0.0.1:4000:4000"
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

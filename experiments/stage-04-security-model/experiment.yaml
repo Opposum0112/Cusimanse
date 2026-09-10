@@ -1,0 +1,24 @@
+id: stage-04-security-model
+name: Permission tiers and mount denylist
+objective: Encode the threat model as a local policy gate that agents can query.
+hypothesis: Privileged operations (sudo, host mounts, credentials) default to deny.
+document: 04-security-model.md
+stage: 04
+target:
+  command: python3 -m labctl policy check --action host-root
+vm_profile: null
+network_policy: none
+instrumentation:
+  - security-events
+evidence:
+  raw: true
+  reduced: true
+  hashes: true
+verification:
+  independent_agent: true
+cleanup:
+  delete_vm_after_evidence_preservation: false
+success_criteria:
+  - host-root denied by default
+  - read-tier allowed
+  - policy events append to JSONL

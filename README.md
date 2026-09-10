@@ -85,7 +85,11 @@ ai-security-lab/
 ├── blackboard-schema.md               Shared multi-agent state contract
 ├── skills-registry.md                 Versioned skills model
 ├── antigravity/                       Agents, skills, MCP templates
-└── experiments/go-install-001/        First experiment scaffolding
+├── scripts/                           labctl — create stack + per-stage experiments
+├── packages/labprobe/                 In-repo Go module (go-install-001 target)
+├── infra/                             Generated localhost stack (Lima, gateway, OTel)
+├── policies/                          Permission tiers and mount denylist
+└── experiments/                       One experiment per document stage
 ```
 
 ## Documents
@@ -104,6 +108,7 @@ ai-security-lab/
 | [10-validation-and-acceptance.md](10-validation-and-acceptance.md) | Platform acceptance criteria and test matrix |
 | [AGENTS.md](AGENTS.md) | Rules every agent in this repo must follow |
 | [SECURITY.md](SECURITY.md) | Lab-only use and private vulnerability reporting |
+| [scripts/README.md](scripts/README.md) | `labctl` — generate the stack and run each stage |
 
 ## Non-negotiable lab rules
 
@@ -121,8 +126,15 @@ Full agent rules: [AGENTS.md](AGENTS.md).
 
 ## Getting started
 
-This package is documentation and scaffolding. It does not install the lab for
-you. Follow the runbook in order.
+Create the infrastructure files and per-stage experiments, then follow the
+runbook. `labctl` is stdlib Python 3 — no pip install.
+
+```bash
+./scripts/bin/labctl stages
+./scripts/bin/labctl init
+./scripts/bin/labctl preflight
+./scripts/bin/labctl accept
+```
 
 1. Confirm the host matches [02-system-requirements.md](02-system-requirements.md)
    (Intel x86_64, 16 GB RAM, Parrot OS, VT-x / KVM).
@@ -130,20 +142,25 @@ you. Follow the runbook in order.
    (Git bootstrap → host preflight → harnesses → Lima/QEMU → gateway → MCP →
    Aegis → Numbat → observability → instrumentation).
 3. Record versions and choices in [`state.yaml`](state.yaml). Never put API keys
-   in Git.
+   in Git. Copy `infra/gateway/.env.example` → `infra/gateway/.env` locally.
 4. Run **only** [`experiments/go-install-001`](experiments/go-install-001)
-   as the first integration test. Pin an explicit `package@version` during
-   planning. See [08-go-install-001.md](08-go-install-001.md).
+   as the first integration test. The pinned workload is
+   [`packages/labprobe`](packages/labprobe). See [08-go-install-001.md](08-go-install-001.md).
 5. Do not start a second experiment until `go-install-001` has passed, or its
    failure is fully documented and committed.
+
+`labctl` writes repository files by default. Starting containers, recording
+live host state, or executing a VM workload requires `--apply`. It will not
+pipe `curl | bash` for third-party installers.
 
 On 16 GB RAM, keep **one** heavy Lima VM active, leave several GB of host
 headroom, and prefer hosted model APIs over large local models.
 
 ## First milestone: `go-install-001`
 
-The workload is a pinned Go package installation inside a disposable VM. The
-real goal is to exercise the **entire** control path:
+The workload is a pinned **in-repo** Go package
+([`packages/labprobe`](packages/labprobe)) installed inside a disposable VM.
+The real goal is to exercise the **entire** control path:
 
 Planner → Researcher → Builder → Security Reviewer → HarnessRouter →
 gateway → MCP → Aegis → Numbat → Lima/QEMU → instrumentation → evidence →
@@ -159,7 +176,9 @@ was cleaned up, and the result was committed.
 | Item | State |
 |---|---|
 | Deployment package | Published |
-| Host bootstrap | Operator follows the runbook |
+| Host bootstrap | `./scripts/bin/labctl init` then follow the runbook |
+| `labctl` | Python 3 stdlib control plane in `scripts/` |
+| `labprobe` | In-repo Go module, target for `go-install-001` |
 | `go-install-001` | Scaffolded, not yet executed |
 | Secrets in Git | None intended — see `.gitignore` |
 

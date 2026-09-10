@@ -1,0 +1,25 @@
+id: stage-02-host-preflight
+name: Host preflight
+objective: Measure whether the host can run one Lima VM with headroom on 16 GB RAM.
+hypothesis: A failing preflight is more valuable than a silent install on an undersized host.
+document: 02-system-requirements.md
+stage: 02
+target:
+  command: python3 -m labctl preflight
+vm_profile: null
+network_policy: none
+instrumentation:
+  - process
+  - filesystem
+evidence:
+  raw: true
+  reduced: true
+  hashes: true
+verification:
+  independent_agent: true
+cleanup:
+  delete_vm_after_evidence_preservation: false
+success_criteria:
+  - architecture recorded
+  - RAM and disk recorded
+  - QEMU/Lima presence recorded as PASS, PARTIAL, or NOT_DEPLOYED
