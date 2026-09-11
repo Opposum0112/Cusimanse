@@ -56,10 +56,10 @@ func decisionFor(action string, p Policy) (string, error) {
 		"host-mounts": "host.unrestricted_mounts",
 		"host-root":   "privileged.host_filesystem",
 		"sudo":        "privileged.sudo",
-		"vm":           "virtualization.disposable_vm",
-		"network":      "network.localhost_services",
-		"git-write":    "git.write",
-		"push":         "git.write",
+		"vm":          "virtualization.disposable_vm",
+		"network":     "network.localhost_services",
+		"git-write":   "git.write",
+		"push":        "git.write",
 	}
 	key, ok := m[strings.ToLower(strings.TrimSpace(action))]
 	if !ok {
