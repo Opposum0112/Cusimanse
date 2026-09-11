@@ -1,0 +1,23 @@
+version: 1
+id: skill-registry
+kind: skill-registry
+owner: goose
+source: .agents/skills/
+skills:
+  evidence-reduction:
+    path: .agents/skills/evidence-reduction.md
+    purpose: deterministic telemetry reduction
+    trust: repository-reviewed
+  project-audit:
+    path: .agents/skills/project-audit.md
+    purpose: audit MCP, skill, tool and agent actions
+    trust: repository-reviewed
+  experiment-run:
+    path: .agents/skills/experiment-run.md
+    purpose: execute the selected experiment lifecycle
+    trust: repository-reviewed
+rules:
+  - skills are instructions, not security boundaries
+  - skills cannot grant privileges
+  - selected skills are recorded in audit events
+  - unknown skills are NOT_DEPLOYED

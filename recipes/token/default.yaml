@@ -1,13 +1,20 @@
 version: 1
 id: default-token-dashboard
-kind: token-dashboard
-agent: goose
-inputs: [gateway telemetry, OpenTelemetry traces, Goose run metadata]
+kind: token-usage
+owner: policyctl
+inputs:
+  - gateway telemetry
+  - OpenTelemetry traces
+  - Goose run metadata
 fields: [run_id, stage, agent, model, prompt_tokens, completion_tokens, total_tokens, latency_ms, estimated_cost, cache_hit, retry_count]
 outputs:
   json: reports/token-usage/usage.json
   csv: reports/token-usage/usage.csv
   markdown: reports/token-usage/dashboard.md
+web_dashboard:
+  command: policyctl token-dashboard
+  bind: 127.0.0.1:8787
+  public_exposure: deny
 optimization:
   summarize_repeated_context: true
   prefer_cached_context: true

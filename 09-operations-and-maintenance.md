@@ -1,83 +1,39 @@
 # 09 — Operations and Maintenance
 
-## Daily
+![Architecture](docs/images/ai-security-lab-architecture.svg)
 
-- inspect Git status
-- inspect failed agent tasks
-- inspect policy events
-- inspect VM inventory
-- inspect disk usage
-- inspect observability health
+## Daily checks
 
-## Before upgrades
+```bash
+git status
+./policyctl check
+```
 
-Create a Git checkpoint.
+Review audit events, failed Goose tasks, VM inventory, disk usage and observability health.
 
-Record current versions.
+## Upgrades
 
-Update one layer at a time:
+Checkpoint Git first. Upgrade one layer at a time:
 
 1. host packages
-2. Lima/QEMU
-3. harnesses
-4. gateway
-5. MCP
-6. Aegis/Numbat
-7. observability
-8. experiment tooling
+2. QEMU/Lima
+3. Goose
+4. MCP servers
+5. skills
+6. security tooling
+7. model routing
+8. observability
 
-Validate after each layer.
+Re-run the project preflight after each layer.
 
-## Rollback
+## Recovery
 
-Keep:
-- configuration in Git
-- pinned versions
-- reproducibility manifests
-- known-good commits
+Troubleshoot in this order: host resources → QEMU → Lima → VM networking → instrumentation → MCP → audit/policy → Goose → model routing → observability.
 
-Rollback the smallest possible component.
+## Token dashboard
 
-## Backups
+```bash
+./policyctl token-dashboard
+```
 
-Back up:
-- Git repository
-- experiment manifests
-- evidence indexes
-- reports
-- skills
-- agent definitions
-- policy definitions
-- gateway configuration without secrets
-
-Never back up secrets into the repository.
-
-## Troubleshooting order
-
-1. host resources
-2. QEMU
-3. Lima
-4. VM network
-5. instrumentation
-6. MCP
-7. Aegis
-8. Numbat
-9. harness
-10. model gateway
-11. Phoenix/OTel
-
-## Resource pressure
-
-On 16 GB RAM:
-- stop unused VMs
-- stop unused observability services
-- avoid concurrent heavyweight agents
-- reduce capture scope
-- archive large PCAPs
-- prefer hosted models
-
-## Update principle
-
-Do not update the entire stack simultaneously.
-
-A reproducible security lab is more valuable than a constantly changing stack.
+Keep it localhost-only unless explicitly changed by a controlled deployment recipe.

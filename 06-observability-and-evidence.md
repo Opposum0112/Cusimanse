@@ -1,120 +1,32 @@
 # 06 — Observability and Evidence
 
-## Two observability domains
+![Experiment workflow](ai-security-lab-experiment-workflow.png)
 
-### AI observability
+## Two telemetry domains
 
-Tracks the agent system:
+### Agent telemetry
 
-- model
-- provider
-- token use
-- latency
-- prompt/tool spans
-- routing
-- errors
-- retries
-- agent handoffs
+Model/provider, tokens, latency, tool calls, routing, errors and handoffs.
 
-Stack:
+### Workload telemetry
 
-```text
-OpenTelemetry
-OpenInference
-Phoenix
-```
-
-### Experiment observability
-
-Tracks the workload:
-
-- processes
-- syscalls
-- files
-- DNS
-- sockets
-- packets
-- HTTP/TLS metadata
-- security events
-
-Stack:
-
-```text
-strace
-lsof
-bpftrace
-BCC
-Tetragon
-Sysdig
-tcpdump
-tshark
-Zeek
-Suricata
-mitmproxy
-```
+Processes, syscalls, filesystem changes, DNS, sockets, packets and security events.
 
 ## Evidence lifecycle
 
 ```text
-Raw capture
-   ↓
-Immutable preservation
-   ↓
-Hash
-   ↓
-Deterministic reduction
-   ↓
-LLM analysis
-   ↓
-Finding
-   ↓
-Independent verification
-   ↓
-Report
+capture → preserve → hash → reduce → analyse → verify → report
 ```
 
-## Data formats
+Raw evidence remains the ground truth. LLM context should receive deterministic reductions whenever practical.
 
-Use:
-- JSON for structured manifests
-- JSONL/NDJSON for event streams
-- PCAP for packet evidence
-- text logs for tool output
+## Formats
 
-## Reduction tools
+- JSON — manifests and structured state
+- JSONL/NDJSON — event streams
+- PCAP — packet evidence
+- text — command/tool output
 
-Use:
-- jq
-- yq
-- Miller
-- ripgrep
-- tshark
-- Zeek
-- Suricata
+## Audit vs evidence
 
-LLMs should generally receive reduced, relevant evidence rather than unbounded raw telemetry.
-
-## Finding contract
-
-```json
-{
-  "finding_id": "F001",
-  "claim": "example",
-  "evidence": ["network.json", "network.pcap"],
-  "confidence": 0.97,
-  "verified": false
-}
-```
-
-## Evidence index
-
-```json
-{
-  "artifact": "network.pcap",
-  "type": "pcap",
-  "sha256": "...",
-  "source": "tcpdump",
-  "timestamp": "...",
-  "description": "packet capture during target command"
-}
-```
+The audit layer answers **what the agent workflow requested and did**. Experiment evidence answers **what the workload actually did**. They must not be conflated.

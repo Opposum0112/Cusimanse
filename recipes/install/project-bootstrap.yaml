@@ -1,0 +1,25 @@
+version: "1.0.0"
+title: AI Security Lab — prerequisite and installation bootstrap
+description: Preflight the host and install only prerequisites declared by the active recipes.
+instructions: |
+  Inspect the host before changing it. Read recipes/install/install-all.yaml,
+  recipes/host/research-host.yaml and recipes/tools/security-research.yaml.
+
+  Required checks:
+    - OS and architecture
+    - memory and free disk
+    - virtualization capability
+    - qemu-system-x86_64
+    - limactl
+    - git
+    - bash/python3 where required by selected tooling
+
+  If a required capability is missing, report NOT_DEPLOYED with the exact
+  prerequisite. Do not silently substitute an unapproved installer.
+
+  If installation is needed, install only packages declared by install-all.yaml
+  using the host's supported package manager. Re-run the checks after changes.
+  Do not install optional observability or security tools until a selected
+  experiment requires them.
+
+  Finish with a concise PASS/PARTIAL/FAIL/NOT_DEPLOYED preflight report.

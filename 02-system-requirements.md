@@ -1,98 +1,34 @@
 # 02 — System Requirements
 
-## Host hardware
+![Architecture](ai-security-lab-architecture.png)
+
+## Baseline
 
 | Requirement | Baseline |
 |---|---|
-| CPU | Intel x86_64 |
-| Host | MacBook Pro A1278 |
-| RAM | 16 GB |
-| Free disk | 50 GB minimum |
-| Recommended free disk | 100–200 GB |
-| Virtualization | Intel VT-x |
-| Host OS | Parrot OS |
-| Network | Stable Internet connection |
+| Architecture | x86_64 baseline |
+| RAM | 16 GB recommended for the reference lab |
+| Free disk | 50 GB minimum; 100–200 GB preferred |
+| Virtualization | QEMU acceleration where available |
+| Host tools | Git, Bash, Python 3, QEMU, Lima |
+| Data tools | jq, yq, ripgrep, Miller |
 
-## Recommended resource budget
+## Required before project execution
 
-| Component | Typical budget |
-|---|---:|
-| Parrot desktop | 3–4 GB |
-| Agents / CLI processes | 0.5–1.5 GB |
-| Gateway + policy + observability | 1–2 GB |
-| One active Lima VM | 2–4 GB |
-| Reserve | 4–6 GB |
+Goose must be installed/configured. The installation recipe then checks the host for QEMU, Lima, Git, shell/runtime requirements and resource headroom.
 
-This is a starting budget, not a hard allocation.
+## Optional tools
 
-## Required host software
+Security collectors such as `strace`, `lsof`, `bpftrace`, `tcpdump`, Zeek, Suricata and Numbat are selected by the active experiment. Do not install the whole stack just to start the project.
 
-- Git
-- curl/wget
-- Python 3
-- Go
-- Node/npm where required by selected tools
-- QEMU
-- Lima
-- Docker OR Podman
-- standard build tools
-- jq
-- yq
-- ripgrep
-- Miller
+## Host boundary
 
-## Security tooling
+Management services bind to `127.0.0.1` by default. MCP servers, model gateways and observability endpoints must not be exposed publicly unless a recipe explicitly requires it.
 
-Install incrementally and verify each tool:
-
-- strace
-- lsof
-- bpftrace
-- BCC
-- Tetragon
-- Sysdig
-- tcpdump
-- tshark
-- Zeek
-- Suricata
-- mitmproxy
-
-Not every tool must be active simultaneously.
-
-## VM requirements
-
-Lima should use QEMU on this Linux host.
-
-Initial VM policy:
-- 2–4 vCPU
-- 2–4 GB RAM
-- disposable root disk
-- minimal host mounts
-- no host credential mounts
-- controlled networking
-- evidence exported before destruction
-
-## Network requirements
-
-Management endpoints should bind to `127.0.0.1` unless remote access is explicitly required.
-
-Do not expose model gateways, observability dashboards, policy services, or MCP servers publicly by default.
-
-## Validation
-
-Before deployment, verify:
+## Preflight
 
 ```bash
-uname -m
-uname -r
-nproc
-free -h
-df -h
-qemu-system-x86_64 --version
-limactl --version
-git --version
-jq --version
-yq --version
+goose run --recipe recipes/goose/project.yaml --params experiment=go-install-001 --params section=02
 ```
 
-For virtualization acceleration, inspect the host's KVM capability before depending on accelerated QEMU.
+A failed prerequisite stops the section with `NOT_DEPLOYED`.

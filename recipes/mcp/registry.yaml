@@ -1,0 +1,34 @@
+version: 1
+id: mcp-registry
+kind: mcp-registry
+owner: goose
+policy:
+  default_transport: stdio
+  bind_address: 127.0.0.1
+  public_exposure: deny
+  privileged_tools: approval-required
+  unknown_server: NOT_DEPLOYED
+servers:
+  repo-read:
+    purpose: repository and recipe inspection
+    access: read-only
+    status: declared
+  evidence-read:
+    purpose: deterministic evidence queries
+    access: read-only
+    status: declared
+  vm-control:
+    purpose: disposable Lima lifecycle
+    access: controlled
+    approval: required
+    status: declared
+  policy:
+    purpose: host/security policy checks
+    access: policyctl-only
+    approval: required
+    status: declared
+registry_rules:
+  - every server has an owner and purpose
+  - every write/VM/privileged capability has an approval rule
+  - every runtime use is written to the audit record
+  - secrets are never passed through MCP arguments

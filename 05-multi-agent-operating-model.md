@@ -1,142 +1,35 @@
 # 05 — Multi-Agent Operating Model
 
-## Design
+![Experiment workflow](ai-security-lab-experiment-workflow.png)
 
-Use structured delegation rather than an unrestricted swarm.
-
-```text
-Objective
-  ↓
-Planner
-  ↓
-Researcher
-  ↓
-Builder
-  ↓
-Security Reviewer
-  ↓
-HarnessRouter
-  ↓
-Executor
-  ↓
-Forensics
-  ↓
-Independent Verifier
-  ↓
-Reporter
-  ↓
-Archivist
-```
-
-## Agent responsibilities
-
-### Planner
-Defines objective, hypothesis, success criteria and evidence requirements.
-
-### Researcher
-Determines expected behavior and relevant instrumentation.
-
-### Builder
-Creates the experiment and disposable VM definition.
-
-### Security Reviewer
-Reviews permissions, network, mounts, credentials and destructive operations.
-
-### Executor
-Runs the approved experiment in the disposable VM.
-
-### Forensics
-Analyzes reduced evidence.
-
-### Independent Verifier
-Challenges claims using a different model/harness where possible.
-
-### Reporter
-Creates the research report and integration scorecard.
-
-### Archivist
-Commits the reproducibility package.
-
-## HarnessRouter
-
-HarnessRouter selects a harness according to:
-- task type
-- model availability
-- context size
-- security sensitivity
-- cost
-- latency
-- required tools
-- verification independence
-
-Example:
-
-```yaml
-planner: antigravity
-researcher: opencode
-builder: grok-build
-security-reviewer: goose
-executor: controlled
-forensics: opencode
-verifier: codex
-reporter: antigravity
-```
-
-## Model routing
-
-Logical models:
+## Structured roles
 
 ```text
-cheap-code
-medium-code
-strong-reasoning
-premium-verifier
-long-context
-free
+Planner → Researcher → Security Reviewer → Executor
+                                      ↓
+                               Forensics → Verifier → Reporter
 ```
 
-The token governor should consider:
-- task complexity
-- context size
-- budget
-- latency
-- security sensitivity
-- required reasoning quality
+Goose hosts the agentic workflow. Roles are configuration, not separate controllers.
 
-## Handoff contract
+| Role | Responsibility |
+|---|---|
+| Planner | objective, hypothesis, success criteria |
+| Researcher | expected behavior and instrumentation |
+| Reviewer | safety, policy, prerequisites, approval |
+| Executor | approved VM/workload operations |
+| Forensics | evidence reduction and analysis |
+| Independent reviewer | challenge findings independently |
+| Reporter | reproducibility and findings |
 
-Agents communicate through structured artifacts, not copied conversation history.
+## Handoffs
 
-Primary blackboard:
+Use structured artifacts under `blackboard/` rather than copying long conversations between agents.
 
-```text
-blackboard/
-├── state.json
-├── plan.json
-├── tasks.jsonl
-├── findings.jsonl
-├── decisions.jsonl
-└── evidence-index.json
-```
+## Capability selection
 
-## Failure semantics
-
-Every task should end in:
-- completed
-- blocked
-- rejected
-- failed
-- partially-completed
-
-Do not erase failure evidence.
+MCP and skills are selected from their registries. Every material selection is written to the audit record.
 
 ## Independence
 
-For high-confidence findings:
-
-```text
-Agent A → finding
-Agent B → independent verification
-```
-
-The verifier should not inherit unverified conclusions as facts.
+The verifier must be able to reject the primary agent's conclusion. It must not inherit an unverified claim as fact.

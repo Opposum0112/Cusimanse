@@ -1,110 +1,42 @@
 # 07 — Experiment Framework
 
-## Required experiment properties
+![Experiment workflow](ai-security-lab-experiment-workflow.png)
 
-Every experiment must be:
+## Experiment composition
 
-- isolated
-- reproducible
-- observable
-- disposable
-- evidence-preserving
-- versioned
-
-## Directory
+An experiment is deliberately small:
 
 ```text
-experiments/<id>/
-├── experiment.yaml
-├── README.md
-├── hypothesis.md
-├── lima.yaml
-├── setup.sh
-├── baseline.sh
-├── capture.sh
-├── run.sh
-├── cleanup.sh
-├── analysis/
-├── evidence/
-├── reports/
-└── manifests/
+experiment
+├── workload
+├── host profile
+├── VM profile
+├── tools
+├── instrumentation
+├── agent monitoring
+├── routing
+├── orchestration
+└── reporting
 ```
 
-## Experiment manifest
+Do not duplicate reusable profiles unless the capability genuinely differs.
 
-Minimum fields:
+## Required properties
 
-```yaml
-id:
-name:
-objective:
-hypothesis:
-target:
-vm_profile:
-network_policy:
-instrumentation:
-evidence:
-cleanup:
-success_criteria:
-```
-
-## VM profiles
-
-Profiles should define:
-- CPU
-- RAM
-- disk
-- network
-- mounts
-- base image
-- package sources
-- evidence export method
+Every experiment is isolated, reproducible, observable, disposable, evidence-preserving and versioned.
 
 ## Baseline
 
-Before the target action:
-- collect process baseline
-- collect network baseline
-- collect DNS baseline
-- establish filesystem baseline
-- start captures
+Start process, network, DNS and filesystem observation before the target action.
 
 ## Execution
 
-Execute only the approved target command.
-
-Record:
-- command
-- timestamp
-- exit code
-- stdout/stderr
-- process tree
-- network
-- filesystem
-- relevant syscalls
+Run only the approved workload inside the disposable VM. Record command, timestamp, exit status and relevant telemetry.
 
 ## Cleanup
 
-Preserve evidence first.
+Preserve and hash evidence first. Then stop collectors, destroy the VM and verify that secrets did not enter the repository.
 
-Then:
-- stop captures
-- validate hashes
-- stop VM
-- delete VM
-- confirm no sensitive data leaked into repository
+## First integration experiment
 
-## Reproducibility
-
-Record:
-- host
-- kernel
-- VM configuration
-- tool versions
-- target package/version
-- Git commit
-- evidence hashes
-
-## First experiment
-
-`go-install-001` is the mandatory platform integration test.
+`go-install-001` is the reference acceptance experiment.

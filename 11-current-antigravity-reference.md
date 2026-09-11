@@ -1,24 +1,21 @@
-# 11 — Current Antigravity CLI Reference
+# 11 — Harness Reference
 
-This package treats Antigravity CLI as a first-class harness.
+![Architecture](docs/images/ai-security-lab-architecture.svg)
 
-Current official documentation confirms:
-- Linux support
-- installation via the official installer
-- custom/background agents
-- MCP
-- plugins
-- skills
-- hooks
-- terminal sandboxing
-- agent management through `/agents`
+## Role of external harnesses
 
-Official references:
-- https://antigravity.google/docs/cli/install/
-- https://antigravity.google/docs/cli/getting-started/
-- https://antigravity.google/docs/cli/features
-- https://antigravity.google/docs/cli/mcp/
-- https://antigravity.google/docs/cli/plugins/
-- https://antigravity.google/docs/cli/commands/agents/
+Antigravity, OpenCode, Codex and other harnesses may be useful development or research clients, but they are not the project execution authority in this architecture. Goose owns the project recipe workflow.
 
-The deployment package intentionally does not hard-code volatile model names, provider pricing, or undocumented configuration fields. Verify those against current official documentation when deploying.
+## MCP and skills
+
+The repository keeps capability definitions portable through:
+
+- `recipes/mcp/registry.yaml`
+- `recipes/skills/registry.yaml`
+- `.agents/skills/`
+
+The registry is the project inventory; actual client configuration remains harness-specific.
+
+## Volatile external behavior
+
+Do not hard-code undocumented model names, pricing, provider behavior or client-specific configuration into the core security contract. Verify current external-harness documentation before deployment.

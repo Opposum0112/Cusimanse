@@ -1,58 +1,55 @@
-version: 1
-id: goose-project
-name: AI Security Lab
-kind: project
-harness: goose
-role: agentic_operator_executor
-entry_recipe: recipes/goose/project.yaml
-source_of_truth:
-  markdown: "01-*.md"
-  recipes: recipes/
-recipe_families:
-  experiments: recipes/experiments/
-  workloads: recipes/workloads/
-  installation: recipes/install/install-all.yaml
-  host_profiles: recipes/host/
-  vm_profiles: recipes/lima/profiles/
-  tools: recipes/tools/
-  instrumentation_profiles: recipes/instrumentation/
-  agent_monitoring: recipes/agent-monitoring/
-  agent_roles: recipes/agents/
-  orchestration: recipes/orchestration/default-agent-chain.yaml
-  routing: recipes/routing/
-  stages: recipes/stages/
-  reporting: recipes/reporting/
-  token_dashboard: recipes/token/
-execution:
-  orchestrator: goose
-  operator: goose
-  executor: goose
-  shell_role: recovery-debugging-only
-  policy_cli: policyctl
-  approval_before_privileged_actions: true
-  disposable_vm_required: true
-workflow:
-  discover: read_markdown_and_recipes
-  validate: resolve_recipe_references
-  preflight: inspect_host_and_capabilities
-  plan: produce_execution_plan
-  review: request_human_approval
-  bootstrap: execute_installation_recipe
-  run: execute_selected_experiment
-  collect: preserve_and_hash_evidence
-  forensic: run_forensic_agent
-  verify: run_independent_reviewer
-  report: run_reporting_recipe
-  tokens: run_token_dashboard_recipe
-  commit: only_when_explicitly_permitted
-policy:
-  cli: policyctl
-  config_scope: host_and_security_policy_only
-  credentials: deny
-  unrestricted_host_mounts: deny
-  privileged_operations: approval-required
-safety:
-  goose_is_not_the_security_boundary: true
-  preserve_evidence_before_destroy: true
-  independent_verification: required
-  unsupported_capability: NOT_DEPLOYED
+version: "1.0.0"
+title: AI Security Lab
+description: Run the AI Security Lab as a modular Goose workflow.
+instructions: |
+  Operate this repository as the AI Security Lab project operator.
+
+  Read the numbered Markdown contract for the selected section, then read
+  recipes/goose/project.yaml and the referenced modular YAML recipes.
+  Resolve prerequisites before execution. Run the installation recipe when
+  required. Never invent a capability that is not declared by a recipe.
+
+  Workflow:
+    discover -> validate -> preflight -> install -> plan -> audit/review ->
+    approve -> provision -> instrument -> execute -> collect -> reduce ->
+    forensic -> independent verification -> report -> destroy.
+
+  The selected experiment is {{ experiment }}.
+  The selected section is {{ section }}.
+
+  Use the MCP registry and skill registry to determine which agent capabilities
+  are available. Record every material tool/skill/MCP decision in the audit
+  record. Use policyctl only for host/security policy configuration and for
+  the token-usage web dashboard. Do not create or invoke another project
+  controller.
+
+  Safety rules:
+    - untrusted workloads run only in disposable Lima/QEMU VMs;
+    - host credentials and unrestricted host mounts are denied;
+    - privileged/destructive actions require human approval;
+    - evidence is preserved and hashed before VM destruction;
+    - raw evidence stays outside LLM context when deterministic reduction works;
+    - findings require independent verification;
+    - unavailable capabilities are NOT_DEPLOYED;
+    - never claim a component was exercised without runtime evidence.
+
+  For section-only execution, perform prerequisites first and stop at the
+  requested section. For project execution, run the complete lifecycle.
+parameters:
+  - key: experiment
+    input_type: string
+    requirement: required
+    description: Experiment recipe ID, for example go-install-001.
+  - key: section
+    input_type: string
+    requirement: optional
+    default: project
+    description: Project or one numbered section (01-11).
+sub_recipes:
+  - name: installation
+    path: ../install/project-bootstrap.yaml
+  - name: audit
+    path: ../audit/default.yaml
+extensions:
+  - type: builtin
+    name: developer

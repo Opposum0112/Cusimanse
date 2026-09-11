@@ -1,44 +1,26 @@
 # 01 — Deployment Architecture
 
-## Target architecture
+![Architecture](docs/images/ai-security-lab-architecture.svg)
+
+## Target state
 
 ```text
-Human / CI
-    |
-    v
-Markdown contracts
-    |
-    v
-recipes/goose/project.yaml
-    |
-    v
-GOOSE — orchestrator + operator + executor
-    |
-    +-- modular recipes: experiment / workload / install / host / VM / tools
-    |                     instrumentation / monitoring / agents / orchestration
-    |                     routing / stages / reporting / token dashboard
-    |
-    +-- policyctl: host/security policy configuration only
-    |
-    v
-Lima / QEMU disposable VM
-    |
-    v
-workload + instrumentation
-    |
-    v
-evidence -> deterministic reduction -> forensic agent -> independent verification
-    |
-    v
-report / token dashboard / Git
+Markdown → Goose project recipe → modular recipes → disposable VM → evidence → verification
+                         ↘ MCP / skills / audit
+                         ↘ policyctl (policy + token dashboard)
 ```
 
-## Architectural rules
+## Boundaries
 
-1. Goose is the only project orchestrator/operator/executor.
-2. YAML is the configuration and composition layer; `project.yaml` is an entry recipe, not a monolith.
-3. `policyctl` is separate and only configures host/security policy.
-4. No project execution controller is required alongside Goose.
-5. Untrusted workloads execute only inside disposable VMs.
-6. Evidence is preserved before destruction and independently verified.
-7. Missing capabilities are reported as `NOT_DEPLOYED`.
+1. **Goose** is the only project orchestrator/operator/executor.
+2. **Recipes** are the configuration and composition layer.
+3. **MCP** exposes only registry-approved capabilities.
+4. **Skills** provide reviewed instructions but never grant privilege.
+5. **Audit** records capability decisions and execution outcomes.
+6. **policyctl** configures host/security policy and serves the token dashboard only.
+7. **Lima/QEMU** isolates untrusted workloads.
+8. **Evidence** is preserved before destruction and independently verified.
+
+## Design principle
+
+> Markdown specifies. YAML configures. Goose executes. Policy constrains. Audit records. Evidence proves.
