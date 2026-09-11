@@ -48,8 +48,30 @@ parameters:
 sub_recipes:
   - name: installation
     path: ../install/project-bootstrap.yaml
+  - name: mcp-bootstrap
+    path: ../mcp/bootstrap.yaml
+  - name: skill-bootstrap
+    path: ../skills/bootstrap.yaml
   - name: audit
     path: ../audit/default.yaml
+recipe_families:
+  experiments: ../experiments/
+  installation: ../install/install-all.yaml
+  mcp: ../mcp/registry.yaml
+  skills: ../skills/registry.yaml
+  audit: ../audit/default.yaml
+  workloads: ../workloads/
+  host_profiles: ../host/
+  vm_profiles: ../lima/profiles/
+  tools: ../tools/
+  instrumentation: ../instrumentation/
+  agent_monitoring: ../agent-monitoring/
+  agents: ../agents/
+  orchestration: ../orchestration/default-agent-chain.yaml
+  routing: ../routing/
+  reporting: ../reporting/
+  token_dashboard: ../token/default.yaml
+  stages: ../stages/
 extensions:
   - type: builtin
     name: developer
