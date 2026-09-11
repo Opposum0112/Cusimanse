@@ -98,25 +98,30 @@ If documentation shows a command that does not exist in `labctl --help`, treat t
 
 ## Architecture
 
-```text
-Human / CI / approved Agent
-          |
-       labctl
-          |
-   policy + state + evidence
-          |
-   Harness / MCP (optional)
-          |
- Model Gateway (optional)
-          |
- Disposable VM backend
-          |
- QEMU/Lima or another supported backend
-          |
- instrumentation -> evidence -> verification -> report
+The lab is designed as a controlled research loop: **specification → policy-controlled execution → disposable isolation → instrumentation → evidence → deterministic reduction → independent verification → report**.
+
+```mermaid
+flowchart TB
+    U[Human / CI / Approved AI Agent] --> C[labctl Control Plane]
+    C --> P[Policy + State + Approval Boundary]
+    P --> H[Agent Harness / MCP]
+    H --> G[Model Gateway<br/>LiteLLM / OmniRoute]
+    P --> V[Disposable VM Backend]
+    V --> L[Lima / QEMU<br/>or supported backend]
+    L --> E[Experiment Workload]
+    E --> I[Instrumentation<br/>strace / tcpdump / bpftrace / etc.]
+    I --> EV[Evidence Store<br/>JSONL / PCAP / hashes / process & filesystem evidence]
+    EV --> R[Deterministic Reduction]
+    R --> X[Independent Verification]
+    X --> RP[Acceptance / Experiment Report]
+    G -. telemetry .-> O[OpenTelemetry / OpenInference / Phoenix]
+    E -. telemetry .-> O
+    O --> EV
 ```
 
 The AI harness is **not** the security boundary. The execution boundary, policy, VM isolation, evidence handling, and explicit approval controls are.
+
+An architecture image is maintained separately as `docs/images/ai-security-lab-architecture.png` when the original binary asset is available in the repository.
 
 ## Portability
 
