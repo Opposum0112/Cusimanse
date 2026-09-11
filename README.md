@@ -1,7 +1,7 @@
 # 🦝 Cusimanse
 
 <p align="center">
-  <img src="docs/images/cusimanse-mascot.svg" alt="Cusimanse mascot — curious cyber raccoon for security research" width="900">
+  <img src="docs/images/cusimanse-mascot.svg" alt="Cusimanse mascot — curious cyber raccoon for security research" width="1000">
 </p>
 
 > **Autonomous, agentic security research platform for controlled workload detonation, runtime analysis, anomaly detection and evidence extraction inside disposable virtual machines.**
@@ -40,6 +40,16 @@ report → preserve → destroy
 ```
 
 The platform is **agent-neutral**. Goose is the current reference adapter, not the project identity. Adapter-specific prompts, tool wiring and integration details stay at the adapter boundary; experiment semantics remain shared.
+
+## Deployment architecture
+
+The deployment model separates the **agent/operator plane** from the **VM/OS enforcement boundary**. Shared contracts define experiment semantics; adapters operate approved actions; disposable Lima/QEMU VMs contain the workload; instrumentation and evidence pipelines provide the basis for analysis and verification.
+
+![Cusimanse deployment architecture](docs/images/cusimanse-deployment-architecture.svg)
+
+**Control flow:** `Intent → Contract → Adapter → Policy/Approval → Disposable VM → Instrument → Execute → Collect → Verify → Preserve → Destroy`
+
+For the detailed deployment layers, boundaries and lifecycle, see [`01-deployment-architecture.md`](01-deployment-architecture.md).
 
 ## Security boundary
 
