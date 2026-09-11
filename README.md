@@ -4,7 +4,7 @@ Isolated, reproducible laboratory for studying AI agents, model routing, host/VM
 
 ## Project Architecture
 
-![AI Security Lab — Project Architecture](docs/images/ai-security-lab-architecture.png)
+![AI Security Lab — Project Architecture](docs/images/ai-security-lab-architecture.svg)
 
 The project architecture shows the complete research path from human/CI/AI-agent entry points through the `labctl` control plane, governance and approval controls, agent harnesses, model routing, isolated Lima/QEMU execution, instrumentation, evidence collection, deterministic reduction, independent verification, and observability.
 
