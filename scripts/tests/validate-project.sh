@@ -43,8 +43,16 @@ echo '== Policy validation =='
 ./policyctl check --action host-root --audit-file /tmp/ai-security-lab-policy-audit.jsonl >/dev/null
 
 echo '== Optional Python tests =='
-if command -v python3 >/dev/null 2>&1; then
+python_tests=()
+while IFS= read -r -d '' f; do
+  python_tests+=("$f")
+done < <(find scripts/tests -type f -name 'test_*.py' -print0)
+if command -v python3 >/dev/null 2>&1 && [ "${#python_tests[@]}" -gt 0 ]; then
   PYTHONPATH=scripts python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
+elif [ "${#python_tests[@]}" -eq 0 ]; then
+  echo 'SKIP: no Python unittest modules are present'
+else
+  echo 'SKIP: python3 is not installed'
 fi
 
 echo 'PASS project validation'
