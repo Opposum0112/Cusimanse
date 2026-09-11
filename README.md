@@ -1,93 +1,84 @@
-# AI Security Research Lab
+# Cusimanse
 
-> **An agent-neutral, modular, recipe-driven AI-assisted security research lab for controlled experimentation, evidence collection and independent verification.**
+> **An autonomous, agentic security research platform for controlled workload detonation, runtime analysis, anomaly detection and evidence extraction inside disposable virtual machines.**
 
-This project **uses AI agents** as research assistants and workflow operators for planning, recipe interpretation, tool coordination, evidence reduction, forensics assistance and reporting. AI output is fallible and is never treated as evidence or as the security boundary. Runtime artifacts, deterministic measurements and independent verification establish what actually happened.
+Cusimanse is named after the hyper-curious mongoose that obsessively flips over every leaf and stone to uncover hidden details. The platform applies the same curiosity to software workloads: provision an isolated environment, observe execution, collect evidence, analyze behavior and preserve artifacts for independent verification.
 
-Markdown specifies the research contract. YAML configures reusable components. An agent adapter operates the workflow. Goose is the current reference adapter; OpenCode, Grok Build and Antigravity are documented adapter targets. `policyctl` is the only project CLI for host/security policy and the local token dashboard. Lima/QEMU provide disposable execution isolation.
-
-![Project architecture](docs/images/ai-security-lab-project-architecture.svg)
-
-## Architecture
+## What Cusimanse does
 
 ```text
-Human / CI intent
-      ↓
-Markdown experiment contract
-      ↓
-Goose project recipe
-      ↓
-┌──────────────────────────────────────────────┐
-│ Agent adapter: Goose / OpenCode / Grok Build │
-│                 / Antigravity / future       │
-└──────────────────┬───────────────────────────┘
-                   ↓
-       recipes + MCP + skills + policyctl
-                   ↓
-          plan → review → approval
-                   ↓
-             Lima / QEMU VM
-                   ↓
-      instrument → execute → collect
-                   ↓
- blackboard + evidence → reduce → forensics
-                   ↓
- verify → report → preserve → destroy
+Experiment contract
+       ↓
+Agent adapter
+(Goose / OpenCode / Grok Build / Antigravity)
+       ↓
+recipes + MCP + skills + policy
+       ↓
+plan → review → approval
+       ↓
+disposable Lima / QEMU VM
+       ↓
+instrument → execute → collect
+       ↓
+blackboard + evidence + telemetry
+       ↓
+reduce → forensics → verify
+       ↓
+report → preserve → destroy
 ```
 
-**Boundary rule:** an adapter may change how an agent operates tools, but must not change experiment semantics, bypass policy, suppress audit, expose credentials, or claim `PASS` without evidence.
+The platform is **agent-neutral**. Goose is the current reference adapter, not the project identity. Adapter-specific prompts, tool wiring and integration details stay at the adapter boundary; experiment semantics remain shared.
 
-## Deploy and run
+## Security boundary
+
+AI agents, prompts, skills, MCP servers and `policyctl` are **not** security boundaries. Enforcement comes from the VM/OS boundary, filesystem and mount controls, credential separation, network controls and explicit approval gates.
+
+Key invariants:
+
+- Untrusted workloads run in disposable VMs.
+- Host credentials and unrestricted host mounts are denied.
+- Privileged and destructive operations require approval.
+- Public MCP/gateway exposure is denied by default.
+- Instrumentation starts before the target workload.
+- Evidence is preserved and hashed before VM destruction.
+- Important findings require independent verification.
+- Missing integrations are reported as `NOT_DEPLOYED`, never silently substituted.
+- AI assertions are never treated as evidence.
+
+See [`04-security-model.md`](04-security-model.md) and [`SECURITY.md`](SECURITY.md).
+
+## Quick start
 
 ### 1. Install prerequisites
-
-From the repository root:
 
 ```bash
 ./scripts/prerequisites.sh
 ```
 
-The script detects OS, Linux distribution and CPU architecture; checks required tools; installs only missing prerequisites using the supported package manager; configures `~/.local/bin`; and re-checks the result. It is intended to be **idempotent**.
+The bootstrap detects OS, distribution and architecture and installs only missing supported prerequisites. It verifies Git, Bash, Python 3, Ruby, Go, QEMU, Lima and Goose and ends with `Prerequisite PASS` when successful.
 
-Successful setup ends with:
-
-```text
-OS PASS: ...
-Tools PASS: git bash python3 qemu-system-x86_64 limactl goose
-Prerequisite PASS
-```
-
-### 2. Load the project environment
+### 2. Load the environment
 
 ```bash
 source ./scripts/goose-env.sh
 ```
 
-This only sets project paths and user-local executable lookup. **Never put API keys, cloud credentials or secrets in it.** Keep provider credentials in Goose's supported configuration outside the repository.
+This configures project paths only. **Never place API keys, cloud credentials or secrets in the repository.**
 
-### 3. Verify Goose and the project
+### 3. Validate
 
 ```bash
-command -v goose
 ./policyctl validate
 bash ./scripts/tests/validate-project.sh
 ```
 
-If the validator reports `PASS project validation`, continue with the operator workflow.
-
-### 4. Run the Goose installation/bootstrap recipe
-
-For a clean machine or first project deployment:
+### 4. Bootstrap the project
 
 ```bash
 goose run --recipe recipes/install/project-bootstrap.yaml
 ```
 
-This installs/configures only capabilities declared by the project installation recipe. Review any approval-required action rather than bypassing policy.
-
-### 5. Run the project recipe
-
-The Goose project recipe is the reference end-to-end operator workflow. Start with the reference experiment:
+### 5. Run the reference experiment
 
 ```bash
 goose run \
@@ -96,36 +87,53 @@ goose run \
   --params section=project
 ```
 
-The recipe drives the complete lifecycle:
+The lifecycle is:
 
 ```text
 Discover → Validate → Preflight → Install → Plan → Review → Approve
-    → Provision → Instrument → Execute → Collect → Reduce → Forensics
-    → Independent verification → Report → Preserve → Destroy
+→ Provision → Instrument → Execute → Collect → Reduce → Forensics
+→ Independent verification → Report → Preserve → Destroy
 ```
 
-If you want to execute a narrower section while developing a recipe, use the appropriate section/parameters defined by the recipe rather than inventing an alternative project controller.
+## Recipes and composition
 
-### 6. Operator checkpoints
+Recipes are intentionally small and composable. Do not turn the project recipe into a monolith.
 
-The Goose operator should stop and obtain the required approval whenever the recipe/policy marks an operation as approval-required. In particular:
+| Concern | Recipe family |
+|---|---|
+| Experiments | `recipes/experiments/` |
+| Workloads | `recipes/workloads/` |
+| Routing | `recipes/routing/` |
+| Installation | `recipes/install/` |
+| Host profile | `recipes/host/` |
+| VM profile | `recipes/lima/` |
+| Tools | `recipes/tools/` |
+| Instrumentation | `recipes/instrumentation/` |
+| Agent monitoring | `recipes/agent-monitoring/` |
+| Agent roles | `recipes/agents/` |
+| Orchestration/stages | `recipes/orchestration/`, `recipes/stages/` |
+| Reporting | `recipes/reporting/` |
+| MCP | `recipes/mcp/` |
+| Skills | `recipes/skills/` |
+| Audit | `recipes/audit/` |
 
-1. **Preflight:** confirm host tools, Lima/QEMU, recipe inputs and policy state.
-2. **Plan/review:** inspect the proposed workload, mounts, network, privileges and evidence plan.
-3. **Approval:** explicitly approve privileged, destructive or VM-provisioning actions when required.
-4. **Provision:** create the disposable Lima/QEMU VM; do not expose host credentials or unrestricted host mounts.
-5. **Instrument:** start required telemetry **before** the target workload.
-6. **Execute:** run only the approved workload and declared tools.
-7. **Collect:** capture runtime evidence, telemetry, audit and blackboard handoffs.
-8. **Reduce:** deterministically reduce large evidence before sending it to an LLM where practical.
-9. **Forensics:** analyse preserved artifacts and record uncertainty.
-10. **Verify:** independently reproduce or test important findings; an AI assertion is not proof.
-11. **Report/preserve:** generate the report and manifest, hash important evidence and preserve it.
-12. **Destroy:** remove the disposable VM only after required evidence has been preserved.
+`recipes/goose/project.yaml` is the reference Goose adapter composition. Other adapters must consume the same project contracts.
 
-### 7. Inspect outputs
+## Agent adapters
 
-A run should produce durable artifacts such as:
+**Goose** — current reference operator/executor.
+
+**OpenCode** — documented adapter target using `AGENTS.md`, shared recipes, registry-approved tools and the same evidence/audit lifecycle.
+
+**Grok Build** — documented adapter target; Grok-specific wiring remains outside shared experiment semantics.
+
+**Antigravity** — documented adapter target using the canonical `.agents/` roles/skills and MCP registry.
+
+An adapter must not bypass policy, suppress audit, expose credentials, alter experiment semantics or claim `PASS` without evidence.
+
+## Observation and evidence
+
+Cusimanse treats runtime artifacts as the source of truth. Typical run output is:
 
 ```text
 runs/<run-id>/
@@ -140,140 +148,13 @@ runs/<run-id>/
 └── manifest.json
 ```
 
-Repository-level policy audit data is under `evidence/audit/`; token usage is under `reports/token-usage/`. Monitoring outputs from deployed Numbat/Phoenix/ADR integrations should be retained with the run.
+The blackboard is coordination metadata, not evidence. Large raw evidence should be deterministically reduced before LLM analysis where practical while retaining the original artifacts.
 
-### 8. Destroy only after preservation
+Optional monitoring integrations include OpenTelemetry, Phoenix, Numbat and ADR. These provide observability/detection capabilities, not isolation boundaries.
 
-Do not manually delete the VM before collection, hashing and preservation complete. The project lifecycle intentionally places **preserve before destroy**.
+## `policyctl`
 
-### 9. Validate after changes
-
-```bash
-bash ./scripts/tests/validate-project.sh
-bash ./scripts/tests/validate-recipes.sh
-go test ./...
-gofmt -d cmd/policyctl/main.go
-```
-
-GitHub Actions performs the project validation on pushes and pull requests.
-
-## Goose operator workflow
-
-| Step | Purpose |
-|---|---|
-| Discover | read contracts, experiment and recipes |
-| Validate | reject invalid recipe references |
-| Preflight | inspect host/VM/tool capabilities |
-| Install | install declared missing prerequisites |
-| Plan | create proposed execution sequence |
-| Review | identify risk and policy implications |
-| Approve | obtain required human approval |
-| Provision | create disposable Lima/QEMU VM |
-| Instrument | start telemetry before the target action |
-| Execute | run approved workload/tools |
-| Collect | capture runtime artifacts and audit |
-| Reduce | deterministically reduce large evidence |
-| Forensics | analyse preserved evidence |
-| Verify | independently test important findings |
-| Report | create report and evidence manifest |
-| Preserve | hash/preserve evidence |
-| Destroy | remove VM after preservation |
-
-Goose is the reference **operator/executor**, not the security boundary. VM isolation, OS permissions, mount controls, credential separation, network controls and approval workflows provide enforcement.
-
-## Required capabilities
-
-The authoritative tool contract is `recipes/tools/security-research.yaml`: required host tools are Git, Bash, Python 3, QEMU and Lima; optional host tools include `jq`, `yq`, `rg`, `tcpdump`, `strace`, `lsof` and Numbat. VM tools are declared separately. Installation policy is in `recipes/install/`.
-
-## Agent adapter instructions
-
-An adapter integrates an agent product with the same project contracts. Do not fork experiment semantics.
-
-**OpenCode**
-1. Start OpenCode in the repository.
-2. Read `AGENTS.md` and the applicable Markdown contract.
-3. Resolve the same `recipes/` composition.
-4. Map tools/MCP/skills to registry-approved capabilities.
-5. Honor `policyctl` and approval decisions.
-6. Preserve the same lifecycle, blackboard, audit and evidence handoffs.
-
-**Grok Build**
-1. Integrate Grok Build only at the adapter boundary.
-2. Expose registry-approved tools/MCP only.
-3. Preserve policy, audit, evidence and verification semantics.
-4. Keep Grok-specific prompts/tool wiring outside shared recipes.
-5. Use `NOT_DEPLOYED` for unavailable integration.
-
-**Antigravity**
-1. Follow `antigravity/README.md` and `11-current-antigravity-reference.md`.
-2. Load canonical `.agents/` roles/skills and the MCP registry.
-3. Resolve the same experiment, VM, workload, instrumentation and audit recipes.
-4. Keep Antigravity-specific wiring outside experiment semantics.
-5. Preserve evidence and independent verification.
-
-![Adapter boundary](docs/images/ai-security-lab-project-architecture.svg)
-
-## Experiments
-
-An experiment is a reproducible **question + scope + workload + environment + instrumentation + evidence plan + acceptance criteria**. It is not just a command.
-
-For beginners, `go-install-001` is the reference end-to-end experiment. Read its Markdown contract first, then trace the recipes it selects. Runtime `PASS` requires evidence; configuration or an AI assertion is not proof.
-
-## Blackboard
-
-The **blackboard** is structured coordination state shared between agent stages. It prevents later stages from depending on conversational memory. Record requested, approved, executed, observed, evidence references, uncertainty and next action. Blackboard data is **coordination metadata, not evidence**.
-
-## Instrumentation
-
-Instrumentation starts **before** the target action. Typical layers include process/system-call, network/DNS, filesystem, host, agent/tool telemetry and evidence-integrity layers. Preserve raw telemetry and deterministically reduce large datasets before LLM analysis where practical.
-
-## Agent monitoring stack
-
-- **OpenTelemetry:** common telemetry model for agent/tool traces, spans and events.
-- **Phoenix:** optional OpenTelemetry-oriented LLM/agent observability surface.
-- **Numbat:** optional security/agent-observability capability declared in the tools recipe.
-- **ADR / agent detection and response:** optional security observation/response layer.
-
-These are observability/detection components, **not security boundaries**. Missing integrations are recorded as `NOT_DEPLOYED` rather than silently substituted.
-
-## MCP, skills and tool calls
-
-`recipes/mcp/registry.yaml` is the source of truth for approved MCP capabilities. Public exposure is denied; privileged/VM capabilities require approval; secrets must never be MCP arguments.
-
-`recipes/skills/registry.yaml` declares reviewed skills. Skills are **instructions, not privileges**.
-
-`recipes/tools/security-research.yaml` declares host/VM tools and requires observable tool calls. Unknown tools/installers are not silently accepted. Material tool/MCP/skill/policy decisions belong in the audit layer.
-
-## Recipes: customize safely
-
-Recipes are **small composable configuration units**. Do not make `recipes/goose/project.yaml` a monolith.
-
-```text
-What changes?
- ├─ experiment       → experiments/
- ├─ workload         → workloads/
- ├─ VM                → lima/profiles/
- ├─ host              → host/
- ├─ tools/install     → tools/ or install/
- ├─ telemetry         → instrumentation/
- ├─ agent telemetry   → agent-monitoring/
- ├─ agent role        → agents/
- ├─ execution order  → orchestration/ or stages/
- ├─ routing           → routing/
- ├─ MCP/skill        → mcp/ or skills/
- ├─ audit             → audit/
- └─ report            → reporting/
-```
-
-Safe customization: read `AGENTS.md`, choose the narrowest recipe family, keep secrets out of YAML, keep privileged operations explicit, reference the recipe from experiment composition, validate, run through the selected adapter and preserve evidence.
-
-## Artifacts
-
-Artifacts are durable outputs that allow a researcher to understand a run without trusting an AI conversation. Preserve before VM destruction, hash important evidence, never commit secrets, and make reports reference their evidence.
-
-## policyctl
-
-`policyctl` is intentionally narrow: host/security policy plus the local token dashboard. It is not the project controller, experiment runner, sandbox or agent harness.
+`policyctl` is deliberately narrow: host/security policy configuration and the local token-usage dashboard. It is **not** the experiment controller, sandbox or agent harness.
 
 ```bash
 ./policyctl show
@@ -291,52 +172,50 @@ Artifacts are durable outputs that allow a researcher to understand a run withou
 
 A policy decision is not enforcement by itself; the adapter must honor it and host/VM controls enforce it.
 
-## AI disclaimer and responsible use
+## Validation and CI
 
-AI-generated plans, commands, explanations, code, interpretations and findings can be wrong, incomplete, stale, unsafe or overconfident. They are **not evidence by themselves**. Human researchers remain responsible for authorization, scope, approvals, safety and final interpretation.
+Local validation includes recipe YAML parsing, shell syntax, architecture checks, Go formatting, `go vet`, unit tests, build checks and policy checks. Optional Python tests run when test modules are present.
 
-Use the lab only against systems, software and workloads you own or are explicitly authorized to test. Never provide an agent with credentials or unrestricted host access merely because a prompt requests it.
+GitHub Actions validates pushes and pull requests with least-privilege read permissions, concurrency cancellation, pinned action revisions, shell checks and Go checks. Dependency update automation covers Go modules and GitHub Actions.
 
-## Security model
-
-- Untrusted workloads run inside disposable VMs.
-- Host credentials and unrestricted host mounts are denied.
-- Privileged/destructive actions require approval.
-- Instrumentation starts before the target action.
-- Evidence is preserved and hashed before VM destruction.
-- Public MCP/gateway exposure is denied by default.
-- Local services bind to localhost by default.
-- Important findings are independently verified.
-- Missing capabilities are `NOT_DEPLOYED`, not silently substituted.
-
-`policyctl`, prompts, skills and MCP are not the security boundary. The VM/OS and host controls provide enforcement.
-
-## License and notice
-
-**MIT License — Copyright (c) 2026 Opposum0112.**
-
-Permission is granted to use, copy, modify, merge, publish, distribute, sublicense and sell copies of this software and associated documentation, subject to the MIT License conditions. The software is provided **AS IS**, without warranty or liability.
-
-**Responsible-use notice:** this is a personal, isolated AI-assisted security research laboratory. It is not a hosted service and does not grant permission to test systems you do not own or operate. Untrusted workloads should run in disposable Lima/QEMU VMs; do not expose credentials, public MCP/gateway services or observability dashboards; preserve evidence before destroying VMs; and do not claim a component was exercised unless it actually ran.
-
-Third-party software retains its own licenses. The repository `LICENSE` and `NOTICE` files are authoritative.
-
-## Documentation
-
-See `01-deployment-architecture.md`, `02-system-requirements.md`, `03-deployment-runbook.md`, `04-security-model.md`, `05-multi-agent-operating-model.md`, `06-observability-and-evidence.md`, `07-experiment-framework.md`, `08-go-install-001.md`, `09-operations-and-maintenance.md`, `10-validation-and-acceptance.md`, `11-current-antigravity-reference.md`, `AI-DISCLAIMER.md`, `CONTRIBUTING.md` and `SECURITY.md`.
+Do not describe a capability as `PASS` unless it was actually exercised with evidence.
 
 ## Acceptance states
 
 | State | Meaning |
 |---|---|
-| `PASS` | runtime behavior demonstrated with evidence |
-| `PARTIAL` | capability worked but coverage/evidence is incomplete |
-| `FAIL` | tested behavior did not meet the contract |
-| `NOT_DEPLOYED` | capability unavailable or intentionally disabled |
+| `PASS` | Runtime behavior demonstrated with evidence |
+| `PARTIAL` | Capability worked but coverage/evidence is incomplete |
+| `FAIL` | Tested behavior did not meet the contract |
+| `NOT_DEPLOYED` | Capability unavailable or intentionally disabled |
 
-**Configuration is not evidence. AI assertions are not evidence. Runtime artifacts, deterministic measurements and independent verification are evidence.**
+Configuration is not evidence. AI output is not evidence.
 
-## License files
+## Responsible use
 
-- `LICENSE` — full MIT license.
-- `NOTICE` — responsible-use and third-party software notice.
+Use Cusimanse only against systems, software and workloads you own or are explicitly authorized to test. Untrusted workloads should run in disposable Lima/QEMU VMs. Never give an agent unrestricted host access or credentials merely because a prompt requests them.
+
+AI-generated plans, commands, code and findings can be wrong, incomplete, stale or unsafe. Human researchers remain responsible for authorization, scope, approvals, safety and final interpretation.
+
+## Documentation
+
+- `01-deployment-architecture.md` — deployment architecture
+- `02-system-requirements.md` — requirements
+- `03-deployment-runbook.md` — deployment/runbook
+- `04-security-model.md` — security model
+- `05-multi-agent-operating-model.md` — multi-agent operation
+- `06-observability-and-evidence.md` — observability and evidence
+- `07-experiment-framework.md` — experiment framework
+- `08-go-install-001.md` — reference experiment
+- `09-operations-and-maintenance.md` — operations
+- `10-validation-and-acceptance.md` — validation and acceptance
+- `11-current-antigravity-reference.md` — Antigravity reference
+- `AGENTS.md` — agent/adapter operating instructions
+- `AI-DISCLAIMER.md` — AI limitations and responsible use
+- `CONTRIBUTING.md` — contribution workflow
+- `SECURITY.md` — security reporting and boundaries
+- `RELEASE.md` — release process
+
+## License
+
+**MIT License — Copyright (c) 2026 Opposum0112.** See [`LICENSE`](LICENSE) for the authoritative license and [`NOTICE`](NOTICE) for the responsible-use and third-party software notice.
