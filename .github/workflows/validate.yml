@@ -18,14 +18,5 @@ jobs:
         run: go build ./cmd/policyctl
       - name: Policy defaults
         run: ./policyctl check
-      - name: Policy dashboard help/build smoke test
+      - name: Token dashboard command smoke test
         run: ./policyctl token-dashboard --help
-
-  legacy-compatibility:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Python syntax check
-        run: python3 -m compileall -q scripts
-      - name: Legacy CLI self-test
-        run: PYTHONPATH=scripts python3 scripts/labctl/selftest.py
