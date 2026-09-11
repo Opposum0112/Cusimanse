@@ -8,15 +8,9 @@ permissions:
   contents: read
 
 jobs:
-  recipe-and-policy:
+  validate-project:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate YAML and shell syntax
-        run: ./scripts/tests/validate-recipes.sh
-      - name: Build policyctl
-        run: go build ./cmd/policyctl
-      - name: Policy defaults
-        run: ./policyctl check
-      - name: Token dashboard command smoke test
-        run: ./policyctl token-dashboard --help
+      - name: Validate project
+        run: ./scripts/tests/validate-project.sh
