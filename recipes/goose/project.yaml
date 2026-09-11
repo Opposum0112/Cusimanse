@@ -1,0 +1,28 @@
+version: 1
+id: goose-project
+name: Full agentic SecOps workload research platform
+harness: goose
+source_of_truth:
+  markdown: "01-*.md"
+  recipes: recipes/
+execution:
+  controller: scripts/bin/labctl
+  approval_boundary: "--apply"
+  stage_map: recipes/stages/stage-map.yaml
+workloads:
+  directory: recipes/workloads/
+  vm_profiles: recipes/lima/profiles/
+  instrumentation: recipes/instrumentation/
+  agent_monitoring: recipes/agent-monitoring/
+orchestration: recipes/goose/orchestration.yaml
+routing:
+  gateway: recipes/gateway/default-gateway.yaml
+  harness_router: recipes/gateway/harness-router.yaml
+reports: recipes/goose/reporting.yaml
+token_dashboard: recipes/goose/token-dashboard.yaml
+safety:
+  disposable_vm_required: true
+  host_credentials: deny
+  host_mounts: deny
+  preserve_evidence_before_destroy: true
+  independent_verification: required
