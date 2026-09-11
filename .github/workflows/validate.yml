@@ -13,4 +13,4 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Validate project
-        run: ./scripts/tests/validate-project.sh
+        run: bash ./scripts/tests/validate-project.sh
