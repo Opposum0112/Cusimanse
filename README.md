@@ -1,8 +1,16 @@
 # Cusimanse
 
-> **An autonomous, agentic security research platform for controlled workload detonation, runtime analysis, anomaly detection and evidence extraction inside disposable virtual machines.**
+> **Autonomous, agentic security research platform for controlled workload detonation, runtime analysis, anomaly detection and evidence extraction inside disposable virtual machines.**
+
+[![CI](https://github.com/Opposum0112/Cusimanse/actions/workflows/validate.yml/badge.svg)](https://github.com/Opposum0112/Cusimanse/actions/workflows/validate.yml) [![Go](https://img.shields.io/badge/Go-1.23%2B-00ADD8?logo=go)](https://go.dev/) [![Shell](https://img.shields.io/badge/Shell-Bash-4EAA25?logo=gnubash)](https://www.gnu.org/software/bash/) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Release](https://img.shields.io/github/v/release/Opposum0112/Cusimanse?include_prereleases&label=release)](https://github.com/Opposum0112/Cusimanse/releases)
 
 Cusimanse is named after the hyper-curious mongoose that obsessively flips over every leaf and stone to uncover hidden details. The platform applies the same curiosity to software workloads: provision an isolated environment, observe execution, collect evidence, analyze behavior and preserve artifacts for independent verification.
+
+## About
+
+Cusimanse is a **research and experimentation platform**, not a production malware sandbox. It combines disposable Lima/QEMU virtual machines with agent adapters, composable recipes, instrumentation, policy checks, evidence handling and optional observability integrations. The design keeps experiment semantics independent from the agent used to operate them.
+
+**Status:** `v1.0.0-beta.1` — early beta for controlled security research and engineering experimentation. APIs, recipes and integrations may change between beta releases.
 
 ## What Cusimanse does
 
@@ -54,8 +62,6 @@ See [`04-security-model.md`](04-security-model.md) and [`SECURITY.md`](SECURITY.
 ```bash
 ./scripts/prerequisites.sh
 ```
-
-The bootstrap detects OS, distribution and architecture and installs only missing supported prerequisites. It verifies Git, Bash, Python 3, Ruby, Go, QEMU, Lima and Goose and ends with `Prerequisite PASS` when successful.
 
 ### 2. Load the environment
 
@@ -178,7 +184,28 @@ Local validation includes recipe YAML parsing, shell syntax, architecture checks
 
 GitHub Actions validates pushes and pull requests with least-privilege read permissions, concurrency cancellation, pinned action revisions, shell checks and Go checks. Dependency update automation covers Go modules and GitHub Actions.
 
+The release workflow packages the repository from an immutable version tag and publishes checksums with the GitHub release. Release artifacts are generated from Git history rather than from a developer working tree.
+
 Do not describe a capability as `PASS` unless it was actually exercised with evidence.
+
+## Contributing
+
+Bug reports, documentation fixes, tests, recipes and adapter improvements are welcome. Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a pull request.
+
+- **Bug:** use the bug-report issue template and include reproducible steps, environment details and relevant logs with secrets removed.
+- **Security vulnerability:** do **not** open a public issue; follow [`SECURITY.md`](SECURITY.md).
+- **Feature/change:** explain the experiment or operator contract being improved and include tests or validation evidence where practical.
+- **Pull requests:** keep changes focused, preserve security invariants and wait for required CI checks.
+
+## Reporting bugs and security issues
+
+For ordinary defects, use GitHub Issues with the **Bug Report** template. For vulnerabilities involving credential exposure, host escape, unsafe mounts, privilege escalation, malicious workflow changes or other security-sensitive behavior, use the private reporting process described in [`SECURITY.md`](SECURITY.md).
+
+Please never publish credentials, tokens, private keys, sensitive workload data or unredacted forensic artifacts in an issue or pull request.
+
+## Beta release policy
+
+`v1.0.0-beta.*` releases are pre-production research releases. They are intended for authorized, controlled environments and may contain incomplete integrations or breaking changes. A beta release is not a claim of production security certification, sandbox escape resistance or operational completeness.
 
 ## Acceptance states
 
