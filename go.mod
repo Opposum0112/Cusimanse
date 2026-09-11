@@ -1,4 +1,4 @@
-module github.com/Opposum0112/ai-security-lab
+module github.com/Opposum0112/Cusimanse
 
 go 1.22
 

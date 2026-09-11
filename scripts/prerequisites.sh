@@ -15,7 +15,7 @@ if [ -r /etc/os-release ]; then
   DISTRO="${ID:-unknown}"
 fi
 
-log "AI Security Lab prerequisite bootstrap"
+log "Cusimanse prerequisite bootstrap"
 log "Detected OS=${OS} distro=${DISTRO} architecture=${ARCH}"
 mkdir -p "$LOCAL_BIN"
 export PATH="$LOCAL_BIN:$PATH"
@@ -75,7 +75,7 @@ fi
 
 for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
   if [ -f "$rc" ] && ! grep -Fq 'export PATH="$HOME/.local/bin:$PATH"' "$rc"; then
-    printf '\n# AI Security Lab user-local tools\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$rc"
+    printf '\n# Cusimanse user-local tools\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$rc"
   fi
 done
 
