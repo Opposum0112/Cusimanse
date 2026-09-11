@@ -1,0 +1,50 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Package and publish release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Verify tag points at checked-out commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$(git rev-list -n1 "$GITHUB_REF_NAME")"
+
+      - name: Build source packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          git archive --format=tar.gz --prefix="cusimanse-${GITHUB_REF_NAME}/" "$GITHUB_REF_NAME" > "dist/cusimanse-${GITHUB_REF_NAME}.tar.gz"
+          git archive --format=zip --prefix="cusimanse-${GITHUB_REF_NAME}/" "$GITHUB_REF_NAME" > "dist/cusimanse-${GITHUB_REF_NAME}.zip"
+          sha256sum dist/* > "dist/SHA256SUMS"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "Cusimanse ${GITHUB_REF_NAME}" \
+            --generate-notes \
+            --notes "## Beta release\n\nCusimanse ${GITHUB_REF_NAME} is a pre-production security research release for authorized, controlled experimentation.\n\n### Included\n- Source tarball and ZIP package generated directly from the version tag.\n- SHA-256 checksums for release artifacts.\n- Agent-neutral experiment and recipe framework.\n- Disposable Lima/QEMU VM workflow and evidence-preservation model.\n\n### Important\nThis beta is not a production security certification or guarantee of sandbox escape resistance. Review the security model and release notes before use."
