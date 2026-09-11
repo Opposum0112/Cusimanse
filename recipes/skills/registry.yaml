@@ -1,7 +1,7 @@
 version: 1
 id: skill-registry
 kind: skill-registry
-owner: goose
+owner: project
 source: .agents/skills/
 skills:
   evidence-reduction:
