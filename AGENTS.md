@@ -2,7 +2,7 @@
 
 ## Mission
 
-Build and operate a reproducible, disposable AI-assisted security research environment operated by Goose and configured by modular recipes.
+Build and operate a reproducible, disposable AI-assisted security research environment operated through a declared agent adapter and configured by modular recipes. Goose is the current reference adapter; the project is agent-neutral and may also be operated through compatible adapters such as Antigravity or Grok.
 
 ## Mandatory rules
 
@@ -25,7 +25,7 @@ Build and operate a reproducible, disposable AI-assisted security research envir
 
 ## Execution boundary
 
-Goose is the sole project orchestrator/operator/executor. Do not introduce another project controller. `policyctl` is limited to host/security policy configuration and the local token-usage dashboard.
+The selected agent adapter is the project orchestrator/operator/executor for a run. Goose is the reference adapter, while Antigravity, Grok and future compatible adapters may implement the same project contracts. Do not introduce a competing project controller. `policyctl` is limited to host/security policy configuration and the local token-usage dashboard.
 
 ## Privileged operations
 
