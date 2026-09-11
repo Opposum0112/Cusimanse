@@ -1,175 +1,177 @@
-# AI Security Research Lab
+# AI Security Research Lab — Full Agentic SecOps Workload Research Platform
 
-Isolated, reproducible laboratory for studying AI agents, model routing, host/VM instrumentation, and controlled software installation.
+A workload-neutral, recipe-driven security research platform for studying how software workloads behave inside disposable Lima/QEMU VMs, while AI agents automate the complete research lifecycle and host-side tooling observes agent behaviour.
 
-## Project Architecture
+## What this project is
 
-![AI Security Lab — Project Architecture](docs/images/ai-security-lab-architecture.svg)
+The lab combines **SecOps automation, workload security research, VM isolation, instrumentation, AI-agent orchestration, evidence collection, forensic review, reporting and token observability**.
 
-The project architecture shows the complete research path from human/CI/AI-agent entry points through the `labctl` control plane, governance and approval controls, agent harnesses, model routing, isolated Lima/QEMU execution, instrumentation, evidence collection, deterministic reduction, independent verification, and observability.
+The core idea is simple:
 
-> **Status:** deployment baseline under hardening. The repository contains a working Python controller today and a Go control-plane migration in progress. A release is not considered fully deployed until the acceptance matrix has been exercised on the target platform.
+```text
+Markdown research contracts
+        ↓
+Customisable YAML recipes
+        ↓
+Goose multi-agent execution layer
+        ↓
+LLM Gateway / OmniRoute + Harness Router
+        ↓
+Host preflight + prerequisites
+        ↓
+Lima/QEMU disposable VM
+        ↓
+Selected workload + instrumentation
+        ↓
+Host agent monitoring + VM telemetry
+        ↓
+Evidence preservation
+        ↓
+Forensic + independent review
+        ↓
+AI-assisted report generation
+        ↓
+Token/cost dashboard
+```
 
-## Safety first
+**Recipes are the configuration layer. Goose is the agentic execution layer. `labctl` and repository policy remain the execution/security boundary.**
 
-This is a security-research framework for systems you own or are explicitly authorized to test. Run untrusted workloads in disposable VMs, keep host credentials out of experiments, preserve evidence before VM deletion, and review commands before applying them.
+## Fully recipe-driven customization
 
-See `AI-DISCLAIMER.md`, `AGENTS.md`, and `SECURITY.md`.
+All important project behaviour is intended to be expressed in YAML:
+
+```text
+recipes/
+├── stages/                 # Markdown → stage execution contracts
+├── workloads/              # npm, Go and future pip/cargo/build workloads
+├── lima/profiles/          # disposable VM infrastructure profiles
+├── instrumentation/        # syscall/network/filesystem/eBPF collectors
+├── host/                   # host tools and agent observation surfaces
+├── agent-monitoring/       # Numbat/Phoenix/OpenTelemetry settings
+├── agents/                 # reusable agent role definitions
+├── orchestration/          # multi-agent stage chains
+├── gateway/                # LLM gateway + harness-router settings
+├── install/                # host prerequisite recipes
+├── tests/                  # recipe validation recipes
+└── goose/                  # Goose project/execution/report/token recipes
+```
+
+To create a new experiment, normally change a workload YAML and select existing VM, instrumentation, monitoring and orchestration recipes. A new VM implementation should not be required for each workload.
+
+## Goose as the project operator
+
+The intended agent-driven workflow is defined in `recipes/goose/`.
+
+1. Goose reads the Markdown contracts and YAML recipe set.
+2. The **planner** builds the execution plan.
+3. The **reviewer** checks prerequisites, safety, profile compatibility and evidence requirements.
+4. The **executor** invokes approved `labctl` and shell automation and runs workload actions inside the disposable VM.
+5. The **forensic reviewer** analyzes preserved evidence.
+6. The **independent reviewer** challenges findings and separates observation from inference.
+7. The **report generator** creates the experiment/SecOps report.
+8. The token dashboard generator summarizes model usage, latency, retries, cache hits and estimated cost.
+
+This makes Goose the project-level automation layer without making the LLM the security boundary.
+
+See `recipes/goose/README.md` and `recipes/goose/project.yaml`.
+
+## LLM gateway, OmniRoute and harness routing
+
+The routing layer is deliberately configurable. Gateway and harness-router YAML recipes select models, roles, routing policy and telemetry settings. This permits the same experiment to use different models or gateways without rewriting the workload.
+
+Use the gateway for **context/token optimisation and model routing**, while keeping raw evidence outside the LLM context. Deterministic reductions should be passed to agents whenever possible.
 
 ## What runs where?
 
-**Normal shell:** `labctl` is a normal command-line program. Human operators, CI, and approved automation invoke it from a regular shell. There is no special “agent shell”.
+**Normal host shell:** installation, preflight, recipe validation and `labctl` run from the normal shell.
 
-**AI agent:** an agent may *request* an operation through its harness/MCP integration, but the same repository policy and explicit apply boundary remain in force. Do not give an agent unrestricted host access merely because it can execute shell commands.
+**Goose/AI agent:** Goose reads recipes and coordinates the stages. Antigravity, OpenCode, Codex or another approved harness can be used as an entry point where configured by the harness-router recipe.
 
-**Disposable VM:** untrusted installation/workload commands belong inside the experiment VM. Host-side commands should be limited to setup, orchestration, observation, evidence export, and cleanup.
+**Disposable VM:** untrusted workload installation and workload execution happen inside the selected VM. Host credentials and unrestricted host mounts are denied by default.
 
-## Quick start
+`--apply` is the explicit execution boundary. An agent must not be granted unrestricted host access merely because it can execute shell commands.
 
-### 1. Clone
-
-```bash
-git clone https://github.com/Opposum0112/ai-security-lab.git
-cd ai-security-lab
-```
-
-### 2. Inspect before changing anything
+## Install once, then operate by recipes
 
 ```bash
-./scripts/bin/labctl --version
-./scripts/bin/labctl --help
-./scripts/bin/labctl stages
-./scripts/bin/labctl experiment list
-```
-
-If the executable bit is missing:
-
-```bash
-chmod +x scripts/bin/labctl
-```
-
-### 3. Run read-only validation
-
-```bash
-./scripts/bin/labctl self-test
-./scripts/bin/labctl init --dry-run
+./scripts/install.sh
 ./scripts/bin/labctl preflight
+./scripts/tests/validate-recipes.sh
+./scripts/bin/labctl init --dry-run
 ```
 
-`self-test` validates the controller/catalog/policy logic without installing software. `init --dry-run` previews generated files. `preflight` measures the host and does not update `state.yaml` unless `--apply` is supplied.
+Review the plan and platform capability result before applying changes. Third-party tools remain optional and platform-dependent; unsupported capabilities must be reported rather than silently bypassed.
 
-### 4. Materialize the deployment
+## Run a workload
 
-After reviewing the generated plan:
+Select:
 
-```bash
-./scripts/bin/labctl init --apply
+```text
+workload → Lima profile → instrumentation → agent monitoring → orchestration → gateway/router
 ```
 
-Then inspect:
+For example, `recipes/workloads/npm-install-001.yaml` can be customised for a pinned npm package while reusing the same VM and instrumentation profiles.
 
-```bash
-./scripts/bin/labctl status
-./scripts/bin/labctl doctor
+The lifecycle is:
+
+```text
+plan → review → preflight → prepare → instrument → execute → preserve → forensic review → independent verification → report
 ```
 
-### 5. Validate the VM path
+## Evidence and forensic analysis
 
-Install a supported Lima/QEMU combination using the host's normal package mechanism. Review the generated `lima.yaml` before starting a VM. The repository's profiles intentionally use `mounts: []` by default.
+Evidence is preserved before disposable resources are destroyed. Typical streams include process activity, syscalls, network packets, DNS, filesystem changes, hashes and AI-agent telemetry.
 
-For the first integration experiment:
+The forensic recipe must distinguish:
 
-```bash
-./scripts/bin/labctl experiment run go-install-001
-```
+- observed facts;
+- derived indicators;
+- hypotheses;
+- conclusions requiring independent verification.
 
-The command is a dry-run until `--apply` is explicitly supplied. Do not use `--apply` until the VM profile, network policy, instrumentation, and evidence destination have been reviewed.
+Raw evidence remains the durable source. LLM summaries are not substitutes for evidence.
 
-## Core command model
+## Token usage and optimisation
 
-| Command | Default behavior | Mutating? |
-|---|---|---:|
-| `labctl status` | inspect state/host | No |
-| `labctl stages` | list stages | No |
-| `labctl experiment list` | list experiments | No |
-| `labctl self-test` | deterministic tests | No |
-| `labctl preflight` | inspect host | No |
-| `labctl init --dry-run` | preview deployment | No |
-| `labctl init --apply` | materialize files/state | Yes |
-| `labctl stack up NAME --apply` | start localhost stack | Yes |
-| `labctl experiment run ID --apply` | execute experiment | Yes |
-| `labctl accept` | produce acceptance report | Report write |
+`recipes/goose/token-dashboard.yaml` defines the token dashboard contract. It can aggregate usage by run, stage, agent and model and report tokens, latency, retries, cache hits and estimated cost.
 
-If documentation shows a command that does not exist in `labctl --help`, treat the documentation as a bug and report it rather than guessing syntax.
+The optimisation policy favours deterministic reduction, reusable/cached context and routing simple tasks to lower-cost models where the configured gateway supports it.
 
-## Architecture — technical flow
+## Safety
 
-The lab is designed as a controlled research loop: **specification → policy-controlled execution → disposable isolation → instrumentation → evidence → deterministic reduction → independent verification → report**.
+This is a security-research framework for systems you own or are explicitly authorised to test. Use disposable VMs for untrusted workloads, never forward host credentials, avoid unrestricted mounts, preserve evidence before destruction and require review before mutating operations.
 
-```mermaid
-flowchart TB
-    U[Human / CI / Approved AI Agent] --> C[labctl Control Plane]
-    C --> P[Policy + State + Approval Boundary]
-    P --> H[Agent Harness / MCP]
-    H --> G[Model Gateway<br/>LiteLLM / OmniRoute]
-    P --> V[Disposable VM Backend]
-    V --> L[Lima / QEMU<br/>or supported backend]
-    L --> E[Experiment Workload]
-    E --> I[Instrumentation<br/>strace / tcpdump / bpftrace / etc.]
-    I --> EV[Evidence Store<br/>JSONL / PCAP / hashes / process & filesystem evidence]
-    EV --> R[Deterministic Reduction]
-    R --> X[Independent Verification]
-    X --> RP[Acceptance / Experiment Report]
-    G -. telemetry .-> O[OpenTelemetry / OpenInference / Phoenix]
-    E -. telemetry .-> O
-    O --> EV
-```
+The AI agent, LLM gateway and harness are **not** the security boundary. Isolation, policy, explicit approval, evidence handling and independent verification are.
 
-The AI harness is **not** the security boundary. The execution boundary, policy, VM isolation, evidence handling, and explicit approval controls are.
+See `AI-DISCLAIMER.md`, `AGENTS.md`, `SECURITY.md` and `CONTRIBUTING.md`.
 
-## Portability
+## Architecture
 
-The project is moving toward a capability-based, single-binary Go controller. The controller should detect OS, architecture, virtualization, and available backends instead of assuming one host profile.
+![AI Security Lab — Project Architecture](docs/images/ai-security-lab-architecture.svg)
 
-Current deployment content is strongest for Linux x86_64 with QEMU/Lima. macOS and ARM support require platform-specific validation; Windows requires a different VM/backend integration. The project must report unsupported or unvalidated capabilities as `NOT_DEPLOYED` rather than pretending they work.
+The platform separates workload definitions, Lima infrastructure, instrumentation, host monitoring, agent orchestration, model routing, evidence and reporting so the same execution framework can research many workloads.
 
-See `RELEASE.md` for the single-binary design and rollback model.
+## Portability and acceptance
 
-## Components
+Lima/QEMU support is strongest on validated Linux x86_64 configurations. Other OS/architecture combinations must be validated before being reported as supported.
 
-- **Execution:** Lima + QEMU disposable VMs
-- **Containers:** Docker *or* Podman, selected rather than stacked by default
-- **Model routing:** LiteLLM *or* OmniRoute
-- **AI observability:** OpenTelemetry/OpenInference/Phoenix where deployed
-- **Instrumentation:** strace, tcpdump, bpftrace, and other host/VM tools as available
-- **Evidence:** JSONL, packet captures, filesystem/process evidence, hashes
-- **Agent integration:** Antigravity, OpenCode, Goose, Codex, or other approved harnesses
-
-Third-party products are optional dependencies and are not silently installed by `labctl`.
+The project uses `PASS`, `PARTIAL`, `FAIL` and `NOT_DEPLOYED`. Configuration existing on disk is not evidence that a component works. Runtime integration must be exercised on the target host.
 
 ## Repository layout
 
 ```text
-01-11*.md       architecture, requirements, runbook, security, operations
-scripts/labctl   current Python control plane
-cmd/labctl       Go control-plane migration
-experiments/     reproducible experiment contracts
-infra/           generated localhost/VM stack configuration
-policies/        permission and mount controls
-evidence/        runtime evidence (normally gitignored)
-reports/         acceptance and experiment reports
-antigravity/     version-controlled workspace templates
+01-*.md              research contracts and operational documentation
+recipes/              YAML source of truth
+recipes/goose/        Goose agentic execution/reporting recipes
+scripts/              installation, validation and shell automation
+scripts/labctl/       current Python control plane
+cmd/labctl/           Go control-plane migration
+experiments/           reproducible experiment contracts
+infra/                 generated infrastructure
+policies/              permission/mount controls
+evidence/              runtime evidence (normally gitignored)
+reports/               reports and acceptance artifacts
 ```
-
-## Acceptance
-
-The project uses four honest states: `PASS`, `PARTIAL`, `FAIL`, and `NOT_DEPLOYED`. The seven-level acceptance matrix covers host, execution, agent, security, model, observability, and experiment readiness.
-
-A component is not `PASS` merely because configuration files exist. Important findings require independent verification, and evidence must be preserved before disposable resources are deleted.
-
-## Contributing
-
-Read `CONTRIBUTING.md` before submitting changes. Keep tests deterministic where possible, document platform-specific behavior, and never commit secrets or sensitive telemetry.
 
 ## License
 
