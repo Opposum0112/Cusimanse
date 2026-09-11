@@ -1,4 +1,8 @@
-# Cusimanse
+# 🦝 Cusimanse
+
+<p align="center">
+  <img src="docs/images/cusimanse-mascot.svg" alt="Cusimanse mascot — curious cyber raccoon for security research" width="900">
+</p>
 
 > **Autonomous, agentic security research platform for controlled workload detonation, runtime analysis, anomaly detection and evidence extraction inside disposable virtual machines.**
 
