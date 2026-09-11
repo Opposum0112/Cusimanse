@@ -1,16 +1,57 @@
-// labctl is the future single-binary control plane for the AI Security Lab.
-//
-// This initial command intentionally reports the architecture boundary rather
-// than pretending to replace the existing Python implementation. The Go
-// binary will become the stable cross-platform entry point as subcommands are
-// migrated behind the same deployment contract.
 package main
 
-import "fmt"
+import (
+	"flag"
+	"fmt"
+	"os"
 
-const version = "0.2.0-dev"
+	"github.com/Opposum0112/ai-security-lab/pkg/lab"
+)
+
+const version = "0.3.0-dev"
 
 func main() {
+	if len(os.Args) < 2 {
+		usage()
+		return
+	}
+
+	switch os.Args[1] {
+	case "version":
+		fmt.Println("labctl", version)
+	case "validate", "self-test":
+		fs := flag.NewFlagSet(os.Args[1], flag.ExitOnError)
+		root := fs.String("root", ".", "AI Security Lab project root")
+		_ = fs.Parse(os.Args[2:])
+		var err error
+		if os.Args[1] == "validate" {
+			err = lab.ValidateProject(*root)
+		} else {
+			err = lab.SelfTest(*root)
+		}
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "FAIL", err)
+			os.Exit(2)
+		}
+		fmt.Println("PASS", os.Args[1])
+	case "help", "--help", "-h":
+		usage()
+	default:
+		fmt.Fprintf(os.Stderr, "unknown command %q\n", os.Args[1])
+		usage()
+		os.Exit(2)
+	}
+}
+
+func usage() {
 	fmt.Printf("labctl %s\n", version)
-	fmt.Println("Go control-plane bootstrap; deployment commands are being migrated from the legacy Python controller.")
+	fmt.Println("Deterministic Go control-plane bootstrap")
+	fmt.Println()
+	fmt.Println("Usage: labctl <command> [options]")
+	fmt.Println()
+	fmt.Println("Commands:")
+	fmt.Println("  validate   Validate the repository contract without executing workloads")
+	fmt.Println("  self-test  Run deterministic Go control-plane checks")
+	fmt.Println("  version    Print the labctl version")
+	fmt.Println("  help       Show this help")
 }
