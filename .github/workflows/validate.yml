@@ -22,8 +22,8 @@ jobs:
         run: PYTHONPATH=scripts python3 -m labctl experiment list
       - name: CLI dry-run init
         run: PYTHONPATH=scripts python3 -m labctl --dry-run init
-      - name: CLI self-test
-        run: PYTHONPATH=scripts python3 -m labctl self-test
+      - name: Python controller self-test
+        run: PYTHONPATH=scripts python3 scripts/labctl/selftest.py
 
   go-controller:
     runs-on: ubuntu-latest
