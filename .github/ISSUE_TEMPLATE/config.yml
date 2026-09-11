@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability reporting
+    url: https://github.com/Opposum0112/Cusimanse/security
+    about: Do not report security vulnerabilities in public issues. Follow SECURITY.md for the private reporting process.
+  - name: Contribution guide
+    url: https://github.com/Opposum0112/Cusimanse/blob/main/CONTRIBUTING.md
+    about: Read the contribution workflow before opening a pull request.
