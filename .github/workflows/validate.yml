@@ -1,0 +1,38 @@
+name: validate
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  python-controller:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python syntax check
+        run: python3 -m compileall -q scripts
+      - name: CLI help
+        run: PYTHONPATH=scripts python3 -m labctl --help
+      - name: CLI stages
+        run: PYTHONPATH=scripts python3 -m labctl stages
+      - name: CLI experiments
+        run: PYTHONPATH=scripts python3 -m labctl experiment list
+      - name: CLI dry-run init
+        run: PYTHONPATH=scripts python3 -m labctl --dry-run init
+      - name: Python controller self-test
+        run: PYTHONPATH=scripts python3 scripts/labctl/selftest.py
+
+  go-controller:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build
+        run: go build ./cmd/labctl
+      - name: Smoke test
+        run: ./labctl --help || ./labctl
