@@ -1,261 +1,251 @@
-# AI Security Research Lab — Full Agentic SecOps Workload Research Platform
+# AI Security Lab
 
-A workload-neutral, recipe-driven security research platform in which **Goose is the project operator**. Goose reads the Markdown research contracts and YAML recipe graph, coordinates specialized agents, invokes the deterministic Go control plane, runs research workloads in disposable Lima/QEMU environments, collects evidence, performs forensic and independent review, generates reports and token-usage dashboards, and commits approved artifacts.
+**Recipe-driven, Goose-operated, disposable security research platform.**
 
-## Platform model
-
-```text
-Human intent / approval
-          ↓
-        Goose
-          ↓
-Markdown contracts + YAML recipes
-          ↓
-Multi-agent orchestration
-          ↓
-Harness Router → LLM Gateway / OmniRoute
-          ↓
-Go deterministic control plane
-          ↓
-Policy + capability + approval checks
-          ↓
-Disposable Lima/QEMU VM
-          ↓
-Workload + instrumentation
-          ↓
-Host agent monitoring + VM telemetry
-          ↓
-Evidence preservation + deterministic reduction
-          ↓
-Forensic review + independent verification
-          ↓
-Report + token/cost dashboard
-          ↓
-Approved Git commit
-```
-
-**Goose reasons and orchestrates. Go executes deterministic operations. YAML customizes behaviour. Markdown defines research intent and operational contracts. Evidence, policy, isolation and approval—not the LLM—form the security boundary.**
-
-## What runs where?
-
-### Goose — project operator
-
-Goose is the normal operating interface for the platform. It reads the applicable Markdown contracts and **all relevant YAML recipes**, resolves the project graph, delegates work to the configured planner/reviewer/executor/forensic/reporting agents, invokes the Go control plane, and returns durable reports and evidence manifests.
-
-Goose is responsible for reasoning, planning, delegation, context selection, model routing requests, forensic interpretation and report composition. It must not invent execution semantics or bypass the deterministic control plane.
-
-### Go control plane / `labctl` — deterministic execution substrate
-
-The Go control plane is responsible for recipe loading and validation, host capability detection, prerequisite installation, policy enforcement, approval boundaries, VM lifecycle, instrumentation, evidence preservation/reduction, monitoring integration, artifact generation and other deterministic operations.
-
-`labctl` is the CLI façade over that Go execution layer. It is **not a competing agent interface**. Goose invokes the same deterministic control-plane capabilities through the configured integration. `scripts/bin/labctl` remains a compatibility entry point while the Python implementation is migrated to Go.
-
-### Host
-
-The host provides the minimum substrate required by the selected recipes: operating-system facilities, virtualization, Lima/QEMU or another explicitly supported backend, networking, agent telemetry and evidence storage. Host credentials and unrestricted mounts are denied by policy.
-
-### Disposable VM
-
-Untrusted package installation and workload execution happen inside the selected disposable VM. The VM profile, network policy, instrumentation and workload are selected from YAML recipes.
-
-### LLM Gateway / OmniRoute
-
-The routing layer selects models for the different agent roles and provides context/token optimisation and telemetry. Raw evidence is not blindly sent to models; deterministic reductions are preferred.
-
-### Numbat / Phoenix / OpenTelemetry
-
-Host-side and agent-side telemetry observes the operator and research process. These systems provide observability, not authorization to bypass the Go control plane.
-
-### Evidence / Git
-
-Evidence is preserved and hashed before disposable resources are destroyed. Forensic findings, verification results, reports, manifests and token dashboards are generated as durable artifacts. Goose may commit only artifacts explicitly permitted by the active recipe and after required review.
-
-## Fully recipe-driven platform
-
-The primary customization surface is `recipes/`:
-
-```text
-recipes/
-├── stages/                 # Markdown → stage execution contracts
-├── workloads/              # workload definitions
-├── lima/profiles/          # disposable VM infrastructure
-├── instrumentation/        # syscall/network/filesystem/eBPF collectors
-├── host/                   # host capabilities and tools
-├── agent-monitoring/       # Numbat/Phoenix/OpenTelemetry settings
-├── agents/                 # reusable agent roles
-├── orchestration/          # multi-agent stage chains
-├── gateway/                # gateway and harness-router configuration
-├── install/                # bootstrap/prerequisite recipes
-├── tests/                  # validation recipes
-└── goose/                  # Goose project/operator/reporting recipes
-```
-
-A new workload should normally be created by composing existing VM, instrumentation, monitoring, orchestration and routing recipes. Do not create a bespoke VM implementation unless the workload genuinely requires one.
-
-## Bootstrap once; operate entirely through recipes
-
-Installation is itself recipe-driven. The intended lifecycle is:
-
-```text
-Bootstrap Goose + minimal launcher
-          ↓
-Goose reads installation recipe
-          ↓
-Detect host capabilities
-          ↓
-Install declared prerequisites
-          ↓
-Validate complete recipe graph
-          ↓
-Platform ready
-          ↓
-All subsequent operation through Goose recipes
-```
-
-The installation recipe is `recipes/install/install-all.yaml`. Platform-specific package managers remain implementation details of the deterministic Go control plane. Unsupported capabilities must be reported as `NOT_DEPLOYED`; they must never be silently bypassed.
-
-The normal host shell is retained for recovery, debugging, development and emergency bootstrap only. It is not the normal project operating workflow.
-
-## Goose implementation contract
-
-The canonical project-level Goose instruction is:
-
-`recipes/goose/implementation-prompt.yaml`
-
-It directs Goose to read the Markdown and YAML source of truth, validate dependencies, resolve prerequisites, plan, review, request approval, execute through the Go control plane, preserve evidence, perform forensic and independent review, generate reports/dashboards and commit permitted artifacts. It explicitly forbids host credentials, unrestricted mounts, direct host execution of untrusted workloads and control-plane bypass.
-
-## Goose operating commands
-
-The exact command syntax is supplied by the active Goose harness and must not be invented by an agent. Conceptually, Goose should expose project operations corresponding to:
-
-```text
-project discover       # read Markdown + YAML
-project validate       # validate recipe graph
-project preflight      # detect host capabilities
-project bootstrap      # execute installation recipe
-project plan           # construct execution plan
-project review         # invoke reviewer/approval stage
-project run <recipe>   # execute approved workload/stage
-project collect        # preserve evidence
-project forensic       # forensic review
-project verify         # independent verification
-project report         # generate reports
-project tokens         # generate token/cost dashboard
-project commit         # commit recipe-permitted artifacts
-```
-
-These are **Goose-level operations**, not promises that the underlying CLI has identically named subcommands. Goose must resolve them to capabilities provided by the Go control plane and active recipes.
-
-For implementation tasks, use the project prompt recipe and follow this sequence:
-
-```text
-read contracts → validate recipes → preflight → bootstrap if needed
-→ plan → review → approval → execute → collect → reduce
-→ forensic review → independent verification → report → dashboard → commit
-```
-
-## Go control plane and portability
-
-The project is designed to converge on a portable Go execution package:
-
-```text
-Go package
-    ↓
-recipe engine
-capability engine
-policy engine
-execution engine
-VM backends
-instrumentation
-monitoring
-evidence
-reporting
-Git/artifact management
-    ↓
-`labctl` CLI
-    ↓
-Goose
-```
-
-The Go layer should keep platform-specific operations behind interfaces such as VM backend, instrumentation collector, monitoring backend and package installer. Capability detection determines whether a selected backend can actually run.
-
-This allows the same recipe graph to be reused across supported platforms without embedding Linux- or Lima-specific assumptions in the agent layer.
-
-The current migration is incremental: the existing Python controller remains a compatibility implementation while deterministic functionality is moved into Go. Go parity and runtime validation are required before retiring the Python path.
-
-See `recipes/goose/go-control-plane.yaml` for the target architecture.
-
-## Research lifecycle
-
-```text
-Markdown research contract
-        ↓
-YAML workload recipe
-        ↓
-VM + instrumentation + monitoring resolution
-        ↓
-Agent plan/review
-        ↓
-Disposable execution
-        ↓
-Evidence preservation
-        ↓
-Deterministic reduction
-        ↓
-Forensic analysis
-        ↓
-Independent verification
-        ↓
-SecOps / experiment report
-        ↓
-Token/cost dashboard
-        ↓
-Git artifact commit
-```
-
-The forensic process must distinguish observations, derived indicators, hypotheses and independently verified conclusions. LLM summaries are never substitutes for raw evidence.
-
-## Safety boundary
-
-This platform is for systems and workloads you own or are explicitly authorised to test.
-
-- Untrusted workloads run in disposable VMs.
-- Host credentials are never forwarded to workloads.
-- Unrestricted host mounts are denied.
-- Mutating execution requires the configured approval boundary.
-- Evidence is preserved before VM destruction.
-- Agent output is treated as untrusted until verified.
-- Unsupported capabilities are reported as `NOT_DEPLOYED`.
-- No component is marked `PASS` merely because its configuration exists.
-
-See `AI-DISCLAIMER.md`, `AGENTS.md`, `SECURITY.md` and `CONTRIBUTING.md`.
+The lab is intentionally simple: **Markdown specifies the project, one YAML recipe configures it, Goose is the agentic orchestrator/operator/executor, and a separate policy CLI configures host safety policy.**
 
 ## Architecture
 
-![AI Security Lab — Project Architecture](docs/images/ai-security-lab-architecture.svg)
+```text
+Human / CI intent
+        ↓
+Markdown contracts
+        ↓
+ONE project YAML recipe
+        ↓
+GOOSE — agentic operator
+  discover • plan • review • execute
+  observe • collect • investigate
+  verify • report • commit
+        ↓
+Policy CLI
+(host/security policy configuration)
+        ↓
+Lima / QEMU + instrumentation
+        ↓
+Disposable workload VM
+        ↓
+Evidence → reduction → forensics
+          → independent verification
+          → report / token usage
+```
 
-The architecture separates intelligent orchestration from deterministic execution while keeping the entire research lifecycle recipe-driven.
+### Core principle
 
-## Acceptance
+> **Markdown specifies. YAML configures. Goose operates and executes. Policy CLI constrains. Evidence verifies.**
 
-The platform uses `PASS`, `PARTIAL`, `FAIL` and `NOT_DEPLOYED`. Runtime evidence is required before claiming that a backend, agent, instrument, workload or observability component has actually been exercised.
+Goose owns the project workflow. The repository should not contain a second orchestration lifecycle implemented as a large Go controller.
+
+## Why this architecture
+
+The previous design separated many deterministic phases into a Go control plane. That added a second execution model beside Goose. The simplified design removes that duplication.
+
+| Concern | Owner |
+|---|---|
+| Research specification and contracts | Markdown |
+| Project configuration | **One YAML recipe** |
+| Planning and reasoning | **Goose** |
+| Project operations and execution | **Goose** |
+| Host/security policy configuration | **Separate policy CLI** |
+| VM isolation | Lima / QEMU |
+| Instrumentation and telemetry | Declared tools in the recipe |
+| Evidence and verification | Goose workflow + declared tooling |
+| Durable state | Git |
+
+Go code is allowed only for small, reusable helpers or policy-CLI implementation where it removes unsafe ad-hoc shell logic. It is **not** the project orchestrator.
+
+## Full agentic workflow
+
+A normal run is intended to look like:
+
+```text
+1. Goose reads Markdown + the project recipe
+2. Goose discovers capabilities and dependencies
+3. Goose resolves the requested workload/profile
+4. Goose builds and reviews an execution plan
+5. Policy CLI confirms the applicable host policy
+6. Human approval is obtained for privileged/destructive actions
+7. Goose provisions the disposable VM
+8. Goose starts instrumentation and monitoring
+9. Goose executes the workload in the VM
+10. Goose collects and hashes evidence
+11. Goose deterministically reduces evidence before LLM analysis where practical
+12. Goose performs forensic analysis
+13. Goose performs independent verification
+14. Goose generates the experiment/SecOps report and token/cost summary
+15. Goose records PASS / PARTIAL / FAIL / NOT_DEPLOYED honestly
+16. Goose commits only recipe-permitted generated artifacts
+```
+
+The agent must never claim a component was exercised without runtime evidence.
+
+## Project recipe
+
+There is one authoritative project configuration entry point:
+
+```text
+recipes/goose/project.yaml
+```
+
+It selects workloads, VM profiles, instrumentation, monitoring, orchestration, routing, installation, reporting, safety requirements, and portability behavior. Supporting YAML files may remain as reusable data/catalogs, but **`project.yaml` is the single project configuration root**.
+
+Example shape:
+
+```yaml
+version: 1
+id: goose-project
+harness: goose
+workloads:
+  directory: recipes/workloads/
+vm_profiles:
+  directory: recipes/lima/profiles/
+instrumentation:
+  directory: recipes/instrumentation/
+monitoring:
+  directory: recipes/agent-monitoring/
+execution:
+  operator: goose
+policy:
+  cli: policyctl
+safety:
+  disposable_vm_required: true
+  host_credentials: deny
+  host_mounts: deny
+  preserve_evidence_before_destroy: true
+```
+
+The recipe is configuration, not a second programming language for an independent controller. Goose interprets it in context and reports unavailable capabilities rather than silently substituting them.
+
+## Goose project operations
+
+The conceptual project interface is:
+
+```text
+project discover
+project validate
+project preflight
+project bootstrap
+project plan
+project review
+project run <recipe/workload>
+project collect
+project forensic
+project verify
+project report
+project tokens
+project commit
+```
+
+These are **Goose project operations**, not a promise that a stock Goose binary exposes every name as a built-in CLI subcommand. They describe the agentic workflow and can be implemented as Goose prompts/tools/skills as appropriate.
+
+## Policy CLI
+
+The policy CLI is deliberately separate from Goose's project orchestration. It configures and checks host/security constraints such as:
+
+```text
+credentials       deny
+host mounts       deny
+privileged apply  require approval
+network policy    explicit
+VM isolation      required
+```
+
+Suggested interface:
+
+```bash
+policyctl check
+policyctl show
+policyctl set <policy> <value>
+```
+
+`policyctl` does not plan workloads, run experiments, collect evidence, or replace Goose.
+
+## Installation and operation
+
+The intended user experience is agent-first:
+
+```text
+1. Bootstrap only the minimum prerequisites.
+2. Start Goose in the repository.
+3. Give Goose the project recipe and requested goal.
+4. Goose validates and preflights the environment.
+5. Goose asks for approval where policy requires it.
+6. Goose executes through the declared tools/backends.
+7. Goose preserves evidence before destroying disposable resources.
+```
+
+A normal shell remains useful for recovery/debugging and for installing the small bootstrap prerequisites. It is not the normal project execution interface.
+
+## Security model
+
+- Untrusted workloads run only in disposable VMs.
+- Host credentials are never exposed to workloads.
+- Unrestricted host mounts are prohibited.
+- Privileged or destructive operations require explicit approval.
+- Agent output is treated as untrusted until independently verified.
+- Raw telemetry is reduced deterministically before unnecessary LLM exposure.
+- Evidence is preserved and hashed before VM destruction.
+- Missing capabilities are reported as `NOT_DEPLOYED`; they are not silently replaced.
+- Goose is an operator, **not the security boundary**. Isolation, policy, least privilege, and evidence controls provide the boundary.
 
 ## Repository layout
 
 ```text
-01-*.md              research contracts and operational documentation
-recipes/              YAML source of truth
-recipes/goose/        Goose operator/execution/reporting recipes
-cmd/labctl/           Go control-plane migration
-scripts/labctl/       Python compatibility control plane
-scripts/              bootstrap/validation/recovery helpers
-experiments/           reproducible experiment contracts
-infra/                 generated infrastructure
-policies/              permission/mount controls
-evidence/              runtime evidence (normally gitignored)
-reports/               reports and acceptance artifacts
+01-*.md                    research contracts
+AGENTS.md                  project/agent safety rules
+recipes/goose/project.yaml single authoritative project recipe
+recipes/                  reusable YAML catalogs and supporting data
+scripts/                   compatibility/bootstrap helpers
+cmd/                       small standalone utilities, including policy CLI
+pkg/                       small reusable libraries
+.github/                   CI validation
 ```
 
-## License
+The project should evolve by improving the recipe and Goose capabilities before adding new orchestration code.
 
-MIT. See `LICENSE` and `NOTICE`.
+## Testing strategy
+
+Testing is layered:
+
+**L0 — contract test**
+
+Goose reads the project and verifies that the recipe references are coherent.
+
+**L1 — policy/preflight test**
+
+Goose checks capabilities and the separate policy CLI without running an untrusted workload.
+
+**L2 — disposable execution**
+
+Goose provisions a real Lima/QEMU VM and runs a harmless workload.
+
+**L3 — observed execution**
+
+Goose adds syscall/network/filesystem instrumentation and agent monitoring.
+
+**L4 — full agentic SecOps workflow**
+
+Goose executes the complete lifecycle, then performs forensic analysis, independent verification, reporting, and controlled Git updates.
+
+CI should cover deterministic contract/policy tests. Real VM and observability tests should run on explicitly provisioned research hosts.
+
+## Status
+
+The repository is **architecturally ready for Goose validation**, but it is not yet honest to call the complete L2–L4 workflow deployed. The current Go `labctl` bootstrap provides project validation/self-test; it should remain a small helper rather than grow into a competing orchestration plane.
+
+The next implementation milestone is to consolidate the existing recipe references under the single `project.yaml` root, define the policy CLI contract, and validate the complete Goose-driven L0/L1 workflow before enabling real VM execution.
+
+## Contributing
+
+Changes should preserve the single-operator architecture. Prefer:
+
+1. recipe changes for configuration;
+2. Goose skills/tools/prompts for orchestration and execution behavior;
+3. policy CLI changes for safety configuration;
+4. small helpers only when deterministic functionality cannot safely live in Goose tooling.
+
+Do not introduce a second project orchestrator, bypass policy, expose credentials, or claim untested components are deployed.
+
+## AI disclaimer
+
+AI agents, including Goose and any connected model, can make incorrect decisions or produce unsafe instructions. This project is for authorized security research and controlled experimentation. Human review, isolation, policy controls, and independent verification remain required for consequential operations.
