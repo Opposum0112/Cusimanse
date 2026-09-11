@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500" role="img" aria-labelledby="title desc">
+  <title id="title">Cusimanse security research mascot</title>
+  <desc id="desc">A curious cyber raccoon mascot beside the Cusimanse project name, representing isolated security research.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#07111f"/><stop offset="1" stop-color="#122b52"/></linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4da3ff"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient>
+    <filter id="shadow"><feGaussianBlur stdDeviation="8"/></filter>
+  </defs>
+  <rect width="1200" height="500" rx="28" fill="url(#bg)"/>
+  <circle cx="190" cy="255" r="150" fill="#2563eb" opacity=".12" filter="url(#shadow)"/>
+  <path d="M0 425 C170 350 310 390 470 430 C650 475 820 380 1200 415 V500 H0Z" fill="#06101d"/>
+  <path d="M0 445 C220 390 350 420 520 455 C720 495 930 405 1200 440" fill="none" stroke="#1d4ed8" stroke-width="3" opacity=".55"/>
+  <!-- tail -->
+  <path d="M310 345 C420 305 410 445 325 420 C280 407 288 370 325 365" fill="#334155" stroke="#0f172a" stroke-width="14"/>
+  <path d="M320 382 C350 370 375 382 388 399" fill="none" stroke="#cbd5e1" stroke-width="13"/>
+  <!-- hood -->
+  <path d="M95 355 C90 235 108 125 200 85 C292 125 310 235 305 355 Z" fill="#0b1324" stroke="#38bdf8" stroke-width="5"/>
+  <!-- ears -->
+  <path d="M120 145 L105 65 L170 105 Z" fill="#1e293b" stroke="#38bdf8" stroke-width="5"/>
+  <path d="M230 105 L295 65 L280 145 Z" fill="#1e293b" stroke="#38bdf8" stroke-width="5"/>
+  <!-- face -->
+  <path d="M140 160 C165 125 235 125 260 160 L270 255 C265 320 230 345 200 350 C170 345 135 320 130 255Z" fill="#e2e8f0"/>
+  <path d="M132 170 C155 150 177 160 200 190 C223 160 245 150 268 170 L255 230 C230 215 220 205 200 205 C180 205 170 215 145 230Z" fill="#1f2937"/>
+  <ellipse cx="170" cy="235" rx="13" ry="17" fill="#0f172a"/><ellipse cx="230" cy="235" rx="13" ry="17" fill="#0f172a"/>
+  <circle cx="174" cy="231" r="4" fill="#fff"/><circle cx="234" cy="231" r="4" fill="#fff"/>
+  <path d="M180 275 Q200 258 220 275 Q216 300 200 305 Q184 300 180 275Z" fill="#0f172a"/>
+  <path d="M190 303 Q200 312 210 303" fill="none" stroke="#0f172a" stroke-width="4" stroke-linecap="round"/>
+  <!-- laptop -->
+  <path d="M112 352 L288 352 L270 445 L130 445Z" fill="#111827" stroke="#38bdf8" stroke-width="5"/>
+  <path d="M85 445 H315 L335 462 H65Z" fill="#334155" stroke="#0f172a" stroke-width="5"/>
+  <text x="200" y="415" text-anchor="middle" font-family="Arial, sans-serif" font-size="58" font-weight="800" fill="url(#glow)">C</text>
+  <!-- wordmark -->
+  <text x="390" y="190" font-family="Arial, Helvetica, sans-serif" font-size="88" font-weight="800" fill="#f8fafc">Cusimanse</text>
+  <text x="395" y="245" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" letter-spacing="7" fill="#60a5fa">ISOLATE · ANALYZE · UNDERSTAND · STAY AHEAD</text>
+  <text x="395" y="305" font-family="Arial, Helvetica, sans-serif" font-size="30" fill="#cbd5e1">Autonomous agentic security research platform</text>
+  <text x="395" y="345" font-family="Arial, Helvetica, sans-serif" font-size="30" fill="#cbd5e1">for controlled workload detonation and runtime analysis.</text>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" letter-spacing="3" fill="#93c5fd">
+    <text x="395" y="405">DISPOSABLE</text><text x="570" y="405">SECURE</text><text x="700" y="405">REPEATABLE</text><text x="875" y="405">OPEN</text>
+  </g>
+  <rect x="395" y="425" width="440" height="3" rx="2" fill="url(#glow)"/>
+  <text x="395" y="460" font-family="Arial, Helvetica, sans-serif" font-size="17" fill="#94a3b8">Research safely. Preserve evidence. Verify independently.</text>
+</svg>
