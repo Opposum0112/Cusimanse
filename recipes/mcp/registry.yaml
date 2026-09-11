@@ -1,7 +1,7 @@
 version: 1
 id: mcp-registry
 kind: mcp-registry
-owner: goose
+owner: project
 policy:
   default_transport: stdio
   bind_address: 127.0.0.1
