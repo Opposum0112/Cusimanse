@@ -1,6 +1,8 @@
 # 01 — Deployment Architecture
 
-![Project architecture](docs/images/ai-security-lab-project-architecture.svg)
+![Cusimanse deployment architecture](docs/images/cusimanse-deployment-architecture.svg)
+
+> **Deployment view:** shared experiment contracts and agent adapters drive controlled workloads inside disposable Lima/QEMU VMs; instrumentation, evidence handling and verification remain inside the research lifecycle.
 
 ## Project model
 
@@ -24,6 +26,20 @@ Evidence → reduction → forensics → independent verification
         ↓
 Report → evidence preservation → VM destruction
 ```
+
+## Deployment layers
+
+| Layer | Responsibility | Security significance |
+|---|---|---|
+| Human / CI | Defines intent, scope and authorization | Human authorization remains authoritative |
+| Shared contract | Specifies experiment semantics and required evidence | Prevents adapter-specific drift |
+| Agent adapters | Operate the shared contract through provider-specific tooling | Must not bypass approvals or policy |
+| Recipes / registries | Compose experiments, tools, MCP, skills and audit | Configuration layer, not a security boundary |
+| `policyctl` | Configures host/security policy and token dashboard | Policy decision only; not enforcement |
+| Lima / QEMU VM | Runs the disposable research environment | Primary workload isolation boundary |
+| Instrumentation | Captures process, filesystem, network and runtime signals | Starts before target execution |
+| Evidence pipeline | Preserves, reduces, analyzes and verifies artifacts | Evidence is the basis for claims |
+| Report / destroy | Produces findings, preserves evidence, destroys VM | Limits workload persistence |
 
 ## Boundaries
 
@@ -55,6 +71,22 @@ Same experiment semantics
 ```
 
 An adapter must not bypass `policyctl`, approval gates, audit requirements or evidence preservation. AI output is advisory; the VM/OS and host controls are the actual security enforcement boundary.
+
+## Deployment lifecycle
+
+```text
+DISCOVER → VALIDATE → PREFLIGHT → INSTALL → PLAN → REVIEW → APPROVE
+    ↓
+PROVISION VM → START INSTRUMENTATION → EXECUTE WORKLOAD
+    ↓
+COLLECT → REDUCE → FORENSICS → INDEPENDENT VERIFICATION
+    ↓
+REPORT → HASH/PRESERVE EVIDENCE → DESTROY VM
+```
+
+## Security boundary rule
+
+The diagram intentionally separates **policy and agent logic** from the **VM/OS enforcement boundary**. Prompts, skills, MCP servers, adapters and `policyctl` must never be treated as containment mechanisms. Isolation depends on VM configuration, filesystem/mount controls, credential separation, network controls and explicit approval gates.
 
 ## Design principle
 
