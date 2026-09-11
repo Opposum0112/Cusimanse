@@ -2,94 +2,221 @@
 
 > **An agent-neutral, modular, recipe-driven security research lab for controlled experimentation, evidence collection and independent verification.**
 
-Markdown specifies the research contract. YAML configures reusable components. A selected agent adapter operates the workflow. Goose is the current reference adapter; Antigravity and Grok are documented alternatives. `policyctl` is the only project CLI for host/security policy decisions and the local token-usage web dashboard. Lima/QEMU provide disposable execution isolation; evidence, audit records and independent verification establish what actually happened.
+Markdown specifies the research contract. YAML configures reusable components. An agent adapter operates the workflow. Goose is the current reference adapter; OpenCode, Grok Build and Antigravity are documented adapter targets. `policyctl` is the only project CLI for host/security policy decisions and the local token-usage web dashboard. Lima/QEMU provide disposable execution isolation; evidence, audit records and independent verification establish what actually happened.
 
-## Quick start
+![Project architecture](docs/images/ai-security-lab-project-architecture.svg)
 
-Choose an agent adapter and run the same project contracts. The reference Goose entry recipe is:
+## Project workflow
+
+```text
+Human / CI intent → Markdown contract → Goose project recipe
+                                      ↓
+        Goose / OpenCode / Grok Build / Antigravity adapter
+                                      ↓
+          modular recipes + policyctl + MCP + skills + audit
+                                      ↓
+                       disposable Lima / QEMU VM
+                                      ↓
+          instrument → execute → collect → reduce → forensics
+                                      ↓
+             independent verification → report → preserve → destroy
+```
+
+The project defines **one operator contract**, not one provider-specific implementation. Goose is the maintained reference operator/executor. Other agents are adapters that consume the same Markdown contracts and YAML recipes. Adapters must not change experiment semantics, bypass policy decisions, suppress audit records, or claim unavailable capabilities as success.
+
+## Deploy and run
+
+### Prerequisites
+
+Install/configure the selected agent first. For the reference path, install Goose and the host capabilities required by the experiment, typically Git, Bash, Lima and QEMU. Optional tools are declared by the tools recipe.
+
+### Goose reference deployment
+
+From the repository root:
+
+```bash
+./scripts/install.sh
+```
+
+This is a convenience bootstrap: it performs preflight and launches the reusable installation recipe. It is **not** a project controller and creates no hidden project state.
+
+Run the complete project:
 
 ```bash
 goose run --recipe recipes/goose/project.yaml --params experiment=go-install-001 --params section=project
 ```
 
-The project is not Goose-dependent at the experiment-contract level. Other adapters should consume the same Markdown/YAML contracts without changing experiment semantics.
-
-## Agent adapters
-
-### Goose — reference adapter
-
-`recipes/goose/project.yaml` is the maintained Goose entry recipe. Goose provides the adapter layer for planning, review, approvals, execution and evidence workflow. It does not define the security boundary.
+Iterate on a numbered section:
 
 ```bash
-goose run --recipe recipes/goose/project.yaml --params experiment=go-install-001 --params section=project
+goose run --recipe recipes/goose/project.yaml --params experiment=go-install-001 --params section=07
 ```
+
+### Goose operator steps
+
+| Step | Purpose |
+|---|---|
+| Discover | read Markdown contracts, experiment definitions and selected recipes |
+| Validate | reject invalid or missing recipe references |
+| Preflight | check host, VM and tool capabilities |
+| Install | run the declared installation recipe when needed |
+| Plan | create the proposed execution sequence |
+| Review | use planner/reviewer roles to identify risky actions |
+| Approve | obtain required human approval |
+| Provision | create the disposable Lima/QEMU environment |
+| Instrument | start telemetry before the workload |
+| Execute | run only approved workloads and tools |
+| Collect | capture runtime artifacts and audit records |
+| Reduce | deterministically reduce large evidence where practical |
+| Forensics | analyse collected evidence without altering originals |
+| Verify | independently test important findings |
+| Report | produce findings and the evidence manifest |
+| Preserve | hash and preserve evidence before destruction |
+| Destroy | remove the disposable VM after evidence is preserved |
+
+Goose is the reference **operator/executor**, not the security boundary. VM isolation, OS permissions, mount controls, credential separation, network controls and approval workflows provide enforcement.
+
+## Agent adapter steps
+
+The shared project contract remains unchanged when another agent is used.
+
+### OpenCode
+
+1. Start OpenCode in the repository.
+2. Load `AGENTS.md` and the applicable Markdown contract.
+3. Resolve the same `recipes/` composition.
+4. Map OpenCode tools, MCP and skills to registry-approved capabilities.
+5. Implement the same validate → plan → approve → provision → instrument → execute → collect → verify → report → destroy lifecycle.
+6. Emit the same audit and evidence references.
+
+### Grok Build
+
+1. Build the Grok integration as an adapter around the project contracts.
+2. Expose only registry-approved tools and MCP servers.
+3. Preserve `policyctl`, audit, evidence and approval semantics.
+4. Keep Grok-specific prompts/configuration in the adapter layer.
+5. Mark unavailable integration as `NOT_DEPLOYED` rather than silently substituting behavior.
 
 ### Antigravity
 
-The `antigravity/` directory documents how Antigravity can consume the project's agent roles, skills and MCP configuration. See `antigravity/README.md` and `11-current-antigravity-reference.md`. Antigravity-specific behavior belongs in the adapter layer; experiment definitions remain provider-neutral.
+1. Follow `antigravity/README.md` and `11-current-antigravity-reference.md`.
+2. Load canonical `.agents/` roles/skills and the MCP registry.
+3. Resolve the same experiment, workload, VM, instrumentation and audit recipes.
+4. Keep Antigravity-specific wiring outside shared experiment semantics.
+5. Apply the same evidence and independent-verification lifecycle.
 
-### Grok
-
-The `grok/` adapter documentation describes how a Grok-based agent can consume the same project contracts. Grok is an adapter, not a replacement project controller. Any Grok-specific integration must preserve policy, audit, evidence and verification semantics.
-
-### Agent-neutral contract
+### Adapter boundary
 
 ```text
-Human / CI intent
-        |
-        v
-Markdown contracts
-        |
-        v
-Agent adapter: Goose / Antigravity / Grok / future adapter
-        |
-        +---- modular recipes ------------------------------+
-        | experiment | workload | installation | routing    |
-        | host       | VM       | tools        | instrumentation |
-        | monitoring | agents   | orchestration | reporting |
-        | token dashboard | MCP | skills | audit             |
-        +----------------------------------------------------+
-        |
-        +---- policyctl -> host/security policy
-        |
-        v
-Disposable Lima / QEMU VM
-        |
-        v
-Evidence -> deterministic reduction -> forensics -> independent verification
+                 Shared project contracts
+              Markdown + recipes + policy
+                         ↓
+       ┌────────── Agent adapter boundary ──────────┐
+       │ Goose | OpenCode | Grok Build | Antigravity│
+       └────────────────────┬───────────────────────┘
+                            ↓
+                 approved tools / MCP / skills
+                            ↓
+                    Lima / QEMU execution
+                            ↓
+              audit + evidence + verification
 ```
 
-**Design principle:** Markdown specifies. YAML configures. Agent adapters reason/operate. `policyctl` configures policy. Audit records. Evidence proves.
+## Customize recipes
 
-## `policyctl` commands
+Recipes are **small, composable configuration units**. Do not turn `recipes/goose/project.yaml` into a monolith. Change the narrowest recipe that expresses the required capability and compose it from the experiment.
+
+### Customization workflow
+
+```text
+Experiment
+   ↓
+Identify what changes
+   ├─ workload
+   ├─ VM profile
+   ├─ host profile
+   ├─ tools
+   ├─ installation
+   ├─ instrumentation / monitoring
+   ├─ routing
+   ├─ MCP / skills
+   └─ stage / reporting
+   ↓
+Reference the recipe from experiment composition
+   ↓
+Validate
+   ↓
+Run through selected adapter
+   ↓
+Preserve evidence + audit
+```
+
+### Recipe schema
+
+Recipe families do not need identical schemas. Each family should expose only the fields needed for its responsibility. A typical composable recipe looks like:
+
+```yaml
+version: "1"
+title: Example capability
+description: What this recipe provides
+parameters:
+  - key: experiment
+    input_type: string
+    requirement: required
+components:
+  - name: vm-profile
+    path: ../lima/profiles/security-research.yaml
+  - name: instrumentation
+    path: ../instrumentation/default.yaml
+policy:
+  approval: required
+execution:
+  stages:
+    - provision
+    - instrument
+    - execute
+    - collect
+evidence:
+  preserve_before_destroy: required
+```
+
+Think of the schema as **identity → inputs → composition → constraints → execution/evidence requirements**. A workload recipe describes the workload; a VM profile describes VM resources; an instrumentation recipe describes telemetry; an adapter entry recipe describes how an agent consumes the project. Avoid unrelated fields simply for schema uniformity.
+
+### Recipe structure
+
+```text
+recipes/
+├── goose/              # Goose reference entry adapter
+├── experiments/        # experiment composition
+├── workloads/          # workload definitions
+├── install/            # prerequisites and installation
+├── host/               # host profiles
+├── lima/profiles/      # disposable VM profiles
+├── tools/              # tool inventory
+├── instrumentation/    # telemetry profiles
+├── agent-monitoring/   # agent/trace observation
+├── agents/             # provider-neutral roles
+├── orchestration/      # execution composition
+├── routing/            # model/harness routing
+├── stages/             # stage-to-contract mapping
+├── reporting/          # reporting
+├── token/              # token telemetry data
+├── mcp/                # MCP registry
+├── skills/             # skill registry
+├── audit/              # audit layer
+└── tests/              # deterministic validation
+```
+
+Safe customization: read the contract, choose the narrowest family, extend only where capability differs, keep credentials out of YAML/Git, keep privileged operations explicit and policy-controlled, update experiment composition, validate, then run through the selected adapter and preserve evidence.
+
+## policyctl
 
 `policyctl` is intentionally narrow: it owns **host/security policy configuration and the token-usage web dashboard only**. It is not a general project controller, experiment runner, agent harness or sandbox.
 
-Build it with:
-
 ```bash
 go build ./cmd/policyctl
-```
-
-### Show policy
-
-```bash
 ./policyctl show
-./policyctl show --file policies/host-policy.yaml
-```
-
-### Validate policy
-
-```bash
 ./policyctl validate
-./policyctl validate --file policies/host-policy.yaml
-```
-
-Validation parses the policy configuration and fails closed on invalid policy input.
-
-### Check an action
-
-```bash
 ./policyctl check --action credentials
 ./policyctl check --action mounts
 ./policyctl check --action host-root
@@ -98,226 +225,99 @@ Validation parses the policy configuration and fails closed on invalid policy in
 ./policyctl check --action network
 ./policyctl check --action git-write
 ./policyctl check --action push
-```
-
-Add `--json` when machine-readable output is required. Policy decisions are also appended to the audit JSONL stream. Supported action names map to the corresponding policy categories; unknown actions fail rather than being implicitly allowed.
-
-### Token-usage web dashboard
-
-The token dashboard is also owned exclusively by `policyctl`:
-
-```bash
 ./policyctl token-dashboard
 ```
 
-Optional local listener configuration:
+A policy decision is not itself enforcement; the adapter must honor it and actual enforcement comes from host/VM security controls.
 
-```bash
-./policyctl token-dashboard --addr 127.0.0.1:8787
-```
-
-The dashboard reads `reports/token-usage/usage.json` and exposes a local HTML view plus its local usage API. It binds to localhost by default. It is an observability surface, not an authorization mechanism, and it must not be exposed publicly without an explicitly reviewed design.
-
-## Policy decision versus enforcement
-
-A `policyctl` result is a **policy decision/configuration result**, not a kernel or VM security boundary. A `deny` must be honored by the calling adapter. Real enforcement comes from VM isolation, OS permissions, mount controls, credential separation, network controls and approval workflows. Prompts, skills, MCP servers and policy output must never be treated as the sole security boundary.
-
-The default policy includes:
-
-- host credentials: deny;
-- unrestricted host mounts: deny;
-- untrusted host execution: deny;
-- privileged defaults: approval-required;
-- disposable VM: approval-required;
-- Lima/QEMU: explicitly allowed as virtualization mechanisms;
-- public MCP/gateway exposure: deny;
-- Git writes/pushes: approval-required;
-- evidence preservation and hashing: required.
-
-## Modular recipe families
+## Lifecycle and evidence
 
 ```text
-recipes/
-├── experiments/        # experiment compositions
-├── workloads/          # workload definitions
-├── install/            # prerequisites and installation
-├── host/               # host profiles
-├── lima/profiles/      # VM profiles
-├── tools/              # tool inventory
-├── instrumentation/    # instrumentation profiles
-├── agent-monitoring/   # agent/trace observation
-├── agents/             # provider-neutral agent roles
-├── orchestration/      # workflow composition
-├── routing/            # model/harness routing
-├── stages/             # execution stages
-├── reporting/          # report recipes
-├── token/              # token telemetry configuration
-├── mcp/                # MCP registry
-├── skills/             # skill registry
-├── audit/              # audit layer
-├── tests/              # recipe validation
-└── goose/              # Goose reference adapter entry recipe
+discover → validate → preflight → install → plan → review → approve
+→ provision → instrument → execute → collect → reduce → forensics
+→ independent verification → report → preserve → destroy
 ```
 
-An experiment selects reusable profiles rather than duplicating VM, workload or instrumentation configuration without a genuine capability difference.
-
-## Execution lifecycle
-
-The reference workflow is:
-
-```text
-discover -> validate -> preflight -> install -> plan -> review -> approve
--> provision -> instrument -> execute -> collect -> reduce -> forensics
--> independent verification -> report -> preserve evidence -> destroy
-```
-
-Runtime `PASS` requires evidence. Configuration alone is never proof. If a capability is unavailable, record `NOT_DEPLOYED` rather than silently substituting a weaker implementation.
+Runtime `PASS` requires evidence. Configuration and AI assertions are not proof. Missing capabilities are `NOT_DEPLOYED`.
 
 ## MCP, skills and audit
 
 - `recipes/mcp/registry.yaml` declares MCP capabilities and exposure rules.
-- `recipes/skills/registry.yaml` declares reviewed reusable agent instructions.
+- `recipes/skills/registry.yaml` declares reviewed reusable instructions.
 - `recipes/audit/default.yaml` defines append-only audit records.
-- `.agents/` contains provider-neutral project roles, skills and MCP configuration.
+- `.agents/` contains provider-neutral roles, skills and MCP configuration.
 
-Skills are instructions, not security boundaries. They cannot grant privileges. MCP arguments must not carry secrets. Audit records distinguish requested, approved, executed and observed actions and avoid storing raw credentials.
+Skills are instructions, not security boundaries. MCP arguments must not carry secrets. Audit distinguishes requested, approved, executed and observed actions.
 
-## Installation and prerequisites
-
-The repository contains reusable installation recipes. The convenience script is currently Goose-specific because Goose is the reference adapter:
-
-```bash
-./scripts/install.sh
-```
-
-For another adapter, consume `recipes/install/project-bootstrap.yaml` through that adapter instead of introducing a second project controller.
-
-Required host capabilities depend on the selected experiment and profile, typically including Git, Bash, Lima and QEMU. VM tools are declared by the tools recipe. Optional observability tools are capability-gated.
-
-## The `scripts/` directory and retired `labctl`
-
-The repository previously contained a Python `labctl` project controller under `scripts/`. That architecture has been **retired** because it duplicated orchestration responsibilities and conflicted with the agent-neutral design.
-
-The current `scripts/` directory is intentionally limited to supporting shell utilities, installation convenience and validation. **Do not recreate or depend on `./scripts/bin/labctl` or `scripts/labctl/`.**
-
-The repository was checked for `labctl` references during this refactor. The old controller code is removed; the validation suite explicitly fails if the retired controller paths reappear.
-
-## Validation before merge
-
-Run the project validation from the repository root:
+## Validation
 
 ```bash
 bash ./scripts/tests/validate-project.sh
-```
-
-The validation script:
-
-1. parses every recipe YAML file;
-2. syntax-checks shell scripts;
-3. verifies the retired `labctl` controller is absent;
-4. verifies required policy and `policyctl` sources exist;
-5. checks Go formatting;
-6. runs Go unit tests;
-7. builds `policyctl`;
-8. validates the host policy;
-9. exercises representative policy decisions and audit output;
-10. runs Python unit tests when Python is available.
-
-For recipe-only validation:
-
-```bash
 bash ./scripts/tests/validate-recipes.sh
-```
-
-For the Python test suite:
-
-```bash
 PYTHONPATH=scripts python3 -m unittest discover -s scripts/tests -v
-```
-
-For Go tests:
-
-```bash
 go test ./...
 ```
 
-The GitHub Actions validation workflow runs the same project validation before a pull request can be considered ready.
+GitHub Actions uses the project validation script for pushes and pull requests. CI failures should be investigated; they are not evidence of either security or insecurity.
 
 ## AI disclaimer
 
-This project uses AI agents as research assistants and workflow operators. AI output can be incomplete, incorrect, stale, overconfident or unsafe. Generated plans, explanations, commands and findings are **not evidence by themselves** and must not be treated as authoritative security conclusions.
-
-Use deterministic tooling, captured telemetry, hashes, manifests and independent verification to establish facts. Human researchers remain responsible for authorization, scope, approvals and final interpretation. Never provide an AI agent with credentials or host access merely because a prompt requests it.
-
-A successful agent response does not imply that an experiment succeeded. Conversely, an agent failure does not prove that the underlying system is safe. Record uncertainty explicitly.
+AI output can be incomplete, incorrect, stale, overconfident or unsafe. Generated plans, commands and findings are not evidence by themselves. Use deterministic tooling, captured telemetry, hashes, manifests and independent verification. Human researchers remain responsible for authorization, scope, approvals and final interpretation.
 
 ## Security model
 
 Use the lab only against systems, software and workloads you own or are explicitly authorized to test.
 
-Core controls:
-
-- execute untrusted workloads inside disposable VMs;
-- deny host credential exposure;
-- deny unrestricted host filesystem mounts;
-- require approval for privileged or destructive actions;
-- start instrumentation before workload execution;
-- preserve and hash evidence before destroying a VM;
-- reduce large raw evidence deterministically before sending it to an LLM where practical;
-- independently verify important findings;
-- bind local services to localhost by default;
-- treat missing controls as `NOT_DEPLOYED`, not as success.
-
-The VM boundary and operating-system controls provide isolation. `policyctl` provides policy decisions. The agent adapter is responsible for honoring those decisions. No single AI component is trusted as the security boundary.
-
-See `SECURITY.md` and `AI-DISCLAIMER.md` for the fuller security and AI guidance.
+- Untrusted workloads run inside disposable VMs.
+- Host credentials and unrestricted host mounts are denied.
+- Privileged/destructive operations require approval.
+- Instrumentation starts before workload execution.
+- Evidence is preserved and hashed before VM destruction.
+- Large raw evidence is reduced deterministically before LLM analysis where practical.
+- Important findings are independently verified.
+- Local services bind to localhost by default.
+- Missing controls are `NOT_DEPLOYED`, not success.
 
 ## Contribution guidelines
 
-Contributions should preserve the architecture rather than introduce parallel control planes.
-
-1. Read `AGENTS.md` and the relevant Markdown contract before changing behavior.
-2. Prefer a reusable Markdown contract and YAML recipe over hard-coded agent-specific logic.
-3. Keep experiment semantics independent of the selected agent adapter.
-4. Keep `policyctl` limited to host/security policy and token dashboard responsibilities.
-5. Do not introduce or revive a project controller such as the retired `labctl`.
-6. Never commit credentials, tokens, private keys, raw sensitive telemetry or unrestricted host mounts.
-7. Add or update tests when behavior changes.
-8. Run the validation suite before opening a pull request.
-9. Document platform-specific limitations and mark unavailable capabilities `NOT_DEPLOYED`.
-10. For security-sensitive changes, explain the threat model, enforcement point and evidence required to demonstrate the control.
-
-Pull requests should describe the architectural impact, affected recipes, adapter compatibility, validation performed and any remaining limitations.
+1. Read `AGENTS.md` and the relevant Markdown contract.
+2. Prefer reusable contracts and YAML recipes over hard-coded agent logic.
+3. Keep experiment semantics independent of the adapter.
+4. Keep `policyctl` limited to policy and token-dashboard responsibilities.
+5. Do not recreate the retired `labctl` project controller.
+6. Never commit credentials, tokens, private keys or unrestricted host mounts.
+7. Add/update tests for behavior changes.
+8. Run validation before opening a PR.
+9. Document adapter limitations and use `NOT_DEPLOYED` where appropriate.
+10. For security-sensitive changes, document the threat model, enforcement point and evidence required.
 
 ## Documentation map
 
 | Document | Purpose |
 |---|---|
-| `01-deployment-architecture.md` | system boundaries and components |
+| `01-deployment-architecture.md` | architecture and boundaries |
 | `02-system-requirements.md` | host and VM prerequisites |
-| `03-deployment-runbook.md` | installation and first run |
-| `04-security-model.md` | threats and security controls |
+| `03-deployment-runbook.md` | deployment and first run |
+| `04-security-model.md` | threats and controls |
 | `05-multi-agent-operating-model.md` | roles and handoffs |
 | `06-observability-and-evidence.md` | telemetry and evidence |
 | `07-experiment-framework.md` | reusable experiment design |
-| `08-go-install-001.md` | end-to-end acceptance experiment |
+| `08-go-install-001.md` | acceptance experiment |
 | `09-operations-and-maintenance.md` | upgrades and recovery |
 | `10-validation-and-acceptance.md` | acceptance semantics |
-| `11-current-antigravity-reference.md` | Antigravity adapter reference |
-| `AI-DISCLAIMER.md` | AI limitations and responsibility |
+| `11-current-antigravity-reference.md` | Antigravity adapter |
+| `AI-DISCLAIMER.md` | AI limitations |
 | `CONTRIBUTING.md` | contribution process |
-| `SECURITY.md` | security reporting and policy |
+| `SECURITY.md` | security reporting |
 
 ## Acceptance semantics
 
 | State | Meaning |
 |---|---|
-| `PASS` | required runtime behavior was demonstrated with evidence |
-| `PARTIAL` | some required capability worked, but coverage or evidence is incomplete |
+| `PASS` | required runtime behavior demonstrated with evidence |
+| `PARTIAL` | capability worked but coverage/evidence is incomplete |
 | `FAIL` | required behavior was tested and did not meet the contract |
-| `NOT_DEPLOYED` | required capability was unavailable or intentionally not enabled |
-
-**Configuration is not evidence. AI assertions are not evidence. Runtime artifacts, deterministic measurements and independent verification are evidence.**
+| `NOT_DEPLOYED` | capability was unavailable or intentionally disabled |
 
 ## License
 
