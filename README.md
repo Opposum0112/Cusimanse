@@ -121,8 +121,6 @@ flowchart TB
 
 The AI harness is **not** the security boundary. The execution boundary, policy, VM isolation, evidence handling, and explicit approval controls are.
 
-An architecture image is maintained separately as `docs/images/ai-security-lab-architecture.png` when the original binary asset is available in the repository.
-
 ## Portability
 
 The project is moving toward a capability-based, single-binary Go controller. The controller should detect OS, architecture, virtualization, and available backends instead of assuming one host profile.
