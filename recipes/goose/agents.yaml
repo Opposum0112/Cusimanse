@@ -1,0 +1,23 @@
+version: 1
+id: goose-agents
+roles:
+  planner:
+    purpose: read Markdown and recipes; build execution plan
+    permissions: read
+  reviewer:
+    purpose: validate safety, prerequisites, profile compatibility and evidence plan
+    permissions: read
+  executor:
+    purpose: execute approved labctl recipes and shell automation
+    permissions: controlled-apply
+  forensic-reviewer:
+    purpose: inspect evidence, timelines, process/network/filesystem indicators
+    permissions: read
+  report-generator:
+    purpose: generate evidence-backed reports and token dashboards
+    permissions: read-write-reports
+execution_layer:
+  harness: goose
+  recipe_root: recipes/goose/
+  policy_boundary: policies/permission-tiers.yaml
+  controller: scripts/bin/labctl
