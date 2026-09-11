@@ -1,0 +1,10 @@
+# Default ownership for project changes.
+* @Opposum0112
+
+# Security-sensitive controls require explicit owner review.
+/.github/ @Opposum0112
+/policies/ @Opposum0112
+/recipes/mcp/ @Opposum0112
+/recipes/skills/ @Opposum0112
+/recipes/tools/ @Opposum0112
+/cmd/policyctl/ @Opposum0112
