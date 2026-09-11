@@ -8,11 +8,7 @@ Markdown specifies the research contract. YAML composes the project. Goose plans
 
 ## 1. Quick start
 
-### Prerequisite
-
-Install and configure the current Goose CLI. Goose supports running local YAML recipes with `goose run --recipe`. urlGoose recipe documentationturn2search0
-
-Then from the repository root:
+Install and configure the current Goose CLI, then from the repository root:
 
 ```bash
 goose run --recipe recipes/goose/project.yaml --params experiment=go-install-001 --params section=project
@@ -26,7 +22,7 @@ The recipe performs host preflight and prerequisite resolution before attempting
 goose run --recipe recipes/goose/project.yaml --params experiment=go-install-001 --params section=07
 ```
 
-The same prerequisite/approval/audit flow is used for section-only execution.
+The same prerequisite, approval and audit flow is used for section-only execution.
 
 ### Token dashboard
 
