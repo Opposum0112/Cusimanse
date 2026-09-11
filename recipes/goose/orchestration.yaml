@@ -1,0 +1,49 @@
+version: 1
+id: goose-multiagent-default
+harness: goose
+roles:
+  - planner
+  - reviewer
+  - executor
+  - forensic-reviewer
+  - report-generator
+stages:
+  - id: discover
+    agent: planner
+    input: ["01-*.md", recipes/]
+    output: reports/goose/discovery.yaml
+  - id: preflight
+    agent: reviewer
+    input: [reports/goose/discovery.yaml, recipes/install/install-all.yaml]
+    output: reports/goose/preflight.yaml
+    approval: required
+  - id: prepare
+    agent: executor
+    input: [recipes/lima/profiles/, recipes/instrumentation/, recipes/agent-monitoring/]
+    output: reports/goose/prepare.yaml
+    approval: required
+  - id: execute
+    agent: executor
+    input: [selected_workload, selected_profiles]
+    output: evidence/
+    approval: required
+  - id: forensic-review
+    agent: forensic-reviewer
+    input: [evidence/]
+    output: reports/goose/forensics.yaml
+    read_only: true
+  - id: independent-review
+    agent: reviewer
+    input: [evidence/, reports/goose/forensics.yaml]
+    output: reports/goose/review.yaml
+    read_only: true
+  - id: report
+    agent: report-generator
+    input: [reports/goose/, evidence/]
+    output: reports/goose/final-report.md
+    read_only: true
+controls:
+  max_parallel_agents: 4
+  require_review_before_apply: true
+  never_expose_host_credentials: true
+  preserve_evidence_before_destroy: true
