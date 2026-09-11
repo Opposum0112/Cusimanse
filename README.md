@@ -2,6 +2,12 @@
 
 Isolated, reproducible laboratory for studying AI agents, model routing, host/VM instrumentation, and controlled software installation.
 
+## Project Architecture
+
+![AI Security Lab — Project Architecture](docs/images/ai-security-lab-architecture.png)
+
+The project architecture shows the complete research path from human/CI/AI-agent entry points through the `labctl` control plane, governance and approval controls, agent harnesses, model routing, isolated Lima/QEMU execution, instrumentation, evidence collection, deterministic reduction, independent verification, and observability.
+
 > **Status:** deployment baseline under hardening. The repository contains a working Python controller today and a Go control-plane migration in progress. A release is not considered fully deployed until the acceptance matrix has been exercised on the target platform.
 
 ## Safety first
@@ -96,24 +102,27 @@ The command is a dry-run until `--apply` is explicitly supplied. Do not use `--a
 
 If documentation shows a command that does not exist in `labctl --help`, treat the documentation as a bug and report it rather than guessing syntax.
 
-## Architecture
+## Architecture — technical flow
 
-```text
-Human / CI / approved Agent
-          |
-       labctl
-          |
-   policy + state + evidence
-          |
-   Harness / MCP (optional)
-          |
- Model Gateway (optional)
-          |
- Disposable VM backend
-          |
- QEMU/Lima or another supported backend
-          |
- instrumentation -> evidence -> verification -> report
+The lab is designed as a controlled research loop: **specification → policy-controlled execution → disposable isolation → instrumentation → evidence → deterministic reduction → independent verification → report**.
+
+```mermaid
+flowchart TB
+    U[Human / CI / Approved AI Agent] --> C[labctl Control Plane]
+    C --> P[Policy + State + Approval Boundary]
+    P --> H[Agent Harness / MCP]
+    H --> G[Model Gateway<br/>LiteLLM / OmniRoute]
+    P --> V[Disposable VM Backend]
+    V --> L[Lima / QEMU<br/>or supported backend]
+    L --> E[Experiment Workload]
+    E --> I[Instrumentation<br/>strace / tcpdump / bpftrace / etc.]
+    I --> EV[Evidence Store<br/>JSONL / PCAP / hashes / process & filesystem evidence]
+    EV --> R[Deterministic Reduction]
+    R --> X[Independent Verification]
+    X --> RP[Acceptance / Experiment Report]
+    G -. telemetry .-> O[OpenTelemetry / OpenInference / Phoenix]
+    E -. telemetry .-> O
+    O --> EV
 ```
 
 The AI harness is **not** the security boundary. The execution boundary, policy, VM isolation, evidence handling, and explicit approval controls are.
