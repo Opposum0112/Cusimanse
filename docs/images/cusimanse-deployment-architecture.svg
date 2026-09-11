@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="820" viewBox="0 0 1400 820" role="img" aria-labelledby="title desc">
+  <title id="title">Cusimanse deployment architecture</title>
+  <desc id="desc">Deployment architecture showing human or CI intent, shared contracts, agent adapters, policy and registries, disposable Lima QEMU virtual machines, workload instrumentation, observability, evidence preservation and reporting.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#07111f"/><stop offset="1" stop-color="#122b52"/></linearGradient>
+    <linearGradient id="vm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#102a4f"/><stop offset="1" stop-color="#173b68"/></linearGradient>
+    <filter id="shadow"><feGaussianBlur stdDeviation="5"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L10,3 L0,6 Z" fill="#60a5fa"/></marker>
+    <style>
+      .h{font:700 26px Arial, sans-serif;fill:#f8fafc}.t{font:600 19px Arial, sans-serif;fill:#e2e8f0}.s{font:16px Arial, sans-serif;fill:#94a3b8}.a{fill:#0b1830;stroke:#38bdf8;stroke-width:2}.b{fill:#111f38;stroke:#60a5fa;stroke-width:2}.v{fill:url(#vm);stroke:#38bdf8;stroke-width:3}.e{fill:#0b1628;stroke:#8b5cf6;stroke-width:2}.line{fill:none;stroke:#60a5fa;stroke-width:3;marker-end:url(#arrow)}.dash{fill:none;stroke:#94a3b8;stroke-width:2;stroke-dasharray:8 7;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1400" height="820" rx="28" fill="url(#bg)"/>
+  <text x="70" y="65" class="h" font-size="34">Cusimanse Deployment Architecture</text>
+  <text x="70" y="96" class="s">Agent-neutral orchestration • disposable VM isolation • observable execution • preserved evidence</text>
+
+  <rect x="70" y="135" width="260" height="105" rx="16" class="a"/>
+  <text x="200" y="175" text-anchor="middle" class="h">Human / CI</text>
+  <text x="200" y="204" text-anchor="middle" class="s">intent • scope • authorization</text>
+  <text x="200" y="226" text-anchor="middle" class="s">experiment request</text>
+
+  <rect x="390" y="135" width="300" height="105" rx="16" class="b"/>
+  <text x="540" y="175" text-anchor="middle" class="h">Shared Research Contract</text>
+  <text x="540" y="204" text-anchor="middle" class="s">Markdown • YAML • acceptance states</text>
+  <text x="540" y="226" text-anchor="middle" class="s">what must happen + evidence required</text>
+
+  <rect x="750" y="125" width="300" height="125" rx="16" class="b"/>
+  <text x="900" y="163" text-anchor="middle" class="h">Agent Adapter Layer</text>
+  <text x="900" y="191" text-anchor="middle" class="t">Goose • OpenCode</text>
+  <text x="900" y="216" text-anchor="middle" class="t">Grok Build • Antigravity</text>
+  <text x="900" y="238" text-anchor="middle" class="s">provider-specific operation, shared semantics</text>
+
+  <rect x="1110" y="125" width="220" height="125" rx="16" class="e"/>
+  <text x="1220" y="163" text-anchor="middle" class="h">Policy + Registries</text>
+  <text x="1220" y="191" text-anchor="middle" class="s">policyctl</text>
+  <text x="1220" y="214" text-anchor="middle" class="s">MCP registry</text>
+  <text x="1220" y="237" text-anchor="middle" class="s">skills • audit</text>
+
+  <path d="M330 188 H390" class="line"/>
+  <path d="M690 188 H750" class="line"/>
+  <path d="M1050 188 H1110" class="dash"/>
+
+  <rect x="210" y="305" width="980" height="300" rx="24" class="v"/>
+  <text x="245" y="345" class="h">Disposable Lima / QEMU Security Boundary</text>
+  <text x="245" y="371" class="s">VM/OS controls enforce isolation; agents and policy output are not security boundaries.</text>
+
+  <rect x="250" y="405" width="220" height="145" rx="14" class="a"/>
+  <text x="360" y="442" text-anchor="middle" class="h">Workload</text>
+  <text x="360" y="470" text-anchor="middle" class="s">target software</text>
+  <text x="360" y="493" text-anchor="middle" class="s">install / execute</text>
+  <text x="360" y="516" text-anchor="middle" class="s">controlled network</text>
+
+  <rect x="520" y="405" width="220" height="145" rx="14" class="a"/>
+  <text x="630" y="442" text-anchor="middle" class="h">Instrumentation</text>
+  <text x="630" y="470" text-anchor="middle" class="s">process / syscall</text>
+  <text x="630" y="493" text-anchor="middle" class="s">network / filesystem</text>
+  <text x="630" y="516" text-anchor="middle" class="s">runtime telemetry</text>
+
+  <rect x="790" y="405" width="220" height="145" rx="14" class="a"/>
+  <text x="900" y="442" text-anchor="middle" class="h">Agent Loop</text>
+  <text x="900" y="470" text-anchor="middle" class="s">plan → review → approve</text>
+  <text x="900" y="493" text-anchor="middle" class="s">observe → analyze</text>
+  <text x="900" y="516" text-anchor="middle" class="s">no privilege bypass</text>
+
+  <path d="M470 478 H520" class="line"/>
+  <path d="M740 478 H790" class="line"/>
+  <path d="M1110 250 V300 H1080" class="dash"/>
+  <path d="M900 250 V300" class="line"/>
+
+  <rect x="70" y="650" width="350" height="105" rx="16" class="e"/>
+  <text x="245" y="687" text-anchor="middle" class="h">Evidence + Verification</text>
+  <text x="245" y="715" text-anchor="middle" class="s">blackboard • raw evidence • telemetry</text>
+  <text x="245" y="738" text-anchor="middle" class="s">reduction • forensics • independent verification</text>
+
+  <rect x="525" y="650" width="350" height="105" rx="16" class="e"/>
+  <text x="700" y="687" text-anchor="middle" class="h">Preservation</text>
+  <text x="700" y="715" text-anchor="middle" class="s">hash + manifest + report</text>
+  <text x="700" y="738" text-anchor="middle" class="s">preserve before VM destruction</text>
+
+  <rect x="980" y="650" width="350" height="105" rx="16" class="e"/>
+  <text x="1155" y="687" text-anchor="middle" class="h">Destroy / Reset</text>
+  <text x="1155" y="715" text-anchor="middle" class="s">disposable VM lifecycle</text>
+  <text x="1155" y="738" text-anchor="middle" class="s">important findings must be reproducible</text>
+
+  <path d="M360 550 V625 H245 V650" class="line"/>
+  <path d="M630 550 V650" class="line"/>
+  <path d="M900 550 V625 H1155 V650" class="line"/>
+</svg>
