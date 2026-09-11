@@ -2,7 +2,7 @@
 set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$ROOT"
-./scripts/tests/validate-recipes.sh
+bash ./scripts/tests/validate-recipes.sh
 while IFS= read -r -d '' f; do bash -n "$f"; done < <(find . -path './.git' -prune -o -type f -name '*.sh' -print0)
 if [ -e scripts/bin/labctl ] || [ -d scripts/labctl ]; then echo 'FAIL: retired labctl remains' >&2; exit 1; fi
 test -f policies/host-policy.yaml
