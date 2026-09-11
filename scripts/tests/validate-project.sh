@@ -33,14 +33,15 @@ grep -q 'owner: project' recipes/skills/registry.yaml
 grep -q 'interface: adapter' recipes/tools/security-research.yaml
 
 echo '== Go validation =='
-gofmt -d cmd/policyctl/main.go
+test -z "$(gofmt -l .)"
+go vet ./...
 go test ./...
 go build ./cmd/policyctl
 
 echo '== Policy validation =='
 ./policyctl validate
-./policyctl check --action credentials --audit-file /tmp/ai-security-lab-policy-audit.jsonl >/tmp/ai-security-lab-policy-check.json
-./policyctl check --action host-root --audit-file /tmp/ai-security-lab-policy-audit.jsonl >/dev/null
+./policyctl check --action credentials --audit-file /tmp/cusimanse-policy-audit.jsonl >/tmp/cusimanse-policy-check.json
+./policyctl check --action host-root --audit-file /tmp/cusimanse-policy-audit.jsonl >/dev/null
 
 echo '== Optional Python tests =='
 python_tests=()
