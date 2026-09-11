@@ -6,7 +6,10 @@ source_of_truth:
   markdown: "01-*.md"
   recipes: recipes/
 execution:
-  controller: scripts/bin/labctl
+  operator: goose
+  control_plane: go
+  cli: labctl
+  compatibility_cli: scripts/bin/labctl
   approval_boundary: "--apply"
   stage_map: recipes/stages/stage-map.yaml
 workloads:
@@ -20,9 +23,18 @@ routing:
   harness_router: recipes/gateway/harness-router.yaml
 reports: recipes/goose/reporting.yaml
 token_dashboard: recipes/goose/token-dashboard.yaml
+installation:
+  recipe: recipes/install/install-all.yaml
+  operator: goose
+  bootstrap: bootstrap-then-agent-operate
+  shell_role: recovery-debugging-only
+portability:
+  go_control_plane: recipes/goose/go-control-plane.yaml
+  unsupported_capability: NOT_DEPLOYED
 safety:
   disposable_vm_required: true
   host_credentials: deny
   host_mounts: deny
   preserve_evidence_before_destroy: true
   independent_verification: required
+  goose_must_use_control_plane: true
