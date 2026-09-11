@@ -1,0 +1,18 @@
+id: numbat-agent
+kind: agent-monitoring
+backend: numbat
+mode: host-observation
+capture:
+  process_tree: true
+  child_processes: true
+  shell_commands: true
+  network_connections: true
+  file_activity: true
+  agent_tool_activity: true
+privacy:
+  redact_secrets: true
+  exclude_paths:
+    - ~/.ssh
+    - ~/.config
+    - /etc/shadow
+bind_address: 127.0.0.1

@@ -1,0 +1,29 @@
+id: go-install-001
+kind: workload
+name: pinned in-repository Go installation
+vm_profile: security-research
+instrumentation_profiles:
+  - syscall
+  - network
+  - filesystem
+  - eBPF-optional
+agent_monitoring_profiles:
+  - numbat-agent
+  - phoenix-agent
+workload:
+  runtime: go
+  commands:
+    - go version
+    - go install ./packages/labprobe
+  network_mode: controlled
+evidence:
+  process: true
+  syscall: true
+  network: true
+  dns: true
+  filesystem: true
+  hashes: true
+  agent_telemetry: true
+cleanup:
+  destroy_vm: true
+  preserve_evidence_first: true

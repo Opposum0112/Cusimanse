@@ -1,0 +1,19 @@
+version: 1
+id: research-host
+kind: host-profile
+execution_surface: host
+tools_recipe: recipes/tools/security-research.yaml
+agents:
+  planner: read-only
+  reviewer: read-only
+  executor: controlled
+  forensics: read-only
+host_monitoring:
+  process: ps,lsof,procfs
+  network: ss,tcpdump
+  filesystem: audit/inotify where available
+  agent_activity: numbat
+  ai_traces: phoenix-otel
+  bind_address: 127.0.0.1
+host_mounts_to_vm: []
+credentials_to_vm: deny

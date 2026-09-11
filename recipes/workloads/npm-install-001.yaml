@@ -1,0 +1,33 @@
+id: npm-install-001
+kind: workload
+name: pinned npm installation
+vm_profile: security-research
+instrumentation_profiles:
+  - syscall
+  - network
+  - filesystem
+  - eBPF-optional
+agent_monitoring_profiles:
+  - numbat-agent
+  - phoenix-agent
+workload:
+  runtime: npm
+  commands:
+    - node --version
+    - npm --version
+    - mkdir -p /tmp/npm-test
+    - cd /tmp/npm-test && npm init -y
+    - cd /tmp/npm-test && npm install lodash@4.17.21 --ignore-scripts
+  network_mode: controlled
+  package_pins: true
+evidence:
+  process: true
+  syscall: true
+  network: true
+  dns: true
+  filesystem: true
+  hashes: true
+  agent_telemetry: true
+cleanup:
+  destroy_vm: true
+  preserve_evidence_first: true

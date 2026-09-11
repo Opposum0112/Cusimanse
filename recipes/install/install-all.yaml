@@ -1,0 +1,33 @@
+id: install-all
+kind: installation
+mode: one-go-after-preflight
+host_checks:
+  - os
+  - architecture
+  - ram
+  - free_disk
+  - virtualization
+  - qemu
+  - lima
+  - python3
+  - bash
+optional_backends:
+  - docker
+  - podman
+install_plan:
+  linux_debian:
+    packages:
+      - qemu-system-x86
+      - qemu-utils
+      - curl
+      - git
+      - python3
+  lima:
+    method: use-official-platform-package
+  macos:
+    method: use-official-package-manager
+  windows:
+    status: not-yet-supported
+policy:
+  fail_if_required_prerequisite_missing: true
+  never_install_unknown_remote_scripts: true

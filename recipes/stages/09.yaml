@@ -1,0 +1,10 @@
+id: stage-09
+source_markdown: 09-operations-and-maintenance.md
+purpose: inspect operational health
+actions:
+  - git_health
+  - disk_health
+  - vm_inventory
+  - stack_health
+  - evidence_health
+orchestration: default-agent-chain

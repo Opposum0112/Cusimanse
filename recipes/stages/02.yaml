@@ -1,0 +1,12 @@
+id: stage-02
+source_markdown: 02-system-requirements.md
+purpose: host capability preflight
+actions:
+  - check_os
+  - check_architecture
+  - check_ram
+  - check_disk
+  - check_qemu
+  - check_lima
+  - record_capabilities
+orchestration: default-agent-chain

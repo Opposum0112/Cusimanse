@@ -1,0 +1,25 @@
+version: 1
+id: npm-install-001
+kind: experiment
+name: npm installation observation
+workload: recipes/workloads/npm-install-001.yaml
+host_profile: recipes/host/research-host.yaml
+vm_profile: recipes/lima/profiles/security-research.yaml
+tools: recipes/tools/security-research.yaml
+instrumentation:
+  - recipes/instrumentation/syscall.yaml
+  - recipes/instrumentation/network.yaml
+  - recipes/instrumentation/filesystem.yaml
+  - recipes/instrumentation/ebpf-optional.yaml
+agent_monitoring:
+  - recipes/agent-monitoring/numbat-agent.yaml
+  - recipes/agent-monitoring/phoenix-agent.yaml
+orchestration: recipes/orchestration/default-agent-chain.yaml
+routing: recipes/routing/default.yaml
+reporting: recipes/reporting/default.yaml
+token_dashboard: recipes/token/default.yaml
+approval:
+  required: true
+cleanup:
+  preserve_evidence_first: true
+  destroy_vm: true

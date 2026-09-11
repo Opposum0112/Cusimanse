@@ -1,0 +1,9 @@
+id: stage-11
+source_markdown: 11-current-antigravity-reference.md
+purpose: validate harness-neutral agent operation
+actions:
+  - validate_workspace_templates
+  - validate_mcp_config
+  - validate_normal_shell_boundary
+  - validate_no_remote_installer_execution
+orchestration: default-agent-chain

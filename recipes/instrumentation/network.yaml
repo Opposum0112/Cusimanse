@@ -1,0 +1,19 @@
+id: network
+kind: instrumentation-profile
+collectors:
+  network:
+    enabled: true
+    tools:
+      - ss
+      - ip
+      - tcpdump
+  dns:
+    enabled: true
+    tools:
+      - dig
+      - getent
+  process:
+    enabled: true
+    tools:
+      - ps
+      - lsof

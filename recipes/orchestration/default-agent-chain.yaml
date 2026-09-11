@@ -1,0 +1,37 @@
+id: default-agent-chain
+kind: orchestration
+stages:
+  - id: plan
+    agent: planner
+    action: read recipe and produce execution plan
+  - id: review
+    agent: reviewer
+    action: validate policy, VM, instrumentation and workload
+    requires_approval: true
+  - id: provision
+    agent: executor
+    action: install prerequisites and materialize selected profiles
+  - id: instrument
+    agent: executor
+    action: start selected collectors before workload
+  - id: workload
+    agent: executor
+    action: execute workload inside disposable VM
+  - id: collect
+    agent: forensics
+    action: preserve and hash evidence
+  - id: analyse
+    agent: forensics
+    action: deterministic reduction then AI-assisted analysis
+  - id: verify
+    agent: reviewer
+    action: independently verify findings
+  - id: report
+    agent: forensics
+    action: write experiment report
+  - id: cleanup
+    agent: executor
+    action: destroy VM after evidence preservation
+policy:
+  fail_closed: true
+  require_explicit_apply: true

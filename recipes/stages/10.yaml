@@ -1,0 +1,10 @@
+id: stage-10
+source_markdown: 10-validation-and-acceptance.md
+purpose: independent acceptance
+actions:
+  - run_recipe_tests
+  - run_preflight
+  - verify_evidence
+  - verify_security_controls
+  - write_scorecard
+orchestration: default-agent-chain

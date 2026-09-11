@@ -1,0 +1,9 @@
+id: stage-05
+source_markdown: 05-multi-agent-operating-model.md
+purpose: configure multi-agent handoffs
+actions:
+  - validate_agent_roles
+  - validate_blackboard
+  - validate_harness_router
+  - validate_approval_boundary
+orchestration: default-agent-chain

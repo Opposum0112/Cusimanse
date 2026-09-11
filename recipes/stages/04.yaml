@@ -1,0 +1,8 @@
+id: stage-04
+source_markdown: 04-security-model.md
+purpose: enforce policy before execution
+actions:
+  - validate_permission_tiers
+  - validate_mount_denylist
+  - test_fail_closed_policy
+orchestration: default-agent-chain

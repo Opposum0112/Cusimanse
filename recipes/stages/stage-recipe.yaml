@@ -1,0 +1,13 @@
+id: stage-recipe
+kind: stage
+source_markdown: 07-experiment-framework.md
+recipe:
+  validate_yaml: true
+  validate_profiles: true
+  materialize_experiment: true
+  run_shell_tests: true
+  preserve_evidence: true
+  reduce_evidence: true
+  verify_findings: true
+  report: true
+orchestration: default-agent-chain

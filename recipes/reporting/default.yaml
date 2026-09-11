@@ -1,13 +1,8 @@
 version: 1
-id: goose-report-generator
-purpose: evidence-backed experiment and SecOps report generation
-agent: report-generator
-inputs:
-  - evidence/
-  - reports/goose/
-  - recipes/workloads/
-  - recipes/instrumentation/
-  - recipes/agent-monitoring/
+id: default-reporting
+kind: reporting
+agent: goose
+inputs: [evidence/, reports/goose/]
 outputs:
   markdown: reports/goose/final-report.md
   yaml: reports/goose/final-report.yaml
@@ -17,5 +12,4 @@ rules:
   include_versions: true
   include_failed_steps: true
   include_agent_actions: true
-  include_token_usage: true
   no_unverified_security_claims: true

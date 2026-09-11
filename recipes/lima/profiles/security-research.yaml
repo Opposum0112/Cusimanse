@@ -1,0 +1,24 @@
+id: security-research
+extends: default
+cpus: 4
+memory: 4GiB
+disk: 30GiB
+mounts: []
+network: user-v2
+provision_packages:
+  - ca-certificates
+  - curl
+  - git
+  - golang-go
+  - nodejs
+  - npm
+  - strace
+  - tcpdump
+  - iproute2
+  - iputils-ping
+  - dnsutils
+  - lsof
+  - inotify-tools
+  - file
+  - psmisc
+  - procps

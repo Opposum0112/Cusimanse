@@ -1,0 +1,8 @@
+id: stage-01
+source_markdown: 01-deployment-architecture.md
+purpose: validate architecture planes and routing artifacts
+actions:
+  - validate_yaml
+  - validate_harness_router
+  - validate_gateway
+orchestration: default-agent-chain

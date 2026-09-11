@@ -1,0 +1,27 @@
+version: 1
+project: ai-security-lab
+model: workload-neutral
+purpose: security instrumentation research for disposable VMs and AI-agent automation
+source_of_truth:
+  stages: recipes/stages
+  workloads: recipes/workloads
+  lima_profiles: recipes/lima/profiles
+  instrumentation: recipes/instrumentation
+  host_profiles: recipes/host
+  agent_monitoring: recipes/agent-monitoring
+  agents: recipes/agents
+  orchestration: recipes/orchestration
+  gateway: recipes/gateway
+  tests: recipes/tests
+  installation: recipes/install
+execution:
+  controller: scripts/bin/labctl
+  shell_automation: scripts
+  default_backend: lima-qemu
+  evidence_root: evidence
+  reports_root: reports
+safety:
+  host_credentials: deny
+  unrestricted_host_mounts: deny
+  untrusted_workloads_on_host: deny
+  explicit_apply_required: true

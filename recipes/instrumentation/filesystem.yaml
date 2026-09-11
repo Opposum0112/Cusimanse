@@ -1,0 +1,15 @@
+id: filesystem
+kind: instrumentation-profile
+collectors:
+  filesystem:
+    enabled: true
+    tools:
+      - inotifywait
+      - find
+      - stat
+      - sha256sum
+  process:
+    enabled: true
+    tools:
+      - ps
+      - pgrep

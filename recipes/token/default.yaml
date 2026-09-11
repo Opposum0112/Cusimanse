@@ -1,0 +1,15 @@
+version: 1
+id: default-token-dashboard
+kind: token-dashboard
+agent: goose
+inputs: [gateway telemetry, OpenTelemetry traces, Goose run metadata]
+fields: [run_id, stage, agent, model, prompt_tokens, completion_tokens, total_tokens, latency_ms, estimated_cost, cache_hit, retry_count]
+outputs:
+  json: reports/token-usage/usage.json
+  csv: reports/token-usage/usage.csv
+  markdown: reports/token-usage/dashboard.md
+optimization:
+  summarize_repeated_context: true
+  prefer_cached_context: true
+  route_simple_tasks_to_lower_cost_model: true
+  preserve_full_evidence_outside_llm_context: true

@@ -2,40 +2,27 @@
 
 Thank you for contributing to the AI Security Research Lab.
 
-## Before changing code
+## Architecture rule
 
-1. Read `AGENTS.md` and the relevant numbered deployment document.
-2. Keep changes reproducible and avoid introducing secrets or unrestricted host mounts.
-3. Prefer deterministic tests over tests that require external AI providers.
+Keep the project recipe-driven and Goose-driven. Add or modify modular YAML recipes before adding code. Do not introduce a second project controller. Use `policyctl` only for host/security policy configuration.
+
+## Before changing the project
+
+1. Read `AGENTS.md` and the relevant Markdown contract.
+2. Read `recipes/goose/project.yaml` and all recipes referenced by the change.
+3. Keep changes reproducible and avoid secrets or unrestricted host mounts.
 4. Clearly distinguish `PASS`, `PARTIAL`, `FAIL`, and `NOT_DEPLOYED`.
 
-## Development checks
-
-From a normal shell at the repository root:
+## Validation
 
 ```bash
-./scripts/bin/labctl --version
-./scripts/bin/labctl stages
-./scripts/bin/labctl experiment list
-./scripts/bin/labctl self-test
-./scripts/bin/labctl init --dry-run
-./scripts/bin/labctl preflight
+./scripts/tests/validate-recipes.sh
+go build ./cmd/policyctl
+./policyctl check
 ```
 
-Host-changing operations require explicit `--apply` and must be reviewed first.
-
-## Agent contributions
-
-Agents may propose or implement changes, but repository rules and human review remain authoritative. An agent must not claim that a deployment or experiment was executed unless it actually ran and the evidence was preserved.
+Goose performs semantic recipe/reference validation and executes approved workflows.
 
 ## Pull requests
 
-- Explain the problem and the execution environment.
-- Include tests/checks performed and their results.
-- Call out platform-specific behavior.
-- Do not include credentials, tokens, private keys, captured secrets, or raw sensitive telemetry.
-- Keep commits focused.
-
-## Security issues
-
-Do not disclose vulnerabilities, credentials, or sensitive evidence in public issues. Follow `SECURITY.md`.
+Explain the architecture impact, recipe changes, validation performed, platform-specific behavior, and any capabilities that remain `NOT_DEPLOYED`. Do not include credentials, tokens, private keys, or sensitive telemetry.

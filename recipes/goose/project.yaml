@@ -1,43 +1,58 @@
 version: 1
 id: goose-project
 name: AI Security Lab
+kind: project
 harness: goose
 role: agentic_operator_executor
+entry_recipe: recipes/goose/project.yaml
 source_of_truth:
   markdown: "01-*.md"
-  recipe: recipes/goose/project.yaml
+  recipes: recipes/
+recipe_families:
+  experiments: recipes/experiments/
+  workloads: recipes/workloads/
+  installation: recipes/install/install-all.yaml
+  host_profiles: recipes/host/
+  vm_profiles: recipes/lima/profiles/
+  tools: recipes/tools/
+  instrumentation_profiles: recipes/instrumentation/
+  agent_monitoring: recipes/agent-monitoring/
+  agent_roles: recipes/agents/
+  orchestration: recipes/orchestration/default-agent-chain.yaml
+  routing: recipes/routing/
+  stages: recipes/stages/
+  reporting: recipes/reporting/
+  token_dashboard: recipes/token/
 execution:
   orchestrator: goose
   operator: goose
   executor: goose
-  policy_cli: policyctl
   shell_role: recovery-debugging-only
-workloads:
-  directory: recipes/workloads/
-vm_profiles:
-  directory: recipes/lima/profiles/
-instrumentation:
-  directory: recipes/instrumentation/
-monitoring:
-  directory: recipes/agent-monitoring/
-components:
-  orchestration: recipes/goose/orchestration.yaml
-  gateway: recipes/gateway/default-gateway.yaml
-  harness_router: recipes/gateway/harness-router.yaml
-  reporting: recipes/goose/reporting.yaml
-  token_dashboard: recipes/goose/token-dashboard.yaml
-  installation: recipes/install/install-all.yaml
-  stage_map: recipes/stages/stage-map.yaml
+  policy_cli: policyctl
+  approval_before_privileged_actions: true
+  disposable_vm_required: true
+workflow:
+  discover: read_markdown_and_recipes
+  validate: resolve_recipe_references
+  preflight: inspect_host_and_capabilities
+  plan: produce_execution_plan
+  review: request_human_approval
+  bootstrap: execute_installation_recipe
+  run: execute_selected_experiment
+  collect: preserve_and_hash_evidence
+  forensic: run_forensic_agent
+  verify: run_independent_reviewer
+  report: run_reporting_recipe
+  tokens: run_token_dashboard_recipe
+  commit: only_when_explicitly_permitted
 policy:
   cli: policyctl
-  config: host policy only
-portability:
-  unsupported_capability: NOT_DEPLOYED
+  config_scope: host_and_security_policy_only
+  credentials: deny
+  unrestricted_host_mounts: deny
+  privileged_operations: approval-required
 safety:
-  disposable_vm_required: true
-  host_credentials: deny
-  host_mounts: deny
+  goose_is_not_the_security_boundary: true
   preserve_evidence_before_destroy: true
   independent_verification: required
-  human_approval_for_privileged_operations: true
-  goose_is_security_boundary: false
+  unsupported_capability: NOT_DEPLOYED

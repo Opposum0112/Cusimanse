@@ -1,0 +1,8 @@
+id: stage-00
+source_markdown: 03-deployment-runbook.md
+purpose: bootstrap repository recipe
+actions:
+  - validate_host
+  - materialize_layout
+  - validate_manifest
+orchestration: default-agent-chain

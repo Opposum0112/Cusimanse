@@ -1,0 +1,24 @@
+version: 1
+id: agent-roles
+kind: agents
+roles:
+  planner:
+    purpose: plan experiment from Markdown and YAML
+    capabilities: [read_repo, read_recipes, write_blackboard]
+    apply: false
+  reviewer:
+    purpose: review safety, policy and execution plan
+    capabilities: [read_repo, read_recipes, policy_check]
+    apply: false
+  executor:
+    purpose: execute approved recipe operations through Goose tools
+    capabilities: [goose_tools, approved_shell, vm_operations]
+    apply: true
+  forensics:
+    purpose: collect, reduce, analyse and report evidence
+    capabilities: [evidence_read, hash, analysis, report]
+    apply: false
+  independent-reviewer:
+    purpose: independently verify findings
+    capabilities: [evidence_read, verification]
+    apply: false

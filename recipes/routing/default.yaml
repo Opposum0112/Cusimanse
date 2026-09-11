@@ -1,0 +1,19 @@
+version: 1
+id: default-routing
+kind: routing
+gateway:
+  provider: litellm
+  endpoint: http://127.0.0.1:4000
+  credentials: environment-only
+harness: goose
+roles:
+  planner: configurable
+  reviewer: configurable
+  executor: configurable
+  forensics: configurable
+fallback: configured-provider
+telemetry:
+  opentelemetry: true
+  bind: 127.0.0.1
+security:
+  forward_host_credentials: false

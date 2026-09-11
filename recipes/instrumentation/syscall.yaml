@@ -1,0 +1,15 @@
+id: syscall
+kind: instrumentation-profile
+collectors:
+  syscall:
+    enabled: true
+    tool: strace
+    args:
+      - -ff
+      - -tt
+      - -T
+      - -yy
+      - -s
+      - "256"
+      - -o
+      - evidence/raw/strace

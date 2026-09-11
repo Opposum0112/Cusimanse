@@ -1,25 +1,26 @@
-# Recipe-Only Project Model
+# YAML recipe architecture
 
-The AI Security Lab is configured through YAML recipes. Goose is the agentic orchestrator, operator, and execution layer. A small separate policy CLI is reserved for host/security policy configuration.
+The `recipes/` tree is the declarative project configuration surface. `recipes/goose/project.yaml` is the entry recipe; it composes small reusable recipes instead of becoming one giant configuration file.
 
-## Boundary
+## Recipe families
 
-```text
-Markdown contracts
-      ↓
-YAML recipe (project configuration)
-      ↓
-Goose — plan / review / operate / execute / investigate / verify / report
-      ↓
-Policy CLI — explicit host policy configuration
-      ↓
-Lima / QEMU / instrumentation / evidence
-```
+| Directory | Purpose |
+|---|---|
+| `goose/` | Goose project entry recipe and operating instructions |
+| `experiments/` | experiment compositions |
+| `workloads/` | workload definitions |
+| `install/` | host prerequisites and installation |
+| `host/` | host profiles |
+| `lima/profiles/` | disposable VM profiles |
+| `tools/` | reusable host/VM/tool definitions |
+| `instrumentation/` | instrumentation profiles |
+| `agent-monitoring/` | Numbat/Phoenix/OTel profiles |
+| `agents/` | agent roles |
+| `orchestration/` | multi-agent execution chain |
+| `routing/` | model gateway and harness routing |
+| `stages/` | Markdown contract stage mapping |
+| `reporting/` | report recipes |
+| `token/` | token/cost recipes |
+| `tests/` | recipe validation |
 
-Recipes describe what the project should do; Goose decides and executes the workflow. The policy CLI configures safety constraints and is not a second orchestration plane.
-
-## Design rule
-
-**One recipe for configuration. One agentic operator. One separate policy CLI.**
-
-Keep deterministic helpers small and capability-specific. Do not recreate the project orchestration lifecycle in a second Go controller.
+The agent selects and composes these recipes. Do not duplicate a VM or instrumentation profile for a single workload unless the capability genuinely differs.

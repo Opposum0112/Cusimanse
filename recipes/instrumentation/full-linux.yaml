@@ -1,0 +1,40 @@
+id: full-linux
+kind: instrumentation-profile
+collectors:
+  process:
+    enabled: true
+    tools:
+      - ps
+      - top
+      - pgrep
+      - lsof
+  syscall:
+    enabled: true
+    tool: strace
+    format: raw-text
+  network:
+    enabled: true
+    tools:
+      - ss
+      - ip
+      - tcpdump
+  dns:
+    enabled: true
+    tools:
+      - dig
+      - getent
+  filesystem:
+    enabled: true
+    tools:
+      - inotifywait
+      - find
+      - sha256sum
+      - stat
+  security_events:
+    enabled: true
+    tools:
+      - dmesg
+      - journalctl
+notes:
+  - bpftrace is optional and must be enabled only when kernel capabilities are validated
+  - collectors run inside the disposable VM unless a host collector is explicitly declared

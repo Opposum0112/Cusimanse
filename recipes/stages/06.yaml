@@ -1,0 +1,10 @@
+id: stage-06
+source_markdown: 06-observability-and-evidence.md
+purpose: configure AI and runtime observability
+actions:
+  - validate_otel
+  - validate_phoenix
+  - validate_numbat
+  - validate_localhost_binding
+  - validate_evidence_paths
+orchestration: default-agent-chain
