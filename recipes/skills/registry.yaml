@@ -1,8 +1,10 @@
-version: 2
+version: 3
 id: skill-registry
 kind: skill-registry
 owner: project
 source: .agents/skills/
+external_sources:
+  - recipes/reference/security-skill-sources.yaml
 skills:
   evidence-reduction:
     path: .agents/skills/evidence-reduction.md
@@ -76,11 +78,12 @@ skills:
     path: .agents/skills/independent-verification.md
     purpose: independent challenge and verification of findings
     trust: repository-reviewed
-
 rules:
   - skills are instructions, not security boundaries
   - skills cannot grant privileges
   - selected skills are recorded in audit events
   - external reference data is enrichment, not evidence
+  - external skills require source review before import
+  - namespace or branding does not establish trust
   - unknown skills are NOT_DEPLOYED
   - missing skill capability is NOT_DEPLOYED
