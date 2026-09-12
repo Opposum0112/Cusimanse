@@ -114,7 +114,7 @@ The experiment must produce auditable runtime evidence, an evidence index, findi
 ### Grok Build
 
 ```bash
-grok --version  # if supported by the installed provider release
+grok --version
 grok
 ```
 
