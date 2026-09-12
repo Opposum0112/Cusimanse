@@ -31,6 +31,8 @@ test -f recipes/skills/registry.yaml
 test -f recipes/mcp/registry.yaml
 test -f recipes/tools/security-research.yaml
 test -f recipes/reference/security-research-databases.yaml
+test -f recipes/reference/security-skill-sources.yaml
+test -f recipes/reference/mcp-sources.yaml
 
 grep -q 'owner: project' recipes/mcp/registry.yaml
 grep -q 'owner: project' recipes/skills/registry.yaml
@@ -42,6 +44,9 @@ grep -q 'mitre-attack:' recipes/reference/security-research-databases.yaml
 grep -q 'dynamic-analysis:' recipes/skills/registry.yaml
 grep -q 'detection-engineering:' recipes/skills/registry.yaml
 grep -q 'independent-verification:' recipes/skills/registry.yaml
+grep -q 'openai-skills:' recipes/reference/security-skill-sources.yaml
+grep -q 'anthropic-skills:' recipes/reference/security-skill-sources.yaml
+grep -q 'model-context-protocol:' recipes/reference/mcp-sources.yaml
 
 echo '== Go validation =='
 test -z "$(gofmt -l .)"
