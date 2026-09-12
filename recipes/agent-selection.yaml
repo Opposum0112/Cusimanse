@@ -1,8 +1,8 @@
-version: 1
+version: 2
 id: agent-selection
 kind: bootstrap-contract
 selection:
-  prompt: Select one primary Cusimanse operator
+  prompt: Select one primary Cusimanse operator shell
   exactly_one: true
   options:
     - goose
@@ -24,11 +24,22 @@ preflight:
     - command_or_api_available
     - provider_configuration_present_without_secret_output
     - common_contract_loads
+    - primary_shell_contract_loads
     - yaml_recipes_load
     - policyctl_validate
     - audit_paths_available
     - evidence_paths_available
     - non_destructive_smoke_test
+execution:
+  mode: agent-shell-driven
+  operator: selected_primary_agent
+  orchestration: selected_primary_agent_shell
+  execution: selected_primary_agent_shell
+  lifecycle: selected_primary_agent_shell
+  host_scripts: bootstrap-validation-configuration-only
+  native_cli_required: true
+  reference_contract: recipes/agents/primary-agent.yaml
+  shell_contract: recipes/agents/primary-shell.yaml
 state:
   path: .cusimanse/primary-agent.yaml
   commit: false
