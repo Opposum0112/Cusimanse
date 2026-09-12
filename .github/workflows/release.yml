@@ -44,7 +44,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          extra=()
+          case "$GITHUB_REF_NAME" in
+            *alpha*|*beta*|*rc*) extra+=(--prerelease) ;;
+          esac
           gh release create "$GITHUB_REF_NAME" dist/* \
             --title "Cusimanse ${GITHUB_REF_NAME}" \
             --generate-notes \
-            --notes "## Beta release\n\nCusimanse ${GITHUB_REF_NAME} is a pre-production security research release for authorized, controlled experimentation.\n\n### Included\n- Source tarball and ZIP package generated directly from the version tag.\n- SHA-256 checksums for release artifacts.\n- Agent-neutral experiment and recipe framework.\n- Disposable Lima/QEMU VM workflow and evidence-preservation model.\n\n### Important\nThis beta is not a production security certification or guarantee of sandbox escape resistance. Review the security model and release notes before use."
+            "${extra[@]}" \
+            --notes "## Pre-release\n\nCusimanse ${GITHUB_REF_NAME} is a pre-production security research release for authorized, controlled experimentation. GitHub marks matching alpha/beta/rc tags as pre-releases.\n\n### Included\n- Source tarball and ZIP package generated directly from the version tag.\n- SHA-256 checksums for release artifacts.\n- Agent-neutral experiment and recipe framework.\n- Disposable Lima/QEMU VM workflow and evidence-preservation model.\n\n### Important\nThis is not Latest. It is not a production security certification or guarantee of sandbox escape resistance. Green CI is lint only. Review README Limitations and How to start before use."

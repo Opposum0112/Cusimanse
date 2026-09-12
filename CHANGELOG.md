@@ -4,6 +4,8 @@ All notable changes to Cusimanse are documented here.
 
 ## [v1.0.0-beta.1] — 2026-09-11
 
+GitHub release channel: **pre-release** (not Latest). Tags containing `alpha`, `beta`, or `rc` are published with `--prerelease`.
+
 ### Added
 
 - Agent-neutral Cusimanse project identity and documentation.
@@ -30,3 +32,4 @@ All notable changes to Cusimanse are documented here.
 - Adapter and integration coverage is incomplete.
 - Platform capability must be evaluated through the acceptance matrix rather than inferred from binary startup.
 - Runtime/security capabilities must be independently exercised and evidenced.
+- Green CI is lint only; it does not exercise Lima or `go-install-001`.

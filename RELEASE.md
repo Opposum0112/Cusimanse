@@ -4,9 +4,17 @@ Cusimanse uses semantic versioning with pre-release identifiers while the projec
 
 ## Current release
 
-**v1.0.0-beta.1** — first beta release of the migrated Cusimanse project.
+**v1.0.0-beta.1** — first beta of the migrated Cusimanse project. It **must** be a GitHub **pre-release** (not Latest).
 
 This release is a pre-production research release. APIs, recipes, adapters and integrations may change without backward compatibility during beta.
+
+If an existing GitHub release for a `beta` / `rc` / `alpha` tag is not flagged Pre-release:
+
+```bash
+gh release edit v1.0.0-beta.1 --prerelease
+```
+
+Or in the GitHub UI: Releases → the tag → Edit → check **This is a pre-release** → Update.
 
 ## Release gates
 
@@ -19,6 +27,7 @@ Before creating a release tag:
 5. Documentation and contribution/security guidance are current.
 6. No credentials, private keys or sensitive runtime artifacts are included.
 7. The release commit is immutable and identified by its Git tag.
+8. Tags containing `alpha`, `beta`, or `rc` are published with `--prerelease`.
 
 A release must not be described as `PASS` for capabilities that were not actually exercised.
 
@@ -42,11 +51,12 @@ Version tags matching `v*.*.*` trigger `.github/workflows/release.yml`. The work
 2. verifies the checked-out commit matches the tag;
 3. creates tar.gz and ZIP source archives with `git archive`;
 4. generates SHA-256 checksums;
-5. publishes the packages and checksums to the GitHub release.
+5. publishes the packages and checksums to the GitHub release;
+6. sets **pre-release** when the tag name contains `alpha`, `beta`, or `rc`.
 
 ## Beta policy
 
-`v1.0.0-beta.*` releases are intended for authorized, controlled security research and engineering experimentation. They are not production security certifications and make no guarantee of sandbox escape resistance or completeness of integrations.
+`v1.0.0-beta.*` releases are intended for authorized, controlled security research and engineering experimentation. They are not production security certifications and make no guarantee of sandbox escape resistance or completeness of integrations. They must not appear as GitHub Latest.
 
 ## Security and evidence
 
