@@ -8,52 +8,55 @@
 
 [![CI](https://github.com/Opposum0112/Cusimanse/actions/workflows/validate.yml/badge.svg)](https://github.com/Opposum0112/Cusimanse/actions/workflows/validate.yml) [![Go](https://img.shields.io/badge/Go-1.23%2B-00ADD8?logo=go)](https://go.dev/) [![Shell](https://img.shields.io/badge/Shell-Bash-4EAA25?logo=gnubash)](https://www.gnu.org/software/bash/) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Release](https://img.shields.io/github/v/release/Opposum0112/Cusimanse?include_prereleases&label=release)](https://github.com/Opposum0112/Cusimanse/releases)
 
-Cusimanse is named after the hyper-curious mongoose that obsessively flips over every leaf and stone to uncover hidden details. The platform applies the same curiosity to software workloads: provision an isolated environment, observe execution, collect evidence, analyze behavior and preserve artifacts for independent verification.
+Cusimanse applies the curiosity of its namesake to software workloads: provision an isolated environment, observe execution, collect evidence, analyze behavior and preserve artifacts for independent verification.
 
 ## About
 
-Cusimanse is a **research and experimentation platform**, not a production malware sandbox. It combines disposable Lima/QEMU virtual machines with agent adapters, composable recipes, instrumentation, policy checks, evidence handling and optional observability integrations. The design keeps experiment semantics independent from the agent used to operate them.
+Cusimanse is a **research and experimentation platform**, not a production malware sandbox. It combines disposable Lima/QEMU virtual machines with agent adapters, composable recipes, instrumentation, policy checks, evidence handling and optional orchestration/observability integrations.
 
 **Status:** `v1.0.0-beta.1` — early beta for controlled security research and engineering experimentation. APIs, recipes and integrations may change between beta releases.
 
 ## What Cusimanse does
 
-```text
-Experiment contract
-       ↓
-Agent adapter
-(Goose / OpenCode / Grok Build / Antigravity)
-       ↓
-recipes + MCP + skills + policy
-       ↓
-plan → review → approval
-       ↓
-disposable Lima / QEMU VM
-       ↓
-instrument → execute → collect
-       ↓
-blackboard + evidence + telemetry
-       ↓
-reduce → forensics → verify
-       ↓
-report → preserve → destroy
-```
-
-The platform is **agent-neutral**. Goose is the current reference adapter, not the project identity. Adapter-specific prompts, tool wiring and integration details stay at the adapter boundary; experiment semantics remain shared.
-
-## Deployment architecture
-
-The deployment model separates the **agent/operator plane** from the **VM/OS enforcement boundary**. Shared contracts define experiment semantics; adapters operate approved actions; disposable Lima/QEMU VMs contain the workload; instrumentation and evidence pipelines provide the basis for analysis and verification.
-
 ![Cusimanse deployment architecture](docs/images/cusimanse-deployment-architecture.svg)
 
-**Control flow:** `Intent → Contract → Adapter → Policy/Approval → Disposable VM → Instrument → Execute → Collect → Verify → Preserve → Destroy`
+Cusimanse separates the **agent/operator plane** from the **VM/OS enforcement boundary**. Experiment contracts define what is being researched; adapters and optional orchestration coordinate approved work; disposable VMs contain the workload; instrumentation, evidence and verification support defensible results.
 
-For the detailed deployment layers, boundaries and lifecycle, see [`01-deployment-architecture.md`](01-deployment-architecture.md).
+**Lifecycle:** `Intent → Contract → Plan → Review → Approval → Provision → Instrument → Execute → Collect → Analyse → Verify → Preserve → Destroy`
+
+## CrewAI orchestration
+
+**CrewAI is optional role orchestration. It does not replace Goose, `policyctl`, approval gates or VM/OS enforcement.**
+
+On this `crew-orchestration` branch, CrewAI provides bounded specialist roles around the existing Cusimanse lifecycle:
+
+![Cusimanse CrewAI orchestration architecture](docs/images/cusimanse-crew-orchestration.svg)
+
+| Layer | Responsibility |
+|---|---|
+| **Cusimanse contract** | Scope, hypotheses, constraints and acceptance criteria |
+| **Goose** | Primary operator, executor and lifecycle authority |
+| **CrewAI** | Optional specialist-role coordination and structured research results |
+| **Specialist roles** | Planner, Researcher, Runtime Analyst, Forensics, Detection Analyst, Verifier, Reporter |
+| **Policy + approval** | Constrain sensitive operations and require explicit approval where defined |
+| **Lima/QEMU + OS** | Enforce the actual workload isolation and host/VM controls |
+| **Evidence + audit** | Preserve artifacts, record material decisions and support independent verification |
+
+### CrewAI rules
+
+1. **Goose remains authoritative** for the Cusimanse run lifecycle and execution.
+2. CrewAI roles may plan, research, analyze, verify and report; they must return structured results to Goose.
+3. CrewAI must not bypass `policyctl`, approvals, audit, MCP/skills controls or VM/cloud enforcement.
+4. CrewAI roles must not receive host credentials or unrestricted host filesystem access.
+5. CrewAI must not directly destroy VMs or evidence.
+6. A missing CrewAI capability is reported as `NOT_DEPLOYED`; it is never silently substituted.
+7. A crew result, plan or AI assertion is **not evidence**. Runtime artifacts remain the source of truth.
+
+Configuration lives in [`recipes/orchestration/crewai.yaml`](recipes/orchestration/crewai.yaml), with adapter guidance in [`crewai/README.md`](crewai/README.md). CrewAI is an integration, not a required security dependency.
 
 ## Security boundary
 
-AI agents, prompts, skills, MCP servers and `policyctl` are **not** security boundaries. Enforcement comes from the VM/OS boundary, filesystem and mount controls, credential separation, network controls and explicit approval gates.
+AI agents, prompts, skills, MCP servers, CrewAI and `policyctl` are **not** security boundaries. Enforcement comes from VM/OS controls, filesystem and mount restrictions, credential separation, network controls and explicit approval gates.
 
 Key invariants:
 
@@ -64,7 +67,7 @@ Key invariants:
 - Instrumentation starts before the target workload.
 - Evidence is preserved and hashed before VM destruction.
 - Important findings require independent verification.
-- Missing integrations are reported as `NOT_DEPLOYED`, never silently substituted.
+- Missing integrations are reported as `NOT_DEPLOYED`.
 - AI assertions are never treated as evidence.
 
 See [`04-security-model.md`](04-security-model.md) and [`SECURITY.md`](SECURITY.md).
@@ -77,6 +80,8 @@ See [`04-security-model.md`](04-security-model.md) and [`SECURITY.md`](SECURITY.
 ./scripts/prerequisites.sh
 ```
 
+The prerequisite script checks/installs the required host tooling and the optional CrewAI tooling used by the orchestration recipe. Review the script and environment before allowing installations on a research host.
+
 ### 2. Load the environment
 
 ```bash
@@ -85,7 +90,7 @@ source ./scripts/goose-env.sh
 
 This configures project paths only. **Never place API keys, cloud credentials or secrets in the repository.**
 
-### 3. Validate
+### 3. Validate the repository
 
 ```bash
 ./policyctl validate
@@ -107,13 +112,24 @@ goose run \
   --params section=project
 ```
 
-The lifecycle is:
+### 6. Enable the optional CrewAI orchestration recipe
+
+```bash
+crewai --version
+goose run --recipe recipes/orchestration/crewai.yaml
+```
+
+Use the CrewAI recipe only when the environment has been reviewed and the declared policy/approval controls are in place. CrewAI participation does **not** grant additional privileges.
+
+The expected research lifecycle is:
 
 ```text
 Discover → Validate → Preflight → Install → Plan → Review → Approve
 → Provision → Instrument → Execute → Collect → Reduce → Forensics
 → Independent verification → Report → Preserve → Destroy
 ```
+
+Do not describe an experiment or integration as `PASS` unless it was actually exercised and evidence was preserved.
 
 ## Recipes and composition
 
@@ -141,13 +157,15 @@ Recipes are intentionally small and composable. Do not turn the project recipe i
 
 ## Agent adapters
 
-**Goose** — current reference operator/executor.
+**Goose** — current reference operator/executor and lifecycle authority.
 
 **OpenCode** — documented adapter target using `AGENTS.md`, shared recipes, registry-approved tools and the same evidence/audit lifecycle.
 
 **Grok Build** — documented adapter target; Grok-specific wiring remains outside shared experiment semantics.
 
 **Antigravity** — documented adapter target using the canonical `.agents/` roles/skills and MCP registry.
+
+**CrewAI** — optional orchestration integration for bounded specialist roles. It is not an independent Cusimanse controller and must return structured results to Goose.
 
 An adapter must not bypass policy, suppress audit, expose credentials, alter experiment semantics or claim `PASS` without evidence.
 
@@ -174,7 +192,7 @@ Optional monitoring integrations include OpenTelemetry, Phoenix, Numbat and ADR.
 
 ## `policyctl`
 
-`policyctl` is deliberately narrow: host/security policy configuration and the local token-usage dashboard. It is **not** the experiment controller, sandbox or agent harness.
+`policyctl` is deliberately narrow: host/security policy configuration and the local token-usage dashboard. It is **not** the experiment controller, sandbox, CrewAI controller or general agent harness.
 
 ```bash
 ./policyctl show
@@ -200,8 +218,6 @@ GitHub Actions validates pushes and pull requests with least-privilege read perm
 
 The release workflow packages the repository from an immutable version tag and publishes checksums with the GitHub release. Release artifacts are generated from Git history rather than from a developer working tree.
 
-Do not describe a capability as `PASS` unless it was actually exercised with evidence.
-
 ## Contributing
 
 Bug reports, documentation fixes, tests, recipes and adapter improvements are welcome. Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a pull request.
@@ -210,12 +226,6 @@ Bug reports, documentation fixes, tests, recipes and adapter improvements are we
 - **Security vulnerability:** do **not** open a public issue; follow [`SECURITY.md`](SECURITY.md).
 - **Feature/change:** explain the experiment or operator contract being improved and include tests or validation evidence where practical.
 - **Pull requests:** keep changes focused, preserve security invariants and wait for required CI checks.
-
-## Reporting bugs and security issues
-
-For ordinary defects, use GitHub Issues with the **Bug Report** template. For vulnerabilities involving credential exposure, host escape, unsafe mounts, privilege escalation, malicious workflow changes or other security-sensitive behavior, use the private reporting process described in [`SECURITY.md`](SECURITY.md).
-
-Please never publish credentials, tokens, private keys, sensitive workload data or unredacted forensic artifacts in an issue or pull request.
 
 ## Beta release policy
 
@@ -251,6 +261,7 @@ AI-generated plans, commands, code and findings can be wrong, incomplete, stale 
 - `09-operations-and-maintenance.md` — operations
 - `10-validation-and-acceptance.md` — validation and acceptance
 - `11-current-antigravity-reference.md` — Antigravity reference
+- `crewai/README.md` — CrewAI adapter and responsibility boundary
 - `AGENTS.md` — agent/adapter operating instructions
 - `AI-DISCLAIMER.md` — AI limitations and responsible use
 - `CONTRIBUTING.md` — contribution workflow
