@@ -1,7 +1,10 @@
-version: 2
+version: 3
 id: mcp-registry
 kind: mcp-registry
 owner: project
+sources:
+  discovery: recipes/reference/mcp-sources.yaml
+  security-research-data: recipes/reference/security-research-databases.yaml
 policy:
   default_transport: stdio
   bind_address: 127.0.0.1
@@ -88,7 +91,6 @@ servers:
     approval: required-for-write
     data_class: runtime-telemetry
     status: declared
-
 registry_rules:
   - every server has an owner and purpose
   - every write/VM/privileged capability has an approval rule
@@ -96,4 +98,5 @@ registry_rules:
   - secrets are never passed through MCP arguments
   - public reference queries must not contain private workload data
   - external enrichment must record source and retrieval time
+  - discovery does not imply approval
   - unknown or unavailable servers are NOT_DEPLOYED
