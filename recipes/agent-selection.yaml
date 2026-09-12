@@ -1,0 +1,37 @@
+version: 1
+id: agent-selection
+kind: bootstrap-contract
+selection:
+  prompt: Select one primary Cusimanse operator
+  exactly_one: true
+  options:
+    - goose
+    - opencode
+    - grok-build
+    - antigravity
+    - pi
+    - codex
+    - prime-intellect
+  enterprise_options:
+    - claude-code
+    - devin
+install:
+  selected_only: true
+preflight:
+  selected_only: true
+  checks:
+    - command_or_api_available
+    - provider_configuration_present_without_secret_output
+    - common_contract_loads
+    - yaml_recipes_load
+    - policyctl_validate
+    - audit_paths_available
+    - evidence_paths_available
+    - non_destructive_smoke_test
+state:
+  path: .cusimanse/primary-agent.yaml
+  commit: false
+  secrets: forbidden
+failure:
+  unavailable: NOT_DEPLOYED
+  continue_with_unselected: false
