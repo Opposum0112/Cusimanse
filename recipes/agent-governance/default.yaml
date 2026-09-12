@@ -1,0 +1,23 @@
+version: 1
+id: ai-plane-governance
+kind: governance-recipe
+purpose: govern agent, model, skill, MCP and orchestration actions without becoming the VM security boundary
+plane:
+  agent: allow-listed adapters
+  model: model-gateway
+  skills: recipes/skills/registry.yaml
+  mcp: recipes/mcp/registry.yaml
+  orchestration: recipes/orchestration/default-agent-chain.yaml
+controls:
+  model_selection: declared-and-audited
+  tool_selection: registry-only
+  skill_selection: registry-only
+  mcp_selection: registry-only
+  privileged_actions: approval-required
+  destructive_actions: approval-required
+  external_writes: approval-required
+  prompt_or_policy_change: audit-required
+  token_usage: session-recorded
+  agent_actions: audit-required
+  unknown_capability: NOT_DEPLOYED
+security_boundary: vm-os-mount-privilege-network-approval
