@@ -1,0 +1,78 @@
+version: 1
+id: security-research-reference-databases
+kind: reference-database
+purpose: authoritative and community research sources for enrichment, verification and detection engineering
+
+sources:
+  mitre-attack:
+    category: adversary-behavior
+    url: https://attack.mitre.org/
+    use: technique and software behavior mapping
+    trust: authoritative-reference
+  cisa-kev:
+    category: vulnerabilities
+    url: https://www.cisa.gov/known-exploited-vulnerabilities-catalog
+    use: known exploited vulnerability prioritization
+    trust: authoritative-reference
+  nvd:
+    category: vulnerabilities
+    url: https://nvd.nist.gov/
+    use: CVE and vulnerability enrichment
+    trust: authoritative-reference
+  cve:
+    category: vulnerabilities
+    url: https://www.cve.org/
+    use: vulnerability identifiers and records
+    trust: authoritative-reference
+  cisa-alerts:
+    category: advisories
+    url: https://www.cisa.gov/news-events/cybersecurity-advisories
+    use: defensive advisories and incident context
+    trust: authoritative-reference
+  sigma:
+    category: detection
+    url: https://sigmahq.io/
+    use: portable detection-rule research
+    trust: community-reference
+  yara:
+    category: detection
+    url: https://virustotal.github.io/yara/
+    use: malware pattern research and detection
+    trust: tool-reference
+  suricata:
+    category: network-detection
+    url: https://suricata.io/
+    use: network detection research
+    trust: tool-reference
+  owasp:
+    category: application-security
+    url: https://owasp.org/
+    use: application security research and testing references
+    trust: authoritative-community-reference
+  urlhaus:
+    category: malicious-urls
+    url: https://urlhaus.abuse.ch/
+    use: malicious URL enrichment
+    trust: community-reference
+  malwarebazaar:
+    category: malware
+    url: https://bazaar.abuse.ch/
+    use: malware sample and hash enrichment
+    trust: community-reference
+  abuseipdb:
+    category: network-intelligence
+    url: https://www.abuseipdb.com/
+    use: IP reputation enrichment
+    trust: community-reference
+  alienvault-otx:
+    category: threat-intelligence
+    url: https://otx.alienvault.com/
+    use: IOC and threat-intelligence enrichment
+    trust: community-reference
+
+rules:
+  - reference data is enrichment, not workload evidence
+  - cite source and retrieval time for every external enrichment result
+  - never submit secrets, private credentials or sensitive workload data to public services
+  - independently verify important findings
+  - unavailable source or API is NOT_DEPLOYED
