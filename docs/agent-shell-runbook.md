@@ -1,6 +1,6 @@
 # Agent-shell runtime runbook
 
-Cusimanse is terminal-first. After bootstrap, the **selected primary agent shell is the operator**: it loads the YAML contract, plans, requests approval, orchestrates the VM lifecycle, executes approved workload actions, observes telemetry, collects evidence, invokes independent verification, reports, preserves evidence and destroys the disposable VM.
+Cusimanse is terminal-first. After bootstrap, the **selected primary agent shell is the operator**: it loads YAML contracts, plans, requests approval, orchestrates the VM lifecycle, executes approved workload actions, observes telemetry, collects evidence, invokes independent verification, reports, preserves evidence and destroys the disposable VM.
 
 Host scripts are intentionally limited to prerequisite installation, configuration, validation and preflight. They are not a second orchestration controller.
 
@@ -12,7 +12,7 @@ cd Cusimanse
 git checkout agent-and-adapter
 ```
 
-## 1. Bootstrap and select one primary
+## 1. Bootstrap and select exactly one primary
 
 Interactive:
 
@@ -23,7 +23,6 @@ Interactive:
 Non-interactive examples:
 
 ```bash
-CUSIMANSE_PRIMARY_ADAPTER=goose ./scripts/prerequisites.sh
 CUSIMANSE_PRIMARY_ADAPTER=grok-build ./scripts/prerequisites.sh
 CUSIMANSE_PRIMARY_ADAPTER=antigravity ./scripts/prerequisites.sh
 CUSIMANSE_PRIMARY_ADAPTER=pi ./scripts/prerequisites.sh
@@ -33,9 +32,9 @@ CUSIMANSE_PRIMARY_ADAPTER=codex ./scripts/prerequisites.sh
 CUSIMANSE_PRIMARY_ADAPTER=opencode ./scripts/prerequisites.sh
 ```
 
-The selection is recorded at `.cusimanse/primary-agent.yaml`. A provider-managed candidate is not falsely marked available.
+The selection is recorded at `.cusimanse/primary-agent.yaml`. Provider-managed candidates are not falsely marked available.
 
-## 2. Validate the host and repository
+## 2. Validate before starting the agent
 
 ```bash
 ./scripts/agent-preflight.sh
@@ -43,33 +42,36 @@ The selection is recorded at `.cusimanse/primary-agent.yaml`. A provider-managed
 bash ./scripts/tests/validate-project.sh
 ```
 
-Confirm the selected command before continuing:
+Confirm the selected command:
 
 ```bash
 cat .cusimanse/primary-agent.yaml
 command -v <PRIMARY_COMMAND>
+<PRIMARY_COMMAND> --help
 ```
 
-## 3. Start the primary agent shell
+The last command is intentionally provider-specific: use it to confirm the CLI syntax installed on the target host before runtime acceptance.
 
-Use the adapter's native shell; do not translate it into another controller.
+## 3. Native primary-shell commands
 
-| Adapter | Interactive shell | One-shot form |
-|---|---|---|
-| Goose | `goose` | `goose run --text '<PROMPT>'` |
-| OpenCode | `opencode` | `opencode run '<PROMPT>'` |
-| Grok Build | `grok` | `grok -p '<PROMPT>'` |
-| Antigravity | `agy` | `agy -p '<PROMPT>'` |
-| Pi | `pi` | `pi -p '<PROMPT>'` |
-| Hermes | `hermes` | `hermes -z '<PROMPT>'` |
-| Prime Intellect | `prime-agent` | `prime-agent -p '<PROMPT>'` |
-| Codex | `codex` | `codex '<PROMPT>'` |
+Do not translate Goose syntax to another agent. Use the selected adapter's native shell.
 
-> CLI flags are adapter-specific. Treat these as the contract's intended shell forms and verify the installed provider version during preflight before runtime claims.
+| Adapter | Interactive | Headless / run | Notes |
+|---|---|---|---|
+| Goose | `goose` | `goose run --text '<PROMPT>'` | reference |
+| OpenCode | `opencode` | `opencode run '<PROMPT>'` | native non-interactive mode |
+| Grok Build | `grok` | `grok -p '<PROMPT>'` | native headless mode |
+| Antigravity | `agy` | `agy -p '<PROMPT>'` | verify installed CLI with `agy --help` |
+| Pi | `pi` | `pi -p '<PROMPT>'` | native print mode |
+| Hermes | `hermes` | TUI-first | use the installed Hermes CLI's supported interactive prompt flow |
+| Prime Agent | `prime-agent` | `prime-agent -p '<PROMPT>'` | native print mode |
+| Codex | `codex` | verify installed CLI with `codex --help` | version-specific non-interactive syntax |
 
-## 4. Give the shell the shared contract
+Grok's current documentation explicitly supports `grok -p` for headless scripting; OpenCode documents `opencode run`; Prime Agent documents `prime-agent -p`. citeturn1search0turn1search1turn0search1
 
-Use a short operator instruction that points at repository contracts instead of duplicating experiment semantics:
+## 4. Give the primary shell the shared contract
+
+Start the selected shell, then provide this operator instruction:
 
 ```text
 Operate this Cusimanse project from the primary-agent shell.
@@ -85,7 +87,7 @@ Do not claim PASS without runtime evidence and independent verification.
 
 ## 5. Non-destructive shell test
 
-Before a VM run, ask the primary shell to:
+Before provisioning a VM, ask the primary shell:
 
 ```text
 Load the Cusimanse primary-agent contract and selected adapter recipe.
@@ -93,7 +95,7 @@ Report the selected adapter, contract paths, required approval gates, security b
 and expected evidence outputs. Do not modify the host, VM, credentials or repository.
 ```
 
-Expected: the agent identifies the selected adapter, YAML contract and security boundary without performing privileged actions.
+Expected result: the agent identifies the selected adapter, YAML contract, approval gates, evidence paths and VM/OS security boundary without privileged or destructive action.
 
 ## 6. Reference experiment: go-install-001
 
@@ -105,79 +107,89 @@ experiments/go-install-001/lima.yaml
 experiments/go-install-001/run.sh
 ```
 
-Then execute the semantic lifecycle from the primary-agent contract. Do not manually substitute a second orchestrator.
+Then execute the semantic lifecycle from the primary-agent contract. The primary shell may call declared repository scripts, but no second orchestrator should take ownership of the lifecycle.
 
-The experiment must produce auditable runtime evidence, an evidence index, findings and a report. Preserve/hash evidence before destroying the VM.
+Required outputs:
 
-## 7. Adapter-specific shell starts
+- runtime audit records;
+- raw evidence and evidence index;
+- findings/report;
+- independent verification result;
+- preservation/hash manifest before VM destruction.
+
+## 7. Adapter-specific smoke tests
 
 ### Grok Build
 
 ```bash
 grok --version
-grok
+grok inspect
+grok -p 'Load recipes/agents/primary-agent.yaml and perform the non-destructive shell test. Do not modify anything.'
 ```
 
-If the installed release exposes a different command or mode, follow its provider documentation and keep the Cusimanse contract unchanged.
+For CI/headless use, prefer structured output where required:
+
+```bash
+grok -p 'Perform the non-destructive Cusimanse shell test.' --output-format json
+```
 
 ### Antigravity
 
 ```bash
+agy --help
 agy
 ```
 
-Load the shared contract and use the adapter's supported prompt/agent mode. Do not assume IDE actions are the security boundary.
+Use the installed Antigravity prompt/agent mode to load the shared contract. Do not assume an IDE action is a security boundary.
 
 ### Pi
 
 ```bash
-pi
-```
-
-For a non-interactive smoke invocation where supported:
-
-```bash
-pi -p 'Run the non-destructive Cusimanse primary-agent contract check.'
+pi --help
+pi -p 'Load the Cusimanse primary-agent contract. Perform only the non-destructive shell test.'
 ```
 
 ### Hermes
 
 ```bash
+hermes --help
 hermes
 ```
 
-Use the installed Hermes version's supported prompt mode; the adapter contract records `hermes -z` as the intended one-shot form.
+Hermes is TUI-first. Use its native interactive prompt flow to load the contract; do not rely on an undocumented one-shot flag. citeturn877file0L2-L2
 
-### Prime Intellect / Prime Agent
+### Prime Agent
 
 ```bash
-prime-agent
+prime-agent --help
+prime-agent -p 'Load the Cusimanse primary-agent contract. Perform only the non-destructive shell test.'
 ```
 
-Use the provider-supported prompt mode and treat self-improvement as evidence-bounded: checkpoint → compare → propose → validate → human approve → promote.
+Prime Agent's current CLI documents `-p/--print` and supports piped stdin. Its model-generated commands execute with user permissions, so the external VM/OS boundary remains mandatory. citeturn0search1
 
 ### Codex
 
 ```bash
+codex --help
 codex
 ```
 
-Load the shared contract and keep execution scoped to approved actions and the disposable VM.
+Use the installed version's documented non-interactive mode after confirming it with `codex --help`.
 
-## 8. Runtime acceptance checklist
+## 8. Runtime acceptance
 
 A run is `PASS` only when all are true:
 
-- primary shell was the operator for the lifecycle
-- contract and adapter recipe loaded
-- preflight passed
-- approvals were recorded for privileged/destructive actions
-- VM/OS controls enforced the boundary
-- instrumentation started before workload execution
-- raw evidence was collected
-- findings were independently verified
-- evidence was hashed/preserved before destruction
-- final report and audit records exist
-- run is reproducible from its recorded inputs
+- the selected primary shell owned the lifecycle;
+- the contract and adapter recipe loaded;
+- preflight passed;
+- approvals were recorded for privileged/destructive actions;
+- VM/OS controls enforced the boundary;
+- instrumentation started before workload execution;
+- raw evidence was collected;
+- important findings were independently verified;
+- evidence was hashed/preserved before destruction;
+- final report and audit records exist;
+- the run is reproducible from recorded inputs.
 
-Otherwise use `PARTIAL`, `FAIL` or `NOT_DEPLOYED` as defined by the acceptance contract.
+Otherwise use `PARTIAL`, `FAIL` or `NOT_DEPLOYED` according to the acceptance contract.
