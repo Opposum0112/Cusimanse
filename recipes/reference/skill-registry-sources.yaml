@@ -1,4 +1,4 @@
-version: 1
+version: 2
 id: skill-registry-sources
 kind: reference-catalog
 sources:
@@ -18,6 +18,12 @@ sources:
     url: https://github.com/anthropics/skills
     purpose: document and workflow skill examples
     trust: upstream-review-required
+  anthropic-cybersecurity-skills:
+    url: https://github.com/mukul975/Anthropic-Cybersecurity-Skills
+    purpose: large cybersecurity skill corpus covering malware analysis, DFIR, detection, threat intelligence, cloud, identity and application security
+    trust: upstream-review-required
+    inventory: 818 skills at reviewed source snapshot
+    snapshot: 2026-08-24
   sentenz-skills:
     url: https://github.com/sentenz/skills
     purpose: community skill registry patterns
@@ -44,5 +50,6 @@ selection:
   - review tools, privileges, network access, secrets and destructive behavior
   - verify license and provenance
   - adapt skills to Cusimanse security boundary
-  - copy approved skills into .agents/skills before deployment
+  - copy only approved skills into .agents/skills before deployment
+  - keep high-risk offensive or credential-access skills disabled unless explicitly authorized and reviewed
   - unknown/unavailable skills remain NOT_DEPLOYED
