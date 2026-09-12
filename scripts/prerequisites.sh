@@ -17,7 +17,7 @@ install_linux_packages() {
 if [ "$OS" = "Darwin" ]; then have brew || fail 'Homebrew is required on macOS'; brew install git python3 ruby go qemu lima; elif [ "$OS" = "Linux" ]; then missing=0; for tool in git bash curl python3 ruby go qemu-system-x86_64; do have "$tool" || missing=1; done; [ "$missing" -eq 0 ] || install_linux_packages; else fail "unsupported host OS '$OS'"; fi
 if ! have limactl; then if [ "$OS" = "Darwin" ]; then brew install lima; else case "$DISTRO" in ubuntu|debian|linuxmint|pop) ${SUDO:-sudo} apt-get update && ${SUDO:-sudo} DEBIAN_FRONTEND=noninteractive apt-get install -y lima;; fedora|rhel|rocky|almalinux) ${SUDO:-sudo} dnf install -y lima;; arch|manjaro) ${SUDO:-sudo} pacman -Sy --needed --noconfirm lima;; opensuse*|sles) ${SUDO:-sudo} zypper --non-interactive install lima;; *) fail "Lima is missing and '$DISTRO' has no supported automated package path";; esac; fi; fi
 if ! have goose; then curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash; fi
-adapter_available() { case "$1" in goose) have goose;; opencode) have opencode;; pi) have pi;; codex) have codex;; prime-intellect) have prime-agent;; *) return 1;; esac; }
+adapter_available() { case "$1" in goose) have goose;; opencode) have opencode;; pi) have pi;; hermes) have hermes;; codex) have codex;; prime-intellect) have prime-agent;; *) return 1;; esac; }
 install_adapter() { case "$1" in goose) :;; opencode) if ! have opencode && have npm; then npm install -g opencode-ai; fi;; pi) if ! have pi && have npm; then npm install -g @mariozechner/pi-coding-agent; fi;; codex) if ! have codex && have npm; then npm install -g @openai/codex; fi;; *) log "$1 is provider/manual-managed; no unverified installer is executed.";; esac; }
 select_primary() { if [ -n "${CUSIMANSE_PRIMARY_ADAPTER:-}" ]; then printf '%s\n' "$CUSIMANSE_PRIMARY_ADAPTER"; return; fi; if [ ! -t 0 ]; then printf 'goose\n'; return; fi; cat <<'EOF'
 Select one primary Cusimanse operator:
@@ -26,12 +26,13 @@ Select one primary Cusimanse operator:
   3) grok-build
   4) antigravity
   5) pi
-  6) codex
-  7) prime-intellect
-  8) claude-code (enterprise)
-  9) devin (enterprise)
+  6) hermes
+  7) codex
+  8) prime-intellect
+  9) claude-code (enterprise)
+ 10) devin (enterprise)
 EOF
-read -r -p 'Primary adapter [1-9]: ' choice; case "$choice" in 1) echo goose;; 2) echo opencode;; 3) echo grok-build;; 4) echo antigravity;; 5) echo pi;; 6) echo codex;; 7) echo prime-intellect;; 8) echo claude-code;; 9) echo devin;; *) fail 'invalid primary adapter selection';; esac; }
+read -r -p 'Primary adapter [1-10]: ' choice; case "$choice" in 1) echo goose;; 2) echo opencode;; 3) echo grok-build;; 4) echo antigravity;; 5) echo pi;; 6) echo hermes;; 7) echo codex;; 8) echo prime-intellect;; 9) echo claude-code;; 10) echo devin;; *) fail 'invalid primary adapter selection';; esac; }
 PRIMARY="$(select_primary)"; install_adapter "$PRIMARY"
 if adapter_available "$PRIMARY"; then log "Primary adapter '$PRIMARY': AVAILABLE"; else log "Primary adapter '$PRIMARY': NOT_DEPLOYED — provider/manual setup required."; fi
 cat > "$ROOT/.cusimanse/primary-agent.yaml" <<EOF
