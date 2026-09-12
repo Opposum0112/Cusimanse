@@ -9,6 +9,14 @@ contract: recipes/agents/primary-agent.yaml
 entrypoint:
   command: hermes
   installation: provider-or-user-managed
+shell:
+  interactive: "hermes"
+  oneshot: "hermes -z '<PROMPT>'"
+  contract_input: recipes/agents/primary-agent.yaml
+  runbook: docs/agent-shell-runbook.md
+bootstrap:
+  command: "./scripts/prerequisites.sh"
+  selection: "CUSIMANSE_PRIMARY_ADAPTER=hermes"
 capabilities:
   - yaml-contract-loading
   - planning
@@ -18,6 +26,9 @@ capabilities:
   - evidence-collection
   - checkpointing
   - learning-proposals
+execution:
+  lifecycle_owner: primary-agent-shell
+  orchestration_owner: primary-agent-shell
 preflight:
   - command-availability
   - provider-configuration-without-secret-output
