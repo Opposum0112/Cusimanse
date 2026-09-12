@@ -1,23 +1,27 @@
-version: "1.0.0"
-title: AI Security Lab audit layer
-description: Produce a tamper-evident audit record for agent decisions and capability use.
+version: 2
+title: Cusimanse lifecycle audit layer
+description: Append-only audit contract for every material agent, tool, policy, VM, evidence, detection and reporting action.
 instructions: |
-  Maintain an append-only audit record for the current project run.
-
-  Record at minimum:
-    timestamp, run_id, section, experiment, agent_role, skill, mcp_server,
-    tool, action, arguments_digest, policy_decision, approval_state,
-    result_state, evidence_refs and error.
-
-  Never record secrets or raw credentials. Hash sensitive argument material
-  rather than storing it. Distinguish requested, approved, executed and
-  observed actions. A plan is not evidence of execution.
-
-  Store audit events under evidence/audit/ and include a manifest hash in the
-  final report. If the audit layer is unavailable, report PARTIAL or
-  NOT_DEPLOYED rather than fabricating events.
+  Maintain an append-only audit record for the current session and run.
+  Record requested, approved, executed and observed states separately.
+  Record all material agent, model, skill, MCP, tool, policy, approval,
+  installation, recipe-generation, VM, instrumentation, workload, telemetry,
+  evidence, enrichment, detection, analysis, verification, finding, report,
+  blackboard and token-usage actions.
+  Never record secrets or raw credentials. Hash sensitive argument material.
+  A plan, prompt, skill result or MCP response is not workload evidence.
+  If an audit capability is unavailable, report PARTIAL or NOT_DEPLOYED.
 parameters:
+  - key: session_id
+    input_type: string
+    requirement: required
+    description: Stable identifier for one interactive or headless session.
   - key: run_id
     input_type: string
     requirement: required
-    description: Stable identifier for the current project run.
+    description: Stable identifier for the current experiment run.
+event_schema:
+  required: [timestamp, session_id, run_id, actor, action, target, result]
+  optional: [recipe, tool, model, skill, mcp_server, tokens, approval_id, evidence_refs, error]
+  states: [REQUESTED, APPROVED, EXECUTED, OBSERVED, FAILED, NOT_DEPLOYED]
+storage: evidence/audit/
