@@ -1,0 +1,64 @@
+version: 1
+id: instrumentation-monitoring-reference
+kind: tool-reference
+purpose: reusable instrumentation and monitoring catalog for compute profiles and experiment recipes
+principles:
+  - instrument before execution
+  - prefer deterministic collection over agent interpretation
+  - retain raw evidence and produce reproducible reductions
+  - monitoring is observability, not isolation
+  - unavailable capability is NOT_DEPLOYED
+host:
+  process: [ps, pgrep, top, htop]
+  filesystem: [find, stat, ls, lsof, inotifywait]
+  network: [ss, ip, tcpdump, tshark, conntrack]
+  dns: [dig, drill, resolvectl]
+  tracing: [strace, ltrace, bpftrace, perf]
+  binaries: [file, strings, readelf, objdump, nm, ldd]
+  containers: [docker, podman]
+vm:
+  process: [ps, pgrep, lsof]
+  filesystem: [find, stat, inotifywait, auditctl]
+  network: [ss, ip, tcpdump, tshark]
+  tracing: [strace, ltrace, bpftrace, perf]
+  kernel: [dmesg, journalctl, auditctl]
+  binary: [file, strings, readelf, objdump, nm, ldd]
+telemetry:
+  open_telemetry: [OTel Collector, OTLP]
+  metrics: [Prometheus, node_exporter]
+  logs: [Fluent Bit, Vector, OpenTelemetry Collector]
+  traces: [OpenTelemetry, Jaeger]
+  eBPF: [Cilium Tetragon, Falco, Tracee, bpftrace]
+security_monitoring:
+  runtime: [Falco, Tracee, Tetragon, Sysmon-for-Linux]
+  network: [Zeek, Suricata, Arkime]
+  detection: [Sigma, YARA, Suricata]
+  endpoint: [osquery, Wazuh]
+  forensics: [Velociraptor, Plaso, The Sleuth Kit, Volatility]
+  malware_analysis: [CAPE, Cuckoo]
+  cloud: [CloudTrail, GuardDuty, Azure Monitor, GCP Audit Logs]
+analysis:
+  reduction: [jq, yq, rg, awk, sed, miller]
+  hashing: [sha256sum, sha512sum]
+  package: [syft, grype]
+  sbom: [syft]
+  vuln: [grype, trivy]
+  secrets: [gitleaks, trufflehog]
+  provenance: [cosign, in-toto, SLSA]
+selection:
+  static: [file, strings, readelf, objdump, yara, syft, grype]
+  dynamic: [strace, ltrace, bpftrace, perf, tcpdump, eBPF-runtime]
+  network: [tcpdump, Zeek, Suricata, Arkime]
+  endpoint: [osquery, Falco, Tracee, Tetragon]
+  forensic: [Velociraptor, Plaso, The-Sleuth-Kit, Volatility]
+  telemetry: [OpenTelemetry, Prometheus, Vector, Fluent-Bit]
+  rules: [Sigma, YARA, Suricata]
+recipe_contract:
+  compute_profiles_may_select: true
+  experiment_recipes_may_select: true
+  host_install_default: deny
+  vm_install_approval: required
+  network_sensors_prefer_vm_side: true
+  write_capabilities: approval-required
+  public_exposure: deny
+  tool_output_is_evidence_only_after_capture_and_hash: true
