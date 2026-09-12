@@ -65,7 +65,7 @@ Choose one operator when prompted. For automation:
 CUSIMANSE_PRIMARY_ADAPTER=pi ./scripts/prerequisites.sh
 ```
 
-The bootstrap records the selection in `.cusimanse/primary-agent.yaml`, installs only adapters with a verified installer, and runs selected-adapter preflight. Provider/manual-managed candidates are reported as `NOT_DEPLOYED` rather than using an unverified installer. The prerequisite script also prepares executable project scripts and user-local PATH handling.
+Supported choices include `goose`, `opencode`, `grok-build`, `antigravity`, `pi`, `hermes`, `codex`, `prime-intellect`, `claude-code` and `devin`. The bootstrap records the selection in `.cusimanse/primary-agent.yaml`, installs only adapters with a verified installer, and runs selected-adapter preflight. Provider/manual-managed candidates are reported as `NOT_DEPLOYED` rather than using an unverified installer.
 
 ### 2. Common preflight
 
@@ -87,87 +87,129 @@ Discover → Validate → Preflight → Plan → Review → Approve
 → Forensics → Independent verification → Report → Preserve → Destroy
 ```
 
-### Grok Build
+### Operator-specific implementation and run steps
 
-Select `grok-build` in prerequisites, complete provider authentication/configuration, then run the adapter using the common YAML project contract. The adapter should translate the contract into provider-native actions without changing experiment semantics. Start with a non-destructive smoke test, then run an approved reference experiment. If provider access is unavailable, record `NOT_DEPLOYED`.
+The following steps describe the intended adapter path. Provider authentication and exact CLI/API invocation remain adapter-specific and must be verified on the target host.
 
-### Antigravity
+**Grok Build**
+1. Select `grok-build` during prerequisites.
+2. Configure the supported Grok/Build provider access outside git.
+3. Run `./scripts/agent-preflight.sh` and confirm contract/recipe/policy checks.
+4. Give the operator the common YAML project contract, not a rewritten experiment prompt.
+5. Run the non-destructive adapter smoke test.
+6. Execute the approved `go-install-001` experiment.
+7. Compare audit, evidence and findings with the Goose reference.
 
-Select `antigravity`, complete its local/provider configuration, run `./scripts/agent-preflight.sh`, and load the common YAML project contract. Use Antigravity only through the adapter boundary; approvals, VM controls, audit and evidence preservation remain mandatory. Begin with a smoke test before a workload run.
+**Antigravity**
+1. Select `antigravity`.
+2. Configure its supported local/provider runtime outside git.
+3. Run agent preflight and project validation.
+4. Load the common YAML contract through the adapter.
+5. Perform the smoke test before VM execution.
+6. Execute only approved VM actions and preserve evidence before destroy.
 
-### Pi
+**Pi**
+1. Select `pi`; the prerequisites script can install Pi when its verified installer is available.
+2. Configure the model/provider outside git.
+3. Run preflight and load `recipes/agents/primary-agent.yaml`.
+4. Use Pi as the thin control loop and Cusimanse as the lifecycle/safety contract.
+5. Run `go-install-001`, preserve evidence and compare the result with the reference run.
 
-Select `pi` (or set `CUSIMANSE_PRIMARY_ADAPTER=pi`). Install/configure Pi, run preflight, then invoke the Pi adapter with the project recipe. Pi is particularly suitable for a small custom control loop because its harness can remain thin while Cusimanse supplies the lifecycle contract and safety gates.
+**Hermes**
+1. Select `hermes`.
+2. Install/configure Hermes using its supported distribution; the bootstrap deliberately does not run an unverified installer.
+3. Run `./scripts/agent-preflight.sh`.
+4. Load the common YAML project contract through `recipes/adapters/hermes.yaml`.
+5. Run the non-destructive smoke test, then an approved reference experiment.
+6. Enable evidence-bounded learning only after verified runs exist.
 
-### Hermes
+**Prime Intellect**
+1. Select `prime-intellect`.
+2. Configure the supported Prime Intellect/Prime Agent environment outside git.
+3. Run preflight and verify the common contract.
+4. Treat self-improvement as a controlled experiment with checkpoints and replay.
+5. Execute the reference experiment and independently verify outputs.
+6. Promote only reviewed, non-security learning proposals.
 
-Select `hermes`, install/configure Hermes using its supported distribution, run preflight, and execute the common project contract through the Hermes adapter. Hermes can be evaluated for self-improvement, but only evidence-bounded learning proposals may be promoted.
+**Codex**
+1. Select `codex`; prerequisites can install the CLI when the verified npm path is available.
+2. Configure the provider outside git.
+3. Run preflight and project validation.
+4. Pass the common YAML contract to the Codex adapter.
+5. Scope tools/actions to the declared adapter and policy; never expose unrestricted host credentials or mounts.
+6. Run the reference experiment and compare evidence with the Goose baseline.
 
-### Prime Intellect
+**OpenCode**
+1. Select `opencode` and install/configure the supported CLI.
+2. Run preflight and validate the common contract.
+3. Use the OpenCode adapter to translate the YAML contract into approved actions.
+4. Smoke-test, execute `go-install-001`, preserve evidence and compare against the reference.
 
-Select `prime-intellect`, configure the provider/research agent, run preflight and then execute the common project contract. Treat self-improvement as an experiment: capture checkpoints, compare verified runs and require human approval before promoting changes.
+**Goose reference**
+1. Select `goose`.
+2. Configure its provider outside git.
+3. Run preflight.
+4. Execute the existing Goose project recipe as the baseline for adapter-equivalence testing.
 
-### Codex
+**Claude Code / Devin**
+1. Select the enterprise adapter.
+2. Configure enterprise identity, provider access, audit and approval controls outside git.
+3. Run preflight without exposing secrets.
+4. Execute the same YAML contract through the enterprise adapter.
+5. Validate that enterprise integrations strengthen identity/audit controls without bypassing VM/OS enforcement.
 
-Select `codex`, configure the Codex CLI/provider, run preflight, and execute the common YAML contract through the Codex adapter. Codex should receive only the scoped tools/actions declared by the adapter and policy; it must not receive unrestricted host credentials or mounts.
+### Replacing Goose safely
 
-### Enterprise: Claude Code / Devin
+Do not switch the project by merely changing a model name. The selected operator must first pass adapter-equivalence testing:
 
-Select the enterprise adapter only when its provider integration and organizational controls are available. Configure identity, audit and approval controls outside git, run preflight, and execute the same YAML contract. Enterprise adapters should add stronger identity/audit integration rather than weaken the Cusimanse boundary.
+`contract load → recipe load → policy check → smoke test → VM experiment → evidence preservation → independent verification → report`
+
+Keep Goose as a reference until the selected operator produces equivalent experiment semantics and acceptable evidence/audit output.
 
 ## CrewAI evaluation
 
-A **role-based CrewAI model is a strong fit for the inner research team, but not ideal as the security boundary or necessarily as the single primary operator**.
+A **role-based CrewAI model is a strong fit for the research-analysis layer**, especially where several specialist roles can work independently. It is less suitable as the sole security controller.
 
-Recommended pattern:
+Recommended architecture:
 
 ```text
-Primary operator
-      │
-      ▼
-CrewAI research crew
- ├─ Planner
- ├─ Threat Modeler
- ├─ Static Analyst
- ├─ Runtime Analyst
- ├─ Network Analyst
- ├─ Malware/RE Analyst
- ├─ Detection Engineer
- ├─ Forensics Analyst
- ├─ Independent Verifier
- └─ Reporter
-      │
-      ▼
-shared evidence / blackboard / audit
+Selected primary operator
+          │
+          ▼
+     CrewAI research crew
+  ┌───────┼────────┐
+Planner  Analysts  Verifier
+  │        │          │
+  └────────┼──────────┘
+           ▼
+     evidence/blackboard
+           │
+           ▼
+      Reporter
 ```
 
-The primary operator should retain lifecycle authority and enforce the common contract. CrewAI can provide role specialization and parallel analysis, with every privileged action going back through the primary adapter and Cusimanse approval/policy controls. This gives better separation of duties than making a role-based crew the sandbox controller.
+The primary operator should retain lifecycle authority. CrewAI can coordinate Planner, Static Analyst, Runtime Analyst, Network Analyst, Malware/RE Analyst, Detection Engineer, Forensics Analyst, Independent Verifier and Reporter roles. Privileged operations must return through the primary adapter and Cusimanse approval/policy controls. This is preferable to putting the VM boundary inside a role-based framework.
 
-## Implementation roadmap for replacing Goose
+## Implementation roadmap
 
-1. Select an adapter through prerequisites.
-2. Verify adapter binary/API and provider configuration.
-3. Validate the common `recipes/agents/primary-agent.yaml` contract.
-4. Verify recipe, policy, audit and evidence paths.
-5. Run an adapter smoke test with no workload side effects.
-6. Execute `go-install-001` under the selected adapter.
-7. Compare audit/evidence/output against the Goose reference run.
-8. Replay the experiment to test deterministic semantics.
-9. Enable evidence-bounded learning and collect proposals.
-10. Independently verify proposed improvements.
+1. Select one primary adapter.
+2. Verify its runtime/provider configuration.
+3. Validate `recipes/agents/primary-agent.yaml`.
+4. Verify recipes, policy, audit and evidence paths.
+5. Run a non-destructive smoke test.
+6. Execute `go-install-001`.
+7. Compare results with Goose.
+8. Replay for adapter equivalence.
+9. Enable evidence-bounded learning.
+10. Validate and independently verify learning proposals.
 11. Human-review and promote only non-security changes.
-12. Keep Goose available as a reference adapter until equivalence evidence is established.
+12. Keep rollback metadata and Goose as the reference until equivalence is demonstrated.
 
 ## Testing status
 
 CI validates repository structure, shell syntax, ShellCheck, Go formatting/vet, policy tests and recipe validation. Provider credentials, installed agent runtimes and disposable VM execution are environment-dependent. Therefore an adapter is not `PASS` from configuration alone.
 
-Acceptance states:
-
-- `PASS` — runtime behavior demonstrated with preserved evidence.
-- `PARTIAL` — integration works but coverage/evidence is incomplete.
-- `FAIL` — tested behavior violates the contract.
-- `NOT_DEPLOYED` — unavailable, unconfigured or intentionally disabled.
+Acceptance states: `PASS` = runtime evidence; `PARTIAL` = incomplete coverage; `FAIL` = contract violation; `NOT_DEPLOYED` = unavailable/unconfigured/disabled.
 
 ## Security boundary
 
@@ -179,7 +221,7 @@ Untrusted workloads should run in disposable Lima/QEMU VMs. Preserve and hash ev
 
 - `recipes/agents/primary-agent.yaml` — replaceable primary-operator contract
 - `recipes/agents/learning-loop.yaml` — evidence-bounded learning contract
-- `recipes/adapters/` — provider/agent adapter contracts
+- `recipes/adapters/` — provider/agent adapter contracts, including Hermes
 - `recipes/orchestration/` — orchestration strategies
 - `recipes/mcp/` — MCP contracts and registry
 - `recipes/skills/` — skills registry
@@ -189,7 +231,7 @@ Untrusted workloads should run in disposable Lima/QEMU VMs. Preserve and hash ev
 
 See `docs/agent-and-adapter-strategy.md` for architecture, implementation phases and adapter requirements.
 
-## Existing platform documentation
+## Documentation
 
 - `01-deployment-architecture.md` — deployment architecture
 - `03-deployment-runbook.md` — deployment/runbook
