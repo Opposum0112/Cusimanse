@@ -1,0 +1,52 @@
+version: 1
+id: primary-agent
+kind: agent-contract
+purpose: >-
+  Define a replaceable primary operator that can orchestrate and execute Cusimanse
+  from declarative YAML contracts without becoming the security boundary.
+required_capabilities:
+  - load_project_contract
+  - load_recipe_graph
+  - plan
+  - request_approval
+  - execute_approved_actions
+  - observe
+  - collect_evidence
+  - trigger_independent_verification
+  - write_audit
+  - write_report
+  - checkpoint_state
+  - propose_learning_update
+forbidden_capabilities:
+  - bypass_policy
+  - bypass_vm_boundary
+  - expose_host_credentials
+  - silently_change_experiment_semantics
+  - self_approve_privileged_actions
+  - treat_model_output_as_evidence
+  - directly_modify_security_policy_without_approval
+learning:
+  enabled: true
+  mode: evidence_bounded
+  immutable_base_contract: true
+  writable_state:
+    - runs/<run-id>/learning/
+    - runs/<run-id>/blackboard/
+    - approved recipe improvements via reviewed change proposal
+  promotion: human_review_required
+  rollback: required
+  evidence_required: true
+  no_runtime_self_modification: true
+  no_privilege_escalation: true
+operator_authority:
+  orchestration: true
+  execution: true
+  lifecycle: true
+  yaml_driven: true
+  policy_enforcement_owner: host-and-vm-controls
+  security_boundary: disposable-vm-and-os-controls
+acceptance:
+  configuration_only: NOT_DEPLOYED
+  contract_validation: PASS
+  runtime_execution: requires_adapter_e2e
+  learning: requires_replayable_evidence_and_review
