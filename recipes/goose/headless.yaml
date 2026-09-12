@@ -1,0 +1,25 @@
+version: 1
+id: goose-headless
+kind: agent-adapter
+agent: goose
+mode: headless
+command: goose
+shell: bash
+contract:
+  stdin: supported
+  stdout: structured
+  stderr: captured
+  non_interactive: true
+  tty_required: false
+  working_directory: project-root
+  environment_file: scripts/env.sh
+lifecycle:
+  preflight: policyctl preflight
+  execute: workload-runner
+  collect: evidence-collector
+  verify: independent-verifier
+  report: findings-reporter
+failure:
+  command_exit_nonzero: FAIL
+  missing_dependency: NOT_DEPLOYED
+  interactive_prompt_in_headless_mode: FAIL
