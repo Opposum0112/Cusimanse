@@ -1,9 +1,10 @@
 version: "1.0.0"
-title: AI Security Lab — prerequisite and installation bootstrap
-description: Preflight the host and install only prerequisites declared by the active recipes.
+title: Cusimanse — prerequisite and installation bootstrap
+description: Preflight the host and install only prerequisites declared by the active recipes, including optional CrewAI multi-agent orchestration.
 instructions: |
   Inspect the host before changing it. Read recipes/install/install-all.yaml,
-  recipes/host/research-host.yaml and recipes/tools/security-research.yaml.
+  recipes/host/research-host.yaml, recipes/tools/security-research.yaml and,
+  when selected, recipes/orchestration/crewai.yaml.
 
   Required checks:
     - OS and architecture
@@ -13,6 +14,11 @@ instructions: |
     - limactl
     - git
     - bash/python3 where required by selected tooling
+
+  CrewAI checks apply only when crew orchestration is selected. Verify the
+  crewai CLI and Python package before enabling a CrewAI crew. CrewAI is an
+  orchestration integration, not a security boundary and never bypasses Goose,
+  policy, approval, audit or VM/cloud enforcement.
 
   If a required capability is missing, report NOT_DEPLOYED with the exact
   prerequisite. Do not silently substitute an unapproved installer.
