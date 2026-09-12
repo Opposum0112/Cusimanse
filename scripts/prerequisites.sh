@@ -73,6 +73,23 @@ if ! have goose; then
   curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash
 fi
 
+# Optional research tools are detected, not silently installed. Set
+# CUSIMANSE_INSTALL_RESEARCH_TOOLS=1 when you explicitly want package-manager
+# installation of the supported research tool set.
+research_tools=(jq yq rg tcpdump strace lsof bpftrace file strings readelf objdump nm yara)
+if [ "${CUSIMANSE_INSTALL_RESEARCH_TOOLS:-0}" = "1" ]; then
+  case "$OS:$DISTRO" in
+    Darwin:*) have brew || fail "Homebrew is required to install optional research tools"; brew install jq yq ripgrep tcpdump strace lsof bpftrace yara || true ;;
+    Linux:ubuntu|Linux:debian|Linux:linuxmint|Linux:pop)
+      if have sudo; then sudo apt-get update; sudo DEBIAN_FRONTEND=noninteractive apt-get install -y jq yq ripgrep tcpdump strace lsof bpftrace yara || true; fi ;;
+    Linux:fedora|Linux:rhel|Linux:rocky|Linux:almalinux)
+      if have sudo; then sudo dnf install -y jq yq ripgrep tcpdump strace lsof bpftrace yara || true; fi ;;
+    Linux:arch|Linux:manjaro)
+      if have sudo; then sudo pacman -Sy --needed --noconfirm jq yq ripgrep tcpdump strace lsof bpftrace yara || true; fi ;;
+    *) log "Optional research-tool installation is unsupported for ${OS}/${DISTRO}; detect manually." ;;
+  esac
+fi
+
 for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
   if [ -f "$rc" ] && ! grep -Fq 'export PATH="$HOME/.local/bin:$PATH"' "$rc"; then
     printf '\n# Cusimanse user-local tools\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$rc"
@@ -88,5 +105,8 @@ if [ "${#missing[@]}" -ne 0 ]; then fail "required tools still missing: ${missin
 
 log "OS PASS: ${OS} ${DISTRO} ${ARCH}"
 log "Tools PASS: git bash python3 ruby go qemu-system-x86_64 limactl goose"
+for tool in "${research_tools[@]}"; do
+  if have "$tool"; then log "Research tool AVAILABLE: $tool"; else log "Research tool NOT_DEPLOYED: $tool"; fi
+done
 log "Prerequisite PASS"
 log "Shell: source scripts/goose-env.sh before running Goose"
