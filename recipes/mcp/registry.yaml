@@ -1,4 +1,4 @@
-version: 1
+version: 2
 id: mcp-registry
 kind: mcp-registry
 owner: project
@@ -8,6 +8,7 @@ policy:
   public_exposure: deny
   privileged_tools: approval-required
   unknown_server: NOT_DEPLOYED
+  external_enrichment: cite-and-audit
 servers:
   repo-read:
     purpose: repository and recipe inspection
@@ -27,8 +28,72 @@ servers:
     access: policyctl-only
     approval: required
     status: declared
+  mitre-attack:
+    purpose: ATT&CK technique and software reference lookup
+    access: read-only
+    approval: not-required
+    data_class: public-reference
+    status: declared
+  nvd-cve:
+    purpose: CVE and vulnerability reference lookup
+    access: read-only
+    approval: not-required
+    data_class: public-reference
+    status: declared
+  cisa-kev:
+    purpose: known exploited vulnerability catalog lookup
+    access: read-only
+    approval: not-required
+    data_class: public-reference
+    status: declared
+  sigma:
+    purpose: detection rule research and validation references
+    access: read-only
+    approval: not-required
+    data_class: public-reference
+    status: declared
+  yara:
+    purpose: YARA rule research and local rule validation
+    access: read-only
+    approval: not-required
+    data_class: local-or-public-reference
+    status: declared
+  urlhaus:
+    purpose: malicious URL enrichment
+    access: read-only
+    approval: not-required
+    data_class: public-reference
+    status: optional
+  malwarebazaar:
+    purpose: malware hash and sample metadata enrichment
+    access: read-only
+    approval: not-required
+    data_class: public-reference
+    status: optional
+  abuseipdb:
+    purpose: IP reputation enrichment
+    access: read-only
+    approval: not-required
+    data_class: public-reference
+    status: optional
+  alienvault-otx:
+    purpose: IOC and threat-intelligence enrichment
+    access: read-only
+    approval: not-required
+    data_class: public-reference
+    status: optional
+  opentelemetry:
+    purpose: telemetry ingestion and correlation
+    access: controlled
+    approval: required-for-write
+    data_class: runtime-telemetry
+    status: declared
+
 registry_rules:
   - every server has an owner and purpose
   - every write/VM/privileged capability has an approval rule
   - every runtime use is written to the audit record
   - secrets are never passed through MCP arguments
+  - public reference queries must not contain private workload data
+  - external enrichment must record source and retrieval time
+  - unknown or unavailable servers are NOT_DEPLOYED
