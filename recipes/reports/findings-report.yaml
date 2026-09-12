@@ -1,0 +1,37 @@
+version: 1
+id: findings-report
+kind: report-recipe
+purpose: produce user-friendly findings from workload evidence after detonation and analysis
+inputs:
+  evidence: required
+  verification: required
+  detections: optional
+  intelligence: optional
+sections:
+  executive_summary: required
+  finding_cards: required
+  timeline: required
+  process_activity: required
+  filesystem_changes: required
+  network_activity: required
+  indicators: required
+  detections: required
+  attack_mapping: optional
+  confidence: required
+  evidence_references: required
+  verification_status: required
+  limitations: required
+  remediation: optional
+finding_card:
+  required_fields: [id, severity, title, what_happened, why_it_matters, evidence, confidence, verification]
+outputs:
+  - reports/findings.md
+  - reports/findings.json
+  - reports/timeline.json
+  - blackboard/findings.jsonl
+rules:
+  - every finding references preserved evidence
+  - AI-generated interpretation must be distinguishable from observed evidence
+  - important findings require independent verification
+  - intelligence enrichment cannot be the sole evidence
+  - missing evidence means INCONCLUSIVE, not confirmed
