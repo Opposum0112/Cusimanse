@@ -1,0 +1,43 @@
+version: 1
+id: security-frameworks
+kind: reference-catalog
+purpose: map research findings and controls to recognized security frameworks without treating frameworks as evidence
+frameworks:
+  mitre-attack:
+    scope: adversary tactics techniques procedures
+  mitre-atlas:
+    scope: AI and ML attack techniques
+  nist-csf-2:
+    scope: cybersecurity outcomes and governance
+  nist-sp-800-53:
+    scope: security and privacy controls
+  nist-sp-800-61:
+    scope: incident response
+  nist-sp-800-115:
+    scope: technical security testing
+  cis-controls-v8:
+    scope: prioritized safeguards
+  owasp-top-10:
+    scope: application security risks
+  owasp-asvs:
+    scope: application verification
+  owasp-llm-top-10:
+    scope: LLM application risks
+  owasp-agentic-security:
+    scope: agentic AI security risks and controls
+  sigma:
+    scope: portable detection rules
+  yara:
+    scope: malware and artifact pattern matching
+  suricata:
+    scope: network detection
+  slsa:
+    scope: software supply-chain provenance
+  sbom:
+    scope: software component inventory
+rules:
+  - frameworks provide classification and control context, not workload evidence
+  - map only behavior supported by preserved evidence
+  - cite framework version/source when used in reports
+  - framework availability does not imply tool deployment
+  - unknown framework mappings are NOT_DEPLOYED
