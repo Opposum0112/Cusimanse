@@ -1,0 +1,43 @@
+version: 1
+id: anthropic-cybersecurity-skills
+kind: upstream-skill-catalog
+source: https://github.com/mukul975/Anthropic-Cybersecurity-Skills
+source_snapshot: 2026-08-24
+source_inventory: 818
+status: review-catalog
+selection_policy: copy-after-review
+skills:
+  - analyzing-linux-elf-malware
+  - analyzing-linux-system-artifacts
+  - analyzing-linux-audit-logs-for-intrusion
+  - analyzing-command-and-control-communication
+  - analyzing-dns-logs-for-exfiltration
+  - analyzing-indicators-of-compromise
+  - analyzing-campaign-attribution-evidence
+  - analyzing-api-gateway-access-logs
+  - analyzing-kubernetes-audit-logs
+  - analyzing-docker-container-forensics
+  - analyzing-browser-forensics-with-hindsight
+  - analyzing-macro-malware-in-office-documents
+  - analyzing-malicious-pdf-with-peepdf
+  - analyzing-golang-malware-with-ghidra
+  - analyzing-bootkit-and-rootkit-samples
+  - analyzing-linux-kernel-rootkits
+  - analyzing-heap-spray-exploitation
+  - analyzing-apt-group-with-mitre-navigator
+  - analyzing-certificate-transparency-for-phishing
+  - analyzing-cloud-storage-access-patterns
+  - acquiring-disk-image-with-dd-and-dcfldd
+  - analyzing-disk-image-with-autopsy
+  - analyzing-active-directory-acl-abuse
+  - analyzing-android-malware-with-apktool
+  - analyzing-email-headers-for-phishing-investigation
+rules:
+  - upstream skills are not copied wholesale without review
+  - inspect SKILL.md, scripts and resources before activation
+  - preserve Cusimanse VM/OS/network/approval boundaries
+  - skills cannot grant privileges or become security boundaries
+  - public enrichment must not receive private workload data
+  - credential-access, persistence, exploitation and destructive skills require explicit authorization and review
+  - unsupported dependencies are NOT_DEPLOYED
+  - record upstream path and source revision in audit metadata
