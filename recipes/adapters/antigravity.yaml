@@ -2,18 +2,26 @@ version: 1
 id: antigravity
 kind: agent-adapter
 status: candidate
-command: antigravity
+identity:
+  name: Antigravity
+  role: operator-orchestrator
 contract: recipes/agents/primary-agent.yaml
-config:
-  project_recipe: recipes/routing/project.yaml
-  execution: approved-actions-only
-  approvals: required-for-privileged-actions
-  audit: required
+shell:
+  interactive: "agy"
+  oneshot: "agy -p '<PROMPT>'"
+  contract_input: recipes/agents/primary-agent.yaml
+  runbook: docs/agent-shell-runbook.md
+bootstrap:
+  command: "./scripts/prerequisites.sh"
+  selection: "CUSIMANSE_PRIMARY_ADAPTER=antigravity"
 execution:
   input: YAML project contract
   output: structured audit and evidence references
   learning: recipes/agents/learning-loop.yaml
+  lifecycle_owner: primary-agent-shell
+  orchestration_owner: primary-agent-shell
 constraints:
   - provider availability must be verified during preflight
   - never bypass policy or VM controls
   - never claim PASS without evidence
+  - host scripts bootstrap and validate; they do not replace the agent shell
