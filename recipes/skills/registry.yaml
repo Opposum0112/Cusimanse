@@ -1,10 +1,20 @@
-version: 4
+version: 5
 id: skill-registry
 kind: skill-registry
 owner: project
 source: .agents/skills/
+standards:
+  - name: agent-skills-open-format
+    source: https://agentskills.io/specification
+    purpose: portable SKILL.md structure, metadata and progressive disclosure
+    status: reference
+  - name: github-agent-skills
+    source: https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/add-skills
+    purpose: project skill discovery, preview and provenance guidance
+    status: reference
 external_sources:
   - recipes/reference/security-skill-sources.yaml
+  - recipes/reference/skill-registry-sources.yaml
 external_candidates:
   openai-security-best-practices:
     source: openai-skills
@@ -24,6 +34,26 @@ external_candidates:
   anthropic-security-review-community:
     source: anthropic-skills
     purpose: community security-review skill candidates
+    status: candidate-review-required
+  sentenz-skills:
+    source: https://github.com/sentenz/skills
+    purpose: modular agent skill registry and SKILL.md conventions
+    status: candidate-review-required
+  pnewsam-skills:
+    source: https://github.com/pnewsam/skills
+    purpose: registry and on-demand skill installation patterns
+    status: candidate-review-required
+  superagent-security-skills:
+    source: https://github.com/superagent-ai/skills
+    purpose: skill security auditing patterns
+    status: candidate-review-required
+  hashicorp-agent-skills:
+    source: https://github.com/hashicorp/agent-skills
+    purpose: governed skill catalog and lifecycle metadata
+    status: candidate-review-required
+  agent-mag-skills:
+    source: https://github.com/Agent-mag/skills
+    purpose: agent skill registry patterns
     status: candidate-review-required
 skills:
   evidence-reduction:
@@ -98,6 +128,22 @@ skills:
     path: .agents/skills/independent-verification.md
     purpose: independent challenge and verification of findings
     trust: repository-reviewed
+  agent-skills-authoring:
+    path: .agents/skills/agent-skills-authoring/SKILL.md
+    purpose: create and review portable Agent Skills using SKILL.md metadata and progressive disclosure
+    trust: repository-reviewed
+  skill-supply-chain-audit:
+    path: .agents/skills/skill-supply-chain-audit/SKILL.md
+    purpose: inspect provenance, permissions, scripts and behavior before importing external skills
+    trust: repository-reviewed
+  token-optimization:
+    path: .agents/skills/token-optimization/SKILL.md
+    purpose: reduce unnecessary agent context, tool calls and generated work without weakening security controls
+    trust: repository-reviewed
+  ponytail:
+    path: .agents/skills/ponytail/SKILL.md
+    purpose: minimal implementation and anti-overengineering guidance
+    trust: externally-reviewed-reference
 rules:
   - skills are instructions, not security boundaries
   - skills cannot grant privileges
@@ -108,3 +154,5 @@ rules:
   - candidate skills remain NOT_DEPLOYED until reviewed and copied into the repository
   - unknown skills are NOT_DEPLOYED
   - missing skill capability is NOT_DEPLOYED
+  - SKILL.md files must follow the Agent Skills open format and use precise trigger descriptions
+  - external skills are never auto-executed merely because they are indexed
