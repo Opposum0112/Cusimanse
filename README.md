@@ -66,6 +66,7 @@ Key invariants:
 - Important findings require independent verification.
 - Missing integrations are reported as `NOT_DEPLOYED`, never silently substituted.
 - AI assertions are never treated as evidence.
+- Public reference services receive only approved non-sensitive enrichment queries.
 
 See [`04-security-model.md`](04-security-model.md) and [`SECURITY.md`](SECURITY.md).
 
@@ -135,9 +136,78 @@ Recipes are intentionally small and composable. Do not turn the project recipe i
 | Reporting | `recipes/reporting/` |
 | MCP | `recipes/mcp/` |
 | Skills | `recipes/skills/` |
+| Reference databases | `recipes/reference/` |
 | Audit | `recipes/audit/` |
 
 `recipes/goose/project.yaml` is the reference Goose adapter composition. Other adapters must consume the same project contracts.
+
+## Security research skills
+
+Cusimanse now provides a registry-driven security research skill layer. The registry covers:
+
+- **Planning & triage:** experiment planning and workload triage
+- **Static research:** static analysis, dependency/supply-chain analysis and reverse engineering
+- **Runtime research:** dynamic analysis, malware analysis and network analysis
+- **Threat research:** threat intelligence, vulnerability research and ATT&CK mapping
+- **Detection:** YARA/Sigma-oriented detection engineering
+- **Forensics:** IOC extraction, forensic preservation and evidence reduction
+- **Verification:** independent verification and reproducible research reporting
+- **Governance:** project audit and capability selection
+
+The canonical catalog is [`recipes/skills/registry.yaml`](recipes/skills/registry.yaml), with detailed instructions under [`.agents/skills/`](.agents/skills/). Skills are **instructions, not privileges**. They cannot grant host access, credentials, VM control or network reachability.
+
+### Skill selection model
+
+```text
+Experiment contract
+       ↓
+select reviewed skills
+       ↓
+select declared tools
+       ↓
+select approved MCP integrations
+       ↓
+policy + approval
+       ↓
+VM execution / evidence collection
+       ↓
+verification + report
+```
+
+Unknown or unavailable skills are `NOT_DEPLOYED`. Material skill selection and execution is audited.
+
+## MCP integrations
+
+MCP is the capability integration layer, not the security boundary. The registry includes controlled interfaces for repository inspection, evidence queries, disposable VM lifecycle, policy checks, telemetry and read-only security research references.
+
+Current reference integrations include:
+
+| Integration | Research use | Default access |
+|---|---|---|
+| Repository/evidence | inspect project and preserved evidence | read-only |
+| VM control | disposable Lima lifecycle | approval-required |
+| Policy | host/security policy decisions | policyctl-only |
+| MITRE ATT&CK | behavior/technique reference | read-only |
+| NVD / CVE | vulnerability research | read-only |
+| CISA KEV | exploited-vulnerability prioritization | read-only |
+| Sigma / YARA | detection research | read-only/local |
+| URLhaus / MalwareBazaar | malicious URL/hash enrichment | optional read-only |
+| AbuseIPDB / OTX | IOC enrichment | optional read-only |
+| OpenTelemetry | telemetry ingestion/correlation | controlled |
+
+See [`recipes/mcp/registry.yaml`](recipes/mcp/registry.yaml). Public MCP exposure is denied by default, privileged/write/VM operations require approval, and secrets are never passed through MCP arguments.
+
+## Security research reference database
+
+The curated reference catalog is [`recipes/reference/security-research-databases.yaml`](recipes/reference/security-research-databases.yaml). It includes authoritative and community sources such as MITRE ATT&CK, CISA KEV, NVD/CVE, CISA advisories, OWASP, Sigma, YARA, Suricata, URLhaus, MalwareBazaar, AbuseIPDB and AlienVault OTX.
+
+Reference databases provide **enrichment, not workload evidence**. Every external result should retain source, retrieval time and confidence. Important findings must be independently verified. Public services must never receive secrets, credentials or sensitive private workload data.
+
+## Security research tools
+
+The tool catalog in [`recipes/tools/security-research.yaml`](recipes/tools/security-research.yaml) separates host, VM and analysis capabilities. Typical research tooling includes `jq`, `yq`, `rg`, `file`, `strings`, `readelf`, `objdump`, `nm`, `strace`, `lsof`, `ss`, `dig`, `tcpdump`, `bpftrace`, YARA and Sigma tooling where installed.
+
+Tool availability is not proof of deployment. Missing tools are `NOT_DEPLOYED`; runtime use must be evidenced.
 
 ## Agent adapters
 
@@ -256,6 +326,9 @@ AI-generated plans, commands, code and findings can be wrong, incomplete, stale 
 - `CONTRIBUTING.md` — contribution workflow
 - `SECURITY.md` — security reporting and boundaries
 - `RELEASE.md` — release process
+- `recipes/skills/registry.yaml` — skill registry
+- `recipes/mcp/registry.yaml` — MCP registry
+- `recipes/reference/security-research-databases.yaml` — security research references
 
 ## License
 
