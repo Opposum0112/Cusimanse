@@ -1,12 +1,19 @@
-version: 1
+version: 2
 id: security-research-tools
 kind: tools
 host:
   required: [git, bash, limactl, qemu-system-x86_64]
-  optional: [jq, yq, rg, tcpdump, strace, lsof, numbat]
+  optional: [jq, yq, rg, tcpdump, strace, lsof, numbat, yara, sigmac]
 vm:
   required: [ps, pgrep, lsof, ss, ip, dig, getent, find, stat, sha256sum]
-  optional: [strace, tcpdump, bpftrace]
+  optional: [strace, tcpdump, bpftrace, file, strings, readelf, objdump, nm]
+analysis:
+  static: [file, sha256sum, strings, readelf, objdump, nm, yara]
+  dynamic: [strace, lsof, ss, tcpdump, bpftrace]
+  network: [tcpdump, ss, dig]
+  detection: [yara, sigma]
+  transformation: [jq, yq, rg]
+  evidence: [sha256sum, jq]
 agent:
   interface: adapter
   tool_calls: observable
@@ -14,3 +21,5 @@ rules:
   unknown_tools: NOT_DEPLOYED
   unknown_installers: deny
   host_credentials: deny
+  destructive_tools: approval-required
+  evidence_before_destroy: required
