@@ -1,4 +1,4 @@
-version: 2
+version: 3
 id: skill-registry-sources
 kind: reference-catalog
 sources:
@@ -22,8 +22,10 @@ sources:
     url: https://github.com/mukul975/Anthropic-Cybersecurity-Skills
     purpose: large cybersecurity skill corpus covering malware analysis, DFIR, detection, threat intelligence, cloud, identity and application security
     trust: upstream-review-required
+    license: Apache-2.0
     inventory: 818 skills at reviewed source snapshot
     snapshot: 2026-08-24
+    curated_import: .agents/skills/anthropic-cybersecurity-pack.md
   sentenz-skills:
     url: https://github.com/sentenz/skills
     purpose: community skill registry patterns
