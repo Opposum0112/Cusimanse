@@ -22,6 +22,10 @@ primary_candidates:
     status: candidate
     install: pi
     config_recipe: recipes/adapters/pi.yaml
+  hermes:
+    status: candidate
+    install: manual-or-provider-specific
+    config_recipe: recipes/adapters/hermes.yaml
   codex:
     status: candidate
     install: codex
@@ -34,11 +38,11 @@ enterprise_adapters:
   claude-code:
     status: enterprise-candidate
     install: claude
-    config_recipe: recipes/adapters/enterprise-claude-code.yaml
+    config_recipe: recipes/adapters/claude-code.yaml
   devin:
     status: enterprise-candidate
     install: provider-managed
-    config_recipe: recipes/adapters/enterprise-devin.yaml
+    config_recipe: recipes/adapters/devin.yaml
 selection:
   exactly_one_primary: true
   interactive: true
