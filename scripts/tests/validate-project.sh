@@ -25,12 +25,16 @@ test -f policies/host-policy.yaml
 test -f cmd/policyctl/main.go
 test -f cmd/policyctl/main_test.go
 test -f recipes/goose/project.yaml
+test -f recipes/orchestration/crewai.yaml
+test -f crewai/README.md
 test -f antigravity/README.md
 test -f grok/README.md
 
 grep -q 'owner: project' recipes/mcp/registry.yaml
 grep -q 'owner: project' recipes/skills/registry.yaml
 grep -q 'interface: adapter' recipes/tools/security-research.yaml
+grep -q 'framework: crewai' recipes/orchestration/crewai.yaml
+grep -q 'primary_operator: goose' recipes/agents/roles.yaml
 
 echo '== Go validation =='
 test -z "$(gofmt -l .)"
@@ -42,6 +46,7 @@ echo '== Policy validation =='
 ./policyctl validate
 ./policyctl check --action credentials --audit-file /tmp/cusimanse-policy-audit.jsonl >/tmp/cusimanse-policy-check.json
 ./policyctl check --action host-root --audit-file /tmp/cusimanse-policy-audit.jsonl >/dev/null
+./policyctl check --action crew-orchestration --audit-file /tmp/cusimanse-policy-audit.jsonl >/dev/null
 
 echo '== Optional Python tests =='
 python_tests=()
