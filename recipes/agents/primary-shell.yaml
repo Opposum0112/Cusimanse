@@ -1,4 +1,4 @@
-version: 1
+version: 2
 id: primary-shell
 kind: agent-shell-contract
 purpose: >-
@@ -41,34 +41,37 @@ shell_rules:
 adapter_cli:
   goose:
     interactive: "goose"
-    oneshot: "goose run --text '<PROMPT>'"
+    run: "goose run --recipe recipes/goose/project.yaml --params experiment=go-install-001 --params section=project"
   opencode:
     interactive: "opencode"
-    oneshot: "opencode run '<PROMPT>'"
+    run: "opencode run '<PROMPT>'"
   grok-build:
     interactive: "grok"
-    oneshot: "grok -p '<PROMPT>'"
+    run: "grok -p '<PROMPT>'"
   antigravity:
     interactive: "agy"
-    oneshot: "agy -p '<PROMPT>'"
+    run: "agy -p '<PROMPT>'"
+    note: "Verify the installed Antigravity CLI help on the target host before runtime acceptance."
   pi:
     interactive: "pi"
-    oneshot: "pi -p '<PROMPT>'"
+    run: "pi -p '<PROMPT>'"
   hermes:
     interactive: "hermes"
-    oneshot: "hermes -z '<PROMPT>'"
+    run: "hermes"
+    note: "Hermes is TUI-first; send the Cusimanse run prompt in the interactive shell."
   codex:
     interactive: "codex"
-    oneshot: "codex '<PROMPT>'"
+    run: "codex"
+    note: "Verify the installed Codex CLI help for the current non-interactive invocation."
   prime-intellect:
     interactive: "prime-agent"
-    oneshot: "prime-agent -p '<PROMPT>'"
+    run: "prime-agent -p '<PROMPT>'"
   claude-code:
     interactive: "claude"
-    oneshot: "claude '<PROMPT>'"
+    run: "claude '<PROMPT>'"
   devin:
     interactive: provider-managed
-    oneshot: provider-managed
+    run: provider-managed
 
 runtime_test:
   prompt_file: docs/agent-shell-runbook.md
@@ -79,3 +82,4 @@ runtime_test:
     - finding report
     - verification result
     - preservation manifest
+  acceptance_rule: "CLI availability is not runtime PASS; complete a disposable-VM test and preserve evidence."
