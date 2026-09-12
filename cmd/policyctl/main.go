@@ -22,6 +22,7 @@ type Policy struct {
 	Network        map[string]string `yaml:"network"`
 	Git            map[string]string `yaml:"git"`
 	Evidence       map[string]string `yaml:"evidence"`
+	Orchestration  map[string]string `yaml:"orchestration"`
 }
 
 type Decision struct {
@@ -51,15 +52,16 @@ func loadPolicy(path string) (Policy, error) {
 
 func decisionFor(action string, p Policy) (string, error) {
 	m := map[string]string{
-		"credentials": "host.credentials",
-		"mounts":      "host.unrestricted_mounts",
-		"host-mounts": "host.unrestricted_mounts",
-		"host-root":   "privileged.host_filesystem",
-		"sudo":        "privileged.sudo",
-		"vm":          "virtualization.disposable_vm",
-		"network":     "network.localhost_services",
-		"git-write":   "git.write",
-		"push":        "git.write",
+		"credentials":        "host.credentials",
+		"mounts":             "host.unrestricted_mounts",
+		"host-mounts":        "host.unrestricted_mounts",
+		"host-root":          "privileged.host_filesystem",
+		"sudo":               "privileged.sudo",
+		"vm":                 "virtualization.disposable_vm",
+		"network":            "network.localhost_services",
+		"git-write":          "git.write",
+		"push":               "git.write",
+		"crew-orchestration": "orchestration.crewai",
 	}
 	key, ok := m[strings.ToLower(strings.TrimSpace(action))]
 	if !ok {
@@ -78,6 +80,8 @@ func decisionFor(action string, p Policy) (string, error) {
 		v = p.Network[parts[1]]
 	case "git":
 		v = p.Git[parts[1]]
+	case "orchestration":
+		v = p.Orchestration[parts[1]]
 	}
 	if v == "" {
 		return "", fmt.Errorf("no policy value for %q", action)
@@ -132,7 +136,7 @@ func validate(args []string) {
 func check(args []string) {
 	fs := flag.NewFlagSet("check", flag.ExitOnError)
 	f := fs.String("file", defaultPolicy, "policy YAML file")
-	a := fs.String("action", "", "host/security action")
+	a := fs.String("action", "", "host/security/orchestration action")
 	audit := fs.String("audit-file", defaultAudit, "append-only policy decision JSONL")
 	jsonOut := fs.Bool("json", true, "emit JSON")
 	fs.Parse(args)
@@ -178,7 +182,7 @@ func appendAudit(path string, d Decision) error {
 	return e
 }
 
-const dashboardHTML = `<!doctype html><html><body><h1>AI Security Lab — Token Usage</h1><button onclick="load()">Refresh</button><pre id="raw">Loading…</pre><script>async function load(){const r=await fetch('/api/usage');document.getElementById('raw').textContent=JSON.stringify(await r.json(),null,2)}load()</script></body></html>`
+const dashboardHTML = `<!doctype html><html><body><h1>Cusimanse — Token Usage</h1><button onclick="load()">Refresh</button><pre id="raw">Loading…</pre><script>async function load(){const r=await fetch('/api/usage');document.getElementById('raw').textContent=JSON.stringify(await r.json(),null,2)}load()</script></body></html>`
 
 func tokenDashboard(args []string) {
 	fs := flag.NewFlagSet("token-dashboard", flag.ExitOnError)
@@ -212,5 +216,5 @@ func tokenDashboard(args []string) {
 }
 
 func usage() {
-	fmt.Println("policyctl — host/security policy interface\nUsage: policyctl <show|validate|check|token-dashboard>\n  check --action <credentials|mounts|host-root|vm|network|git-write|sudo>")
+	fmt.Println("policyctl — host/security policy interface\nUsage: policyctl <show|validate|check|token-dashboard>\n  check --action <credentials|mounts|host-root|vm|network|git-write|sudo|crew-orchestration>")
 }
