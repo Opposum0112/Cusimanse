@@ -1,88 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="820" viewBox="0 0 1400 820" role="img" aria-labelledby="title desc">
-  <title id="title">Cusimanse deployment architecture</title>
-  <desc id="desc">Deployment architecture showing human or CI intent, shared contracts, agent adapters, policy and registries, disposable Lima QEMU virtual machines, workload instrumentation, observability, evidence preservation and reporting.</desc>
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#07111f"/><stop offset="1" stop-color="#122b52"/></linearGradient>
-    <linearGradient id="vm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#102a4f"/><stop offset="1" stop-color="#173b68"/></linearGradient>
-    <filter id="shadow"><feGaussianBlur stdDeviation="5"/></filter>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L10,3 L0,6 Z" fill="#60a5fa"/></marker>
-    <style>
-      .h{font:700 26px Arial, sans-serif;fill:#f8fafc}.t{font:600 19px Arial, sans-serif;fill:#e2e8f0}.s{font:16px Arial, sans-serif;fill:#94a3b8}.a{fill:#0b1830;stroke:#38bdf8;stroke-width:2}.b{fill:#111f38;stroke:#60a5fa;stroke-width:2}.v{fill:url(#vm);stroke:#38bdf8;stroke-width:3}.e{fill:#0b1628;stroke:#8b5cf6;stroke-width:2}.line{fill:none;stroke:#60a5fa;stroke-width:3;marker-end:url(#arrow)}.dash{fill:none;stroke:#94a3b8;stroke-width:2;stroke-dasharray:8 7;marker-end:url(#arrow)}
-    </style>
-  </defs>
-  <rect width="1400" height="820" rx="28" fill="url(#bg)"/>
-  <text x="70" y="65" class="h" font-size="34">Cusimanse Deployment Architecture</text>
-  <text x="70" y="96" class="s">Agent-neutral orchestration • disposable VM isolation • observable execution • preserved evidence</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="900" viewBox="0 0 1500 900" role="img" aria-labelledby="title desc">
+<title id="title">Cusimanse primary agent shell deployment architecture</title>
+<desc id="desc">The selected primary agent shell owns the complete operator, execution and orchestration lifecycle while Lima QEMU VM and OS controls provide the security boundary.</desc>
+<defs>
+<style>.h{font:700 25px Arial,sans-serif;fill:#f8fafc}.t{font:600 18px Arial,sans-serif;fill:#e2e8f0}.s{font:16px Arial,sans-serif;fill:#94a3b8}.a{fill:#0b1830;stroke:#38bdf8;stroke-width:2}.b{fill:#111f38;stroke:#60a5fa;stroke-width:2}.v{fill:#102a4f;stroke:#38bdf8;stroke-width:3}.e{fill:#0b1628;stroke:#8b5cf6;stroke-width:2}.p{fill:#172554;stroke:#f59e0b;stroke-width:3}.line{fill:none;stroke:#60a5fa;stroke-width:3;marker-end:url(#arrow)}.dash{fill:none;stroke:#94a3b8;stroke-width:2;stroke-dasharray:8 7;marker-end:url(#arrow)}</style>
+<marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L10,3 L0,6 Z" fill="#60a5fa"/></marker>
+</defs>
+<rect width="1500" height="900" rx="28" fill="#07111f"/>
+<text x="70" y="60" class="h" font-size="34">Cusimanse Deployment Architecture</text>
+<text x="70" y="90" class="s">Terminal-first • primary-agent-shell driven • disposable VM security boundary • evidence-led research</text>
 
-  <rect x="70" y="135" width="260" height="105" rx="16" class="a"/>
-  <text x="200" y="175" text-anchor="middle" class="h">Human / CI</text>
-  <text x="200" y="204" text-anchor="middle" class="s">intent • scope • authorization</text>
-  <text x="200" y="226" text-anchor="middle" class="s">experiment request</text>
+<rect x="70" y="125" width="260" height="100" rx="16" class="a"/><text x="200" y="165" text-anchor="middle" class="h">Human / CI</text><text x="200" y="194" text-anchor="middle" class="s">intent • scope • authorization</text><text x="200" y="216" text-anchor="middle" class="s">experiment request</text>
+<rect x="390" y="125" width="300" height="100" rx="16" class="b"/><text x="540" y="165" text-anchor="middle" class="h">Research Contract</text><text x="540" y="194" text-anchor="middle" class="s">Markdown + YAML</text><text x="540" y="216" text-anchor="middle" class="s">what + evidence + acceptance</text>
+<rect x="750" y="110" width="390" height="130" rx="16" class="p"/><text x="945" y="150" text-anchor="middle" class="h">SELECTED PRIMARY AGENT SHELL</text><text x="945" y="180" text-anchor="middle" class="t">Goose | OpenCode | Grok | Antigravity</text><text x="945" y="205" text-anchor="middle" class="t">Pi | Hermes | Codex | Prime Agent</text><text x="945" y="228" text-anchor="middle" class="s">operator • execution • orchestration • lifecycle</text>
+<rect x="1190" y="125" width="240" height="100" rx="16" class="e"/><text x="1310" y="165" text-anchor="middle" class="h">Policy + Registries</text><text x="1310" y="194" text-anchor="middle" class="s">policyctl • MCP • skills</text><text x="1310" y="216" text-anchor="middle" class="s">audit configuration</text>
+<path d="M330 175 H390" class="line"/><path d="M690 175 H750" class="line"/><path d="M1140 175 H1190" class="dash"/>
 
-  <rect x="390" y="135" width="300" height="105" rx="16" class="b"/>
-  <text x="540" y="175" text-anchor="middle" class="h">Shared Research Contract</text>
-  <text x="540" y="204" text-anchor="middle" class="s">Markdown • YAML • acceptance states</text>
-  <text x="540" y="226" text-anchor="middle" class="s">what must happen + evidence required</text>
+<rect x="70" y="280" width="1360" height="300" rx="24" class="v"/>
+<text x="105" y="320" class="h">Complete Agent-Shell Operator / Execution / Orchestration Cycle</text>
+<text x="105" y="347" class="s">The selected shell remains the operator; host scripts only bootstrap, validate and preflight.</text>
+<rect x="105" y="380" width="245" height="145" rx="14" class="a"/><text x="227" y="420" text-anchor="middle" class="h">Discover / Validate</text><text x="227" y="450" text-anchor="middle" class="s">load contracts</text><text x="227" y="474" text-anchor="middle" class="s">load recipe graph</text><text x="227" y="498" text-anchor="middle" class="s">preflight</text>
+<rect x="390" y="380" width="245" height="145" rx="14" class="a"/><text x="512" y="420" text-anchor="middle" class="h">Plan / Review</text><text x="512" y="450" text-anchor="middle" class="s">plan actions</text><text x="512" y="474" text-anchor="middle" class="s">request approval</text><text x="512" y="498" text-anchor="middle" class="s">record audit</text>
+<rect x="675" y="380" width="245" height="145" rx="14" class="a"/><text x="797" y="420" text-anchor="middle" class="h">Provision / Execute</text><text x="797" y="450" text-anchor="middle" class="s">VM + instrumentation</text><text x="797" y="474" text-anchor="middle" class="s">approved workload</text><text x="797" y="498" text-anchor="middle" class="s">observe runtime</text>
+<rect x="960" y="380" width="245" height="145" rx="14" class="a"/><text x="1082" y="420" text-anchor="middle" class="h">Collect / Verify</text><text x="1082" y="450" text-anchor="middle" class="s">raw evidence</text><text x="1082" y="474" text-anchor="middle" class="s">forensics</text><text x="1082" y="498" text-anchor="middle" class="s">independent verify</text>
+<rect x="1245" y="380" width="145" height="145" rx="14" class="a"/><text x="1317" y="420" text-anchor="middle" class="h">Report</text><text x="1317" y="450" text-anchor="middle" class="s">preserve</text><text x="1317" y="474" text-anchor="middle" class="s">destroy</text>
+<path d="M350 452 H390" class="line"/><path d="M635 452 H675" class="line"/><path d="M920 452 H960" class="line"/><path d="M1205 452 H1245" class="line"/>
 
-  <rect x="750" y="125" width="300" height="125" rx="16" class="b"/>
-  <text x="900" y="163" text-anchor="middle" class="h">Agent Adapter Layer</text>
-  <text x="900" y="191" text-anchor="middle" class="t">Goose • OpenCode</text>
-  <text x="900" y="216" text-anchor="middle" class="t">Grok Build • Antigravity</text>
-  <text x="900" y="238" text-anchor="middle" class="s">provider-specific operation, shared semantics</text>
-
-  <rect x="1110" y="125" width="220" height="125" rx="16" class="e"/>
-  <text x="1220" y="163" text-anchor="middle" class="h">Policy + Registries</text>
-  <text x="1220" y="191" text-anchor="middle" class="s">policyctl</text>
-  <text x="1220" y="214" text-anchor="middle" class="s">MCP registry</text>
-  <text x="1220" y="237" text-anchor="middle" class="s">skills • audit</text>
-
-  <path d="M330 188 H390" class="line"/>
-  <path d="M690 188 H750" class="line"/>
-  <path d="M1050 188 H1110" class="dash"/>
-
-  <rect x="210" y="305" width="980" height="300" rx="24" class="v"/>
-  <text x="245" y="345" class="h">Disposable Lima / QEMU Security Boundary</text>
-  <text x="245" y="371" class="s">VM/OS controls enforce isolation; agents and policy output are not security boundaries.</text>
-
-  <rect x="250" y="405" width="220" height="145" rx="14" class="a"/>
-  <text x="360" y="442" text-anchor="middle" class="h">Workload</text>
-  <text x="360" y="470" text-anchor="middle" class="s">target software</text>
-  <text x="360" y="493" text-anchor="middle" class="s">install / execute</text>
-  <text x="360" y="516" text-anchor="middle" class="s">controlled network</text>
-
-  <rect x="520" y="405" width="220" height="145" rx="14" class="a"/>
-  <text x="630" y="442" text-anchor="middle" class="h">Instrumentation</text>
-  <text x="630" y="470" text-anchor="middle" class="s">process / syscall</text>
-  <text x="630" y="493" text-anchor="middle" class="s">network / filesystem</text>
-  <text x="630" y="516" text-anchor="middle" class="s">runtime telemetry</text>
-
-  <rect x="790" y="405" width="220" height="145" rx="14" class="a"/>
-  <text x="900" y="442" text-anchor="middle" class="h">Agent Loop</text>
-  <text x="900" y="470" text-anchor="middle" class="s">plan → review → approve</text>
-  <text x="900" y="493" text-anchor="middle" class="s">observe → analyze</text>
-  <text x="900" y="516" text-anchor="middle" class="s">no privilege bypass</text>
-
-  <path d="M470 478 H520" class="line"/>
-  <path d="M740 478 H790" class="line"/>
-  <path d="M1110 250 V300 H1080" class="dash"/>
-  <path d="M900 250 V300" class="line"/>
-
-  <rect x="70" y="650" width="350" height="105" rx="16" class="e"/>
-  <text x="245" y="687" text-anchor="middle" class="h">Evidence + Verification</text>
-  <text x="245" y="715" text-anchor="middle" class="s">blackboard • raw evidence • telemetry</text>
-  <text x="245" y="738" text-anchor="middle" class="s">reduction • forensics • independent verification</text>
-
-  <rect x="525" y="650" width="350" height="105" rx="16" class="e"/>
-  <text x="700" y="687" text-anchor="middle" class="h">Preservation</text>
-  <text x="700" y="715" text-anchor="middle" class="s">hash + manifest + report</text>
-  <text x="700" y="738" text-anchor="middle" class="s">preserve before VM destruction</text>
-
-  <rect x="980" y="650" width="350" height="105" rx="16" class="e"/>
-  <text x="1155" y="687" text-anchor="middle" class="h">Destroy / Reset</text>
-  <text x="1155" y="715" text-anchor="middle" class="s">disposable VM lifecycle</text>
-  <text x="1155" y="738" text-anchor="middle" class="s">important findings must be reproducible</text>
-
-  <path d="M360 550 V625 H245 V650" class="line"/>
-  <path d="M630 550 V650" class="line"/>
-  <path d="M900 550 V625 H1155 V650" class="line"/>
+<rect x="70" y="625" width="430" height="150" rx="16" class="e"/><text x="285" y="665" text-anchor="middle" class="h">Evidence + Verification</text><text x="285" y="695" text-anchor="middle" class="s">telemetry • blackboard • raw artifacts</text><text x="285" y="720" text-anchor="middle" class="s">reduction • forensics • independent verification</text><text x="285" y="748" text-anchor="middle" class="s">model output is never evidence</text>
+<rect x="535" y="625" width="430" height="150" rx="16" class="e"/><text x="750" y="665" text-anchor="middle" class="h">Preservation</text><text x="750" y="695" text-anchor="middle" class="s">hash • manifest • report</text><text x="750" y="720" text-anchor="middle" class="s">preserve before VM destruction</text><text x="750" y="748" text-anchor="middle" class="s">replayable run inputs</text>
+<rect x="1000" y="625" width="430" height="150" rx="16" class="v"/><text x="1215" y="665" text-anchor="middle" class="h">SECURITY BOUNDARY</text><text x="1215" y="695" text-anchor="middle" class="t">Disposable Lima / QEMU VM + OS</text><text x="1215" y="720" text-anchor="middle" class="s">filesystem/mount controls</text><text x="1215" y="744" text-anchor="middle" class="s">credentials • network • privileges</text>
+<path d="M285 525 V610" class="line"/><path d="M797 525 V610 H750 V625" class="line"/><path d="M1082 525 V610 H1215 V625" class="line"/>
+<text x="70" y="840" class="s">Design rule: Markdown specifies • YAML configures • primary agent shell operates/orchestrates • adapters translate • policy constrains • audit records • evidence proves • VM/OS controls contain.</text>
 </svg>
