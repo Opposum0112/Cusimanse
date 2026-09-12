@@ -1,0 +1,66 @@
+version: 1
+id: integration-defaults
+kind: integration-contract
+purpose: single source of truth for interactive bootstrap, adapters, observability, instrumentation and governance
+components:
+  agent_adapters:
+    goose:
+      enabled: true
+      mode: headless-compatible
+      command: goose
+    opencode:
+      enabled: true
+      mode: adapter
+    grok-build:
+      enabled: true
+      mode: adapter
+    antigravity:
+      enabled: true
+      mode: adapter
+  observability:
+    numbat:
+      enabled: true
+      mode: agent-observability
+    opentelemetry:
+      enabled: true
+      mode: telemetry
+    prometheus:
+      enabled: true
+      mode: metrics
+    agent-monitoring:
+      enabled: true
+  model_gateway:
+    enabled: true
+    mode: local-gateway
+    provider_selection: interactive
+  ai_governance:
+    enabled: true
+    approval: required-for-policy-or-write
+    audit: required
+  skills:
+    enabled: true
+    source: recipes/skills/registry.yaml
+    selection: interactive
+  mcp:
+    enabled: true
+    source: recipes/mcp/registry.yaml
+    selection: interactive
+  policy:
+    enabled: true
+    command: policyctl
+    mandatory_preflight: true
+  audit:
+    enabled: true
+    capture: lifecycle-and-agent-actions
+  token_dashboard:
+    enabled: true
+    granularity: session
+installation:
+  optional_components: interactive-default
+  selected_components: persisted-to-generated-recipe
+  failed_component: NOT_DEPLOYED
+recipe_generation:
+  source: recipes/security/integration-defaults.yaml
+  output: .cusimanse/generated/config.yaml
+  preserve_user_choices: true
+  idempotent: true
