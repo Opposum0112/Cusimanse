@@ -14,7 +14,7 @@ Cusimanse is named after the hyper-curious mongoose that obsessively flips over 
 
 Cusimanse is a **research and experimentation platform**, not a production malware sandbox. It combines disposable Lima/QEMU virtual machines with agent adapters, composable recipes, instrumentation, policy checks, evidence handling and optional observability integrations. The design keeps experiment semantics independent from the agent used to operate them.
 
-**Status:** `v1.0.0-beta.1` — early beta for controlled security research and engineering experimentation. APIs, recipes and integrations may change between beta releases.
+**Status:** `v1.0.0-beta.1` — early beta for controlled security research and engineering experimentation. APIs, recipes and integrations may change between beta releases. Green CI means lint and `policyctl` unit tests passed, not that a VM experiment was exercised.
 
 ## What Cusimanse does
 
@@ -71,28 +71,31 @@ See [`04-security-model.md`](04-security-model.md) and [`SECURITY.md`](SECURITY.
 
 ## Quick start
 
-### 1. Install prerequisites
+One host path. Do not mix document chapter numbers into Goose `section` parameters.
+
+### 1. Install host tools and build `policyctl`
 
 ```bash
-./scripts/prerequisites.sh
+./scripts/install.sh
 ```
 
-### 2. Load the environment
+This runs `scripts/prerequisites.sh`, loads project paths, builds `./policyctl`, and runs `policyctl validate`. It does **not** start Goose or a VM.
+
+Configure the Goose model/provider and any API key in your user environment. **Never place API keys, cloud credentials or secrets in the repository.**
+
+### 2. Load the environment (each new shell)
 
 ```bash
 source ./scripts/goose-env.sh
 ```
 
-This configures project paths only. **Never place API keys, cloud credentials or secrets in the repository.**
-
-### 3. Validate
+### 3. Validate (lint / policy only)
 
 ```bash
-./policyctl validate
 bash ./scripts/tests/validate-project.sh
 ```
 
-### 4. Bootstrap the project
+### 4. Bootstrap recipes
 
 ```bash
 goose run --recipe recipes/install/project-bootstrap.yaml
@@ -107,6 +110,8 @@ goose run \
   --params section=project
 ```
 
+Use `section=project` for the full lifecycle. Values such as `02`, `07`, or `08` are documentation chapter numbers, not recipe slices.
+
 The lifecycle is:
 
 ```text
@@ -114,6 +119,8 @@ Discover → Validate → Preflight → Install → Plan → Review → Approve
 → Provision → Instrument → Execute → Collect → Reduce → Forensics
 → Independent verification → Report → Preserve → Destroy
 ```
+
+See [`03-deployment-runbook.md`](03-deployment-runbook.md) for the same steps with more detail.
 
 ## Recipes and composition
 
@@ -143,11 +150,7 @@ Recipes are intentionally small and composable. Do not turn the project recipe i
 
 **Goose** — current reference operator/executor.
 
-**OpenCode** — documented adapter target using `AGENTS.md`, shared recipes, registry-approved tools and the same evidence/audit lifecycle.
-
-**Grok Build** — documented adapter target; Grok-specific wiring remains outside shared experiment semantics.
-
-**Antigravity** — documented adapter target using the canonical `.agents/` roles/skills and MCP registry.
+**OpenCode**, **Grok Build**, and **Antigravity** are documented adapter *targets*. They are `NOT_DEPLOYED` until an adapter directory documents a concrete command. Do not treat those names as installers.
 
 An adapter must not bypass policy, suppress audit, expose credentials, alter experiment semantics or claim `PASS` without evidence.
 
@@ -174,7 +177,7 @@ Optional monitoring integrations include OpenTelemetry, Phoenix, Numbat and ADR.
 
 ## `policyctl`
 
-`policyctl` is deliberately narrow: host/security policy configuration and the local token-usage dashboard. It is **not** the experiment controller, sandbox or agent harness.
+Build it with `./scripts/install.sh` or `go build -o policyctl ./cmd/policyctl`. `policyctl` is deliberately narrow: host/security policy configuration and the local token-usage dashboard. It is **not** the experiment controller, sandbox or agent harness.
 
 ```bash
 ./policyctl show
