@@ -29,17 +29,12 @@ install_linux_packages() {
     opensuse*|sles) packages+=(qemu) ;;
     *) fail "unsupported Linux distribution '$DISTRO'; install git, bash, curl, python3, ruby, Go and QEMU using its supported package manager" ;;
   esac
-
   if ! have sudo && [ "$(id -u)" -ne 0 ]; then fail "sudo is required to install missing packages"; fi
   case "$DISTRO" in
-    ubuntu|debian|linuxmint|pop)
-      if have sudo; then sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}"; else apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}"; fi ;;
-    fedora|rhel|rocky|almalinux)
-      if have sudo; then sudo dnf install -y "${packages[@]}"; else dnf install -y "${packages[@]}"; fi ;;
-    arch|manjaro)
-      if have sudo; then sudo pacman -Sy --needed --noconfirm "${packages[@]}"; else pacman -Sy --needed --noconfirm "${packages[@]}"; fi ;;
-    opensuse*|sles)
-      if have sudo; then sudo zypper --non-interactive install "${packages[@]}"; else zypper --non-interactive install "${packages[@]}"; fi ;;
+    ubuntu|debian|linuxmint|pop) if have sudo; then sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}"; else apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}"; fi ;;
+    fedora|rhel|rocky|almalinux) if have sudo; then sudo dnf install -y "${packages[@]}"; else dnf install -y "${packages[@]}"; fi ;;
+    arch|manjaro) if have sudo; then sudo pacman -Sy --needed --noconfirm "${packages[@]}"; else pacman -Sy --needed --noconfirm "${packages[@]}"; fi ;;
+    opensuse*|sles) if have sudo; then sudo zypper --non-interactive install "${packages[@]}"; else zypper --non-interactive install "${packages[@]}"; fi ;;
   esac
 }
 
@@ -55,8 +50,7 @@ else
 fi
 
 if ! have limactl; then
-  if [ "$OS" = "Darwin" ] && have brew; then
-    brew install lima
+  if [ "$OS" = "Darwin" ] && have brew; then brew install lima
   elif [ "$OS" = "Linux" ]; then
     case "$DISTRO" in
       ubuntu|debian|linuxmint|pop) if have sudo; then sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y lima; else apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y lima; fi ;;
@@ -68,26 +62,27 @@ if ! have limactl; then
   fi
 fi
 
-# Goose's documented CLI installer, used only when Goose is absent.
-if ! have goose; then
-  curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash
-fi
+if ! have goose; then curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash; fi
 
-# Optional research tools are detected, not silently installed. Set
-# CUSIMANSE_INSTALL_RESEARCH_TOOLS=1 when you explicitly want package-manager
-# installation of the supported research tool set.
+# Optional research tools: explicit opt-in installation.
 research_tools=(jq yq rg tcpdump strace lsof bpftrace file strings readelf objdump nm yara)
 if [ "${CUSIMANSE_INSTALL_RESEARCH_TOOLS:-0}" = "1" ]; then
   case "$OS:$DISTRO" in
     Darwin:*) have brew || fail "Homebrew is required to install optional research tools"; brew install jq yq ripgrep tcpdump strace lsof bpftrace yara || true ;;
-    Linux:ubuntu|Linux:debian|Linux:linuxmint|Linux:pop)
-      if have sudo; then sudo apt-get update; sudo DEBIAN_FRONTEND=noninteractive apt-get install -y jq yq ripgrep tcpdump strace lsof bpftrace yara || true; fi ;;
-    Linux:fedora|Linux:rhel|Linux:rocky|Linux:almalinux)
-      if have sudo; then sudo dnf install -y jq yq ripgrep tcpdump strace lsof bpftrace yara || true; fi ;;
-    Linux:arch|Linux:manjaro)
-      if have sudo; then sudo pacman -Sy --needed --noconfirm jq yq ripgrep tcpdump strace lsof bpftrace yara || true; fi ;;
-    *) log "Optional research-tool installation is unsupported for ${OS}/${DISTRO}; detect manually." ;;
+    Linux:ubuntu|Linux:debian|Linux:linuxmint|Linux:pop) if have sudo; then sudo apt-get update; sudo DEBIAN_FRONTEND=noninteractive apt-get install -y jq yq ripgrep tcpdump strace lsof bpftrace yara || true; fi ;;
+    Linux:fedora|Linux:rhel|Linux:rocky|Linux:almalinux) if have sudo; then sudo dnf install -y jq yq ripgrep tcpdump strace lsof bpftrace yara || true; fi ;;
+    Linux:arch|Linux:manjaro) if have sudo; then sudo pacman -Sy --needed --noconfirm jq yq ripgrep tcpdump strace lsof bpftrace yara || true; fi ;;
+    *) log "Optional research-tool installation unsupported for ${OS}/${DISTRO}" ;;
   esac
+fi
+
+# Token/context optimization helpers. Ponytail is installed only when explicitly requested.
+if [ "${CUSIMANSE_INSTALL_OPTIMIZATION_TOOLS:-0}" = "1" ]; then
+  if have npm; then
+    npm install -g ponytail 2>/dev/null || log "Ponytail package unavailable; optimization capability remains NOT_DEPLOYED"
+  else
+    log "npm unavailable; Ponytail NOT_DEPLOYED"
+  fi
 fi
 
 for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
@@ -97,16 +92,12 @@ for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
 done
 
 missing=()
-for tool in git bash python3 ruby go qemu-system-x86_64 limactl goose; do
-  have "$tool" || missing+=("$tool")
-done
-
+for tool in git bash python3 ruby go qemu-system-x86_64 limactl goose; do have "$tool" || missing+=("$tool"); done
 if [ "${#missing[@]}" -ne 0 ]; then fail "required tools still missing: ${missing[*]}"; fi
 
 log "OS PASS: ${OS} ${DISTRO} ${ARCH}"
 log "Tools PASS: git bash python3 ruby go qemu-system-x86_64 limactl goose"
-for tool in "${research_tools[@]}"; do
-  if have "$tool"; then log "Research tool AVAILABLE: $tool"; else log "Research tool NOT_DEPLOYED: $tool"; fi
-done
+for tool in "${research_tools[@]}"; do if have "$tool"; then log "Research tool AVAILABLE: $tool"; else log "Research tool NOT_DEPLOYED: $tool"; fi; done
+if have ponytail; then log "Optimization: ponytail AVAILABLE"; else log "Optimization: ponytail NOT_DEPLOYED"; fi
 log "Prerequisite PASS"
 log "Shell: source scripts/goose-env.sh before running Goose"
