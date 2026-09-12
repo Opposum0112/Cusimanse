@@ -10,6 +10,7 @@ selection:
     - grok-build
     - antigravity
     - pi
+    - hermes
     - codex
     - prime-intellect
   enterprise_options:
