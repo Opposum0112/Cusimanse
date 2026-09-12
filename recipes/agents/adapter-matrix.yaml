@@ -1,12 +1,12 @@
-version: 1
+version: 2
 id: adapter-matrix
 kind: adapter-registry
 operator_model:
   exactly_one_primary_shell: true
   shell_driven: true
-  orchestration_owner: selected-primary-agent
-  execution_owner: selected-primary-agent
-  lifecycle_owner: selected-primary-agent
+  orchestration_owner: selected-primary-agent-shell
+  execution_owner: selected-primary-agent-shell
+  lifecycle_owner: selected-primary-agent-shell
   host_scripts: bootstrap-validation-preflight-only
 primary_candidates:
   goose:
@@ -31,7 +31,7 @@ primary_candidates:
     status: candidate
     install: manual-or-provider-specific
     shell: agy
-    prompt: "agy -p '<PROMPT>'"
+    prompt: "verify native prompt mode with agy --help"
     config_recipe: recipes/adapters/antigravity.yaml
   pi:
     status: candidate
@@ -43,13 +43,13 @@ primary_candidates:
     status: candidate
     install: manual-or-provider-specific
     shell: hermes
-    prompt: "hermes -z '<PROMPT>'"
+    prompt: "TUI-first; use installed Hermes interactive prompt flow"
     config_recipe: recipes/adapters/hermes.yaml
   codex:
     status: candidate
     install: codex
     shell: codex
-    prompt: "codex '<PROMPT>'"
+    prompt: "verify native non-interactive mode with codex --help"
     config_recipe: recipes/adapters/codex.yaml
   prime-intellect:
     status: candidate
@@ -62,7 +62,7 @@ enterprise_adapters:
     status: enterprise-candidate
     install: claude
     shell: claude
-    prompt: "claude '<PROMPT>'"
+    prompt: "verify native mode with claude --help"
     config_recipe: recipes/adapters/claude-code.yaml
   devin:
     status: enterprise-candidate
