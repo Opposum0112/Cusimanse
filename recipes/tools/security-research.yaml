@@ -3,14 +3,21 @@ id: security-research-tools
 kind: tools
 host:
   required: [git, bash, limactl, qemu-system-x86_64]
-  optional: [jq, yq, rg, tcpdump, strace, lsof, numbat]
+  optional: [jq, yq, rg, tcpdump, strace, lsof, numbat, crewai]
 vm:
   required: [ps, pgrep, lsof, ss, ip, dig, getent, find, stat, sha256sum]
   optional: [strace, tcpdump, bpftrace]
 agent:
   interface: adapter
   tool_calls: observable
+orchestration:
+  crewai:
+    executable: crewai
+    interface: role-orchestration
+    optional: true
+    authority: goose
 rules:
   unknown_tools: NOT_DEPLOYED
   unknown_installers: deny
   host_credentials: deny
+  orchestration_bypass: deny
