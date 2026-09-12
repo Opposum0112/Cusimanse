@@ -1,0 +1,26 @@
+version: 1
+id: devin
+kind: enterprise-agent-adapter
+status: candidate
+command: provider-managed
+contract: recipes/agents/primary-agent.yaml
+config:
+  project_recipe: recipes/routing/project.yaml
+  identity: enterprise-managed
+  execution: approved-actions-only
+  approvals: required-for-privileged-actions
+  audit: required
+execution:
+  input: YAML project contract
+  output: structured audit and evidence references
+  learning: recipes/agents/learning-loop.yaml
+enterprise_controls:
+  - identity_and_access_control
+  - centralized_audit
+  - scoped_workspace
+  - approval_workflow
+constraints:
+  - provider availability must be verified during preflight
+  - credentials remain outside git
+  - never bypass policy or VM controls
+  - never claim PASS without preserved evidence
