@@ -32,6 +32,11 @@ stages:
   - id: cleanup
     agent: executor
     action: destroy VM after evidence preservation
+optional_role_orchestration:
+  crewai:
+    recipe: recipes/orchestration/crewai.yaml
+    entrypoint: after-plan-before-execution
+    purpose: coordinate specialist research roles without replacing Goose lifecycle authority
 policy:
   fail_closed: true
   require_explicit_apply: true
