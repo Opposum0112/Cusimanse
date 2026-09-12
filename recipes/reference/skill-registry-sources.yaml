@@ -1,0 +1,48 @@
+version: 1
+id: skill-registry-sources
+kind: reference-catalog
+sources:
+  agent-skills:
+    url: https://agentskills.io/home
+    purpose: open format and authoring guidance for portable agent skills
+    trust: specification-reference
+  github-agent-skills:
+    url: https://docs.github.com/en/copilot/concepts/agents/about-agent-skills
+    purpose: repository skill discovery and lifecycle reference
+    trust: vendor-reference
+  openai-skills:
+    url: https://github.com/openai/skills
+    purpose: curated agent skills and security-oriented examples
+    trust: upstream-review-required
+  anthropic-skills:
+    url: https://github.com/anthropics/skills
+    purpose: document and workflow skill examples
+    trust: upstream-review-required
+  sentenz-skills:
+    url: https://github.com/sentenz/skills
+    purpose: community skill registry patterns
+    trust: upstream-review-required
+  pnewsam-skills:
+    url: https://github.com/pnewsam/skills
+    purpose: community skill registry and installation patterns
+    trust: upstream-review-required
+  superagent-skills:
+    url: https://github.com/superagent-ai/skills
+    purpose: agent skill security and catalog patterns
+    trust: upstream-review-required
+  hashicorp-agent-skills:
+    url: https://github.com/hashicorp/agent-skills
+    purpose: governed agent skill examples
+    trust: upstream-review-required
+  agent-mag-skills:
+    url: https://github.com/Agent-mag/skills
+    purpose: community skill discovery
+    trust: upstream-review-required
+selection:
+  - inspect SKILL.md and all referenced scripts/resources
+  - record source commit or release where available
+  - review tools, privileges, network access, secrets and destructive behavior
+  - verify license and provenance
+  - adapt skills to Cusimanse security boundary
+  - copy approved skills into .agents/skills before deployment
+  - unknown/unavailable skills remain NOT_DEPLOYED
