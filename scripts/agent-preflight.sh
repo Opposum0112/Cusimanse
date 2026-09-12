@@ -8,20 +8,25 @@ PRIMARY=$(awk '$1 == "primary_adapter:" {print $2}' "$SELECTED_FILE")
 
 have() { command -v "$1" >/dev/null 2>&1; }
 case "$PRIMARY" in
-  goose) have goose || exit 1 ;;
-  opencode) have opencode || exit 1 ;;
-  pi) have pi || exit 1 ;;
-  hermes) have hermes || { echo 'Agent preflight: hermes NOT_DEPLOYED'; exit 0; } ;;
-  codex) have codex || exit 1 ;;
-  prime-intellect) have prime-agent || { echo 'Agent preflight: prime-intellect NOT_DEPLOYED'; exit 0; } ;;
-  grok-build|antigravity|claude-code|devin) echo "Agent preflight: $PRIMARY provider/manual configuration must be completed outside git"; exit 0 ;;
+  goose) CMD=goose; have goose || exit 1 ;;
+  opencode) CMD=opencode; have opencode || exit 1 ;;
+  pi) CMD=pi; have pi || exit 1 ;;
+  hermes) CMD=hermes; have hermes || { echo 'Agent preflight: hermes NOT_DEPLOYED'; exit 0; } ;;
+  codex) CMD=codex; have codex || exit 1 ;;
+  prime-intellect) CMD=prime-agent; have prime-agent || { echo 'Agent preflight: prime-intellect NOT_DEPLOYED'; exit 0; } ;;
+  grok-build) CMD=grok; have grok || { echo 'Agent preflight: grok-build NOT_DEPLOYED'; exit 0; } ;;
+  antigravity) CMD=agy; have agy || { echo 'Agent preflight: antigravity NOT_DEPLOYED'; exit 0; } ;;
+  claude-code) CMD=claude; have claude || { echo 'Agent preflight: claude-code NOT_DEPLOYED'; exit 0; } ;;
+  devin) CMD=provider-managed; echo 'Agent preflight: devin provider-managed'; exit 0 ;;
   *) echo "Agent preflight FAIL: unknown adapter $PRIMARY" >&2; exit 1;;
 esac
 
 test -f "$ROOT/recipes/agents/primary-agent.yaml"
+test -f "$ROOT/recipes/agents/primary-shell.yaml"
 test -f "$ROOT/recipes/agents/learning-loop.yaml"
 test -f "$ROOT/recipes/agent-selection.yaml"
-test -f "$ROOT/recipes/adapters/hermes.yaml"
+test -f "$ROOT/recipes/adapters/$PRIMARY.yaml" 2>/dev/null || [ "$PRIMARY" = devin ]
 test -f "$ROOT/policies/host-policy.yaml"
+test -f "$ROOT/docs/agent-shell-runbook.md"
 command -v limactl >/dev/null 2>&1
-echo "Agent preflight PASS: $PRIMARY binary and Cusimanse contracts are available"
+printf 'Agent preflight PASS: %s shell=%s contracts available\n' "$PRIMARY" "$CMD"
