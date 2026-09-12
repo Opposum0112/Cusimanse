@@ -73,6 +73,17 @@ if ! have goose; then
   curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash
 fi
 
+# CrewAI is an optional multi-agent orchestration integration. Install it in
+# the user Python environment when Python packaging is available; the project
+# never treats CrewAI as the security boundary.
+if ! have crewai; then
+  if python3 -m pip --version >/dev/null 2>&1; then
+    python3 -m pip install --user crewai
+  else
+    log "CrewAI NOT_DEPLOYED: python3-pip is unavailable; install CrewAI separately to enable crew orchestration"
+  fi
+fi
+
 for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
   if [ -f "$rc" ] && ! grep -Fq 'export PATH="$HOME/.local/bin:$PATH"' "$rc"; then
     printf '\n# Cusimanse user-local tools\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$rc"
@@ -85,6 +96,12 @@ for tool in git bash python3 ruby go qemu-system-x86_64 limactl goose; do
 done
 
 if [ "${#missing[@]}" -ne 0 ]; then fail "required tools still missing: ${missing[*]}"; fi
+
+if ! have crewai; then
+  log "CrewAI: NOT_DEPLOYED (optional integration)"
+else
+  log "CrewAI: PASS"
+fi
 
 log "OS PASS: ${OS} ${DISTRO} ${ARCH}"
 log "Tools PASS: git bash python3 ruby go qemu-system-x86_64 limactl goose"
