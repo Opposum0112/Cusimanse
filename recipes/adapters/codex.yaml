@@ -1,0 +1,19 @@
+version: 1
+id: codex
+kind: agent-adapter
+status: candidate
+command: codex
+contract: recipes/agents/primary-agent.yaml
+config:
+  project_recipe: recipes/routing/project.yaml
+  execution: approved-actions-only
+  approvals: required-for-privileged-actions
+  audit: required
+execution:
+  input: YAML project contract
+  output: structured audit and evidence references
+  learning: recipes/agents/learning-loop.yaml
+constraints:
+  - provider availability must be verified during preflight
+  - never bypass policy or VM controls
+  - never claim PASS without evidence
