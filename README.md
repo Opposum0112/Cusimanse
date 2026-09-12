@@ -14,7 +14,110 @@ Cusimanse is named after the hyper-curious mongoose that obsessively flips over 
 
 Cusimanse is a **research and experimentation platform**, not a production malware sandbox. It combines disposable Lima/QEMU virtual machines with agent adapters, composable recipes, instrumentation, policy checks, evidence handling and optional observability integrations. The design keeps experiment semantics independent from the agent used to operate them.
 
-**Status:** `v1.0.0-beta.1` — early beta for controlled security research and engineering experimentation. APIs, recipes and integrations may change between beta releases. Green CI means lint and `policyctl` unit tests passed, not that a VM experiment was exercised.
+**Status:** `v1.0.0-beta.1` — early beta. Strangers should treat the first successful outcome as **host install + lint**, not a proven VM sandbox.
+
+## Limitations
+
+Read this before cloning.
+
+- **This is a beta research lab, not a product.** APIs, recipes and adapters can change. There is no claim of sandbox-escape resistance or production security certification.
+- **Green CI is lint only.** GitHub Actions checks shell syntax, ShellCheck, `gofmt`, `go vet`, `policyctl` unit tests and file presence. It does **not** boot Lima, run `go-install-001`, or exercise MCP/skills.
+- **The only implemented operator path is Goose.** OpenCode, Grok Build and Antigravity are documented targets (`NOT_DEPLOYED`) until an adapter directory gives a concrete command.
+- **Skills and MCP registries are contracts.** Declared servers/skills are not a running MCP stack. Missing pieces must be reported as `NOT_DEPLOYED`.
+- **You must configure Goose yourself.** Model provider and API keys live in your user environment. They must never be committed.
+- **Host coverage is uneven.** `scripts/prerequisites.sh` targets common Linux distros and macOS with Homebrew. Unsupported distros fail closed. x86_64 is the tested baseline; arm64 is `PARTIAL` until you evidence it.
+- **`jq` / `yq` / `ripgrep` / collectors are not installed by default.** Experiments select them. Absence is `NOT_DEPLOYED`, not a silent substitute.
+- **`install.sh` does not start an experiment.** It only prepares the host and builds `./policyctl`.
+- **Do not pass document numbers as Goose `section`.** Use `section=project` for the full reference run. `01`–`11` are Markdown chapters.
+- **Do not publish credentials, private workload data, or unredacted evidence.**
+- **Use only systems and software you are authorized to test.**
+
+A stranger-ready test stops at step 3 below if Goose or a VM is not available. That is still a valid result.
+
+## How to start
+
+Tested intent: a Linux or macOS host with sudo/Homebrew, ~16 GB RAM, 50 GB+ free disk, and Git.
+
+Clone (private repo: you need access), then work from the repository root.
+
+```bash
+git clone https://github.com/Opposum0112/Cusimanse.git
+cd Cusimanse
+git checkout main
+```
+
+### Step 1 — Host install (required)
+
+```bash
+./scripts/install.sh
+```
+
+Expect `Install PASS (host tools + policyctl)`.
+
+This installs missing packages when the OS is supported (Git, Bash, Python 3, Go, QEMU, Lima, Goose CLI), writes `./policyctl`, and runs `policyctl validate`. It does **not** start Goose or a VM.
+
+If this fails, stop. Fix the host (unsupported distro, missing sudo, no Homebrew on macOS, no `qemu-system-x86_64` on PATH). Do not continue to Goose.
+
+### Step 2 — Environment (each new shell)
+
+```bash
+source ./scripts/goose-env.sh
+```
+
+This sets project paths only. No secrets.
+
+### Step 3 — Lint / policy check (stranger-complete if you stop here)
+
+```bash
+bash ./scripts/tests/validate-project.sh
+```
+
+Expect `PASS project validation`.
+
+This is the same class of check as CI. It is **not** evidence that a disposable VM experiment works.
+
+### Step 4 — Goose config (you do this outside git)
+
+1. Confirm `command -v goose` succeeds (step 1 should have installed the CLI if it was missing).
+2. Configure Goose’s model/provider using Goose’s own docs.
+3. Put any API key in your shell or Goose user config — **never in this repository.**
+
+If you cannot configure a provider, stop. Record Goose as `NOT_DEPLOYED`. Steps 1–3 were still a successful stranger test of the install path.
+
+### Step 5 — Bootstrap recipes (optional, needs Goose)
+
+```bash
+goose run --recipe recipes/install/project-bootstrap.yaml
+```
+
+### Step 6 — Reference experiment (optional, needs Goose + Lima/QEMU + approval)
+
+```bash
+goose run \
+  --recipe recipes/goose/project.yaml \
+  --params experiment=go-install-001 \
+  --params section=project
+```
+
+Use `section=project` only. Privileged or VM actions should wait for human approval. Preserve and hash evidence before any VM destroy.
+
+Lifecycle if the operator path works:
+
+```text
+Discover → Validate → Preflight → Install → Plan → Review → Approve
+→ Provision → Instrument → Execute → Collect → Reduce → Forensics
+→ Independent verification → Report → Preserve → Destroy
+```
+
+More detail: [`03-deployment-runbook.md`](03-deployment-runbook.md). Requirements: [`02-system-requirements.md`](02-system-requirements.md).
+
+### What “worked” means
+
+| You reached | Honest result |
+|---|---|
+| Step 3 `PASS project validation` | Host install + lint works. Publish-worthy as a **beta install path**. |
+| Step 5 Goose recipe runs without inventing tools | Goose adapter can load contracts. |
+| Step 6 leaves hashed evidence under `runs/<id>/` before VM destroy | Reference experiment exercised. Only then may that run be `PASS`. |
 
 ## What Cusimanse does
 
@@ -68,59 +171,6 @@ Key invariants:
 - AI assertions are never treated as evidence.
 
 See [`04-security-model.md`](04-security-model.md) and [`SECURITY.md`](SECURITY.md).
-
-## Quick start
-
-One host path. Do not mix document chapter numbers into Goose `section` parameters.
-
-### 1. Install host tools and build `policyctl`
-
-```bash
-./scripts/install.sh
-```
-
-This runs `scripts/prerequisites.sh`, loads project paths, builds `./policyctl`, and runs `policyctl validate`. It does **not** start Goose or a VM.
-
-Configure the Goose model/provider and any API key in your user environment. **Never place API keys, cloud credentials or secrets in the repository.**
-
-### 2. Load the environment (each new shell)
-
-```bash
-source ./scripts/goose-env.sh
-```
-
-### 3. Validate (lint / policy only)
-
-```bash
-bash ./scripts/tests/validate-project.sh
-```
-
-### 4. Bootstrap recipes
-
-```bash
-goose run --recipe recipes/install/project-bootstrap.yaml
-```
-
-### 5. Run the reference experiment
-
-```bash
-goose run \
-  --recipe recipes/goose/project.yaml \
-  --params experiment=go-install-001 \
-  --params section=project
-```
-
-Use `section=project` for the full lifecycle. Values such as `02`, `07`, or `08` are documentation chapter numbers, not recipe slices.
-
-The lifecycle is:
-
-```text
-Discover → Validate → Preflight → Install → Plan → Review → Approve
-→ Provision → Instrument → Execute → Collect → Reduce → Forensics
-→ Independent verification → Report → Preserve → Destroy
-```
-
-See [`03-deployment-runbook.md`](03-deployment-runbook.md) for the same steps with more detail.
 
 ## Recipes and composition
 
