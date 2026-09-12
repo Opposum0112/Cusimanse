@@ -2,30 +2,31 @@
 
 ![Cusimanse deployment architecture](docs/images/cusimanse-deployment-architecture.svg)
 
-> **Deployment view:** shared experiment contracts and agent adapters drive controlled workloads inside disposable Lima/QEMU VMs; instrumentation, evidence handling and verification remain inside the research lifecycle.
+> **Deployment view:** declarative research contracts are operated by one selected primary agent shell; disposable Lima/QEMU VMs provide the security boundary; instrumentation and evidence handling remain part of the same agent-driven research lifecycle.
 
 ## Project model
 
 ```text
 Human / CI intent
         ↓
-Markdown research contract
+Markdown research contract + YAML recipes
         ↓
-Goose project entry recipe
+SELECTED PRIMARY AGENT SHELL
         ↓
-Agent adapter
-  Goose | OpenCode | Grok Build | Antigravity | future
+Discover → Validate → Preflight → Plan → Review → Approve
         ↓
-Modular recipes + policyctl + MCP + skills + audit
+Provision VM → Instrument → Execute → Collect
         ↓
-Disposable Lima / QEMU VM
+Reduce → Forensics → Independent verification → Report
         ↓
-Workload + instrumentation + monitoring
-        ↓
-Evidence → reduction → forensics → independent verification
-        ↓
-Report → evidence preservation → VM destruction
+Preserve evidence → Destroy VM
 ```
+
+### Terminal-first rule
+
+Cusimanse is **agent-shell driven**. Once bootstrap and preflight are complete, the selected primary agent shell is the authoritative operator interface for the complete operator, execution and orchestration cycle.
+
+Host `scripts/*.sh` are deliberately limited to prerequisite installation, adapter selection, configuration, validation and preflight. They must not become a second lifecycle controller. `policyctl` configures policy and token accounting; it does not enforce VM isolation.
 
 ## Deployment layers
 
@@ -33,61 +34,103 @@ Report → evidence preservation → VM destruction
 |---|---|---|
 | Human / CI | Defines intent, scope and authorization | Human authorization remains authoritative |
 | Shared contract | Specifies experiment semantics and required evidence | Prevents adapter-specific drift |
-| Agent adapters | Operate the shared contract through provider-specific tooling | Must not bypass approvals or policy |
+| Primary agent shell | Plans, orchestrates and executes approved lifecycle actions | Operator only; not the containment boundary |
+| Agent adapter | Maps shared contract to provider-native shell/tooling | Must not bypass approvals or policy |
 | Recipes / registries | Compose experiments, tools, MCP, skills and audit | Configuration layer, not a security boundary |
-| `policyctl` | Configures host/security policy and token dashboard | Policy decision only; not enforcement |
-| Lima / QEMU VM | Runs the disposable research environment | Primary workload isolation boundary |
-| Instrumentation | Captures process, filesystem, network and runtime signals | Starts before target execution |
+| `policyctl` | Configures host/security policy and token dashboard | Policy decision/configuration only |
+| Lima / QEMU VM | Runs disposable research environment | **Primary workload isolation boundary** |
+| Instrumentation | Captures process, syscall, network, filesystem and runtime signals | Starts before target execution |
 | Evidence pipeline | Preserves, reduces, analyzes and verifies artifacts | Evidence is the basis for claims |
-| Report / destroy | Produces findings, preserves evidence, destroys VM | Limits workload persistence |
+| Report / destroy | Produces findings, preserves evidence and destroys VM | Limits workload persistence |
 
-## Boundaries
+## Primary agent shell and adapters
 
-1. **Goose** is the maintained reference project operator/executor.
-2. **Agent adapters** translate the shared contracts into the selected agent's tools, MCP and execution model.
-3. **Recipes** are the configuration and composition layer; they remain provider-neutral except for adapter entry recipes.
-4. **MCP** exposes only registry-approved capabilities.
-5. **Skills** provide reviewed instructions but never grant privilege.
-6. **Audit** records requested, approved, executed and observed actions.
-7. **policyctl** configures host/security policy and owns the local token dashboard only.
-8. **Lima/QEMU** provide disposable workload isolation.
-9. **Evidence** is preserved and hashed before destruction, then important findings are independently verified.
-
-## Operator and adapter separation
-
-The project contract defines **what** must happen and the evidence required to claim success. The selected adapter determines **how** the agent reasons and performs approved operations.
+The common contract defines **what** must happen. The selected adapter defines **how** that provider's shell performs the approved actions.
 
 ```text
-Shared contract
-      |
-      +---- Goose reference adapter
-      +---- OpenCode adapter
-      +---- Grok Build adapter
-      +---- Antigravity adapter
-      +---- future adapter
-      |
-      v
+Shared YAML contracts
+        ↓
+Primary agent shell
+        ↓
++-------------------------------+
+| Goose | OpenCode | Grok |      |
+| Antigravity | Pi | Hermes |    |
+| Codex | Prime Agent |          |
+| Claude Code | Devin            |
++-------------------------------+
+        ↓
 Same experiment semantics
+        ↓
+Lima / QEMU enforcement boundary
 ```
 
-An adapter must not bypass `policyctl`, approval gates, audit requirements or evidence preservation. AI output is advisory; the VM/OS and host controls are the actual security enforcement boundary.
+Native shell entry points are adapter-specific. The current contract records these intended forms:
+
+| Adapter | Interactive shell | Prompt/one-shot form |
+|---|---|---|
+| Goose | `goose` | `goose run --text '<PROMPT>'` |
+| OpenCode | `opencode` | `opencode run '<PROMPT>'` |
+| Grok Build | `grok` | `grok -p '<PROMPT>'` |
+| Antigravity | `agy` | `agy -p '<PROMPT>'` |
+| Pi | `pi` | `pi -p '<PROMPT>'` |
+| Hermes | `hermes` | `hermes -z '<PROMPT>'` |
+| Prime Agent | `prime-agent` | `prime-agent -p '<PROMPT>'` |
+| Codex | `codex` | `codex '<PROMPT>'` |
+
+Provider CLI versions can differ. Preflight must verify the installed command and supported invocation before runtime acceptance.
 
 ## Deployment lifecycle
 
 ```text
-DISCOVER → VALIDATE → PREFLIGHT → INSTALL → PLAN → REVIEW → APPROVE
-    ↓
-PROVISION VM → START INSTRUMENTATION → EXECUTE WORKLOAD
-    ↓
-COLLECT → REDUCE → FORENSICS → INDEPENDENT VERIFICATION
-    ↓
-REPORT → HASH/PRESERVE EVIDENCE → DESTROY VM
+BOOTSTRAP
+  scripts/prerequisites.sh
+        ↓
+PREFLIGHT / VALIDATE
+  scripts/agent-preflight.sh
+  policyctl validate
+  scripts/tests/validate-project.sh
+        ↓
+PRIMARY AGENT SHELL
+  load YAML → plan → review → approve
+        ↓
+VM LIFECYCLE
+  provision → instrument → execute → collect
+        ↓
+EVIDENCE LIFECYCLE
+  reduce → forensics → independent verify → report
+        ↓
+PRESERVE → HASH → DESTROY
 ```
+
+The reference runtime test is `experiments/go-install-001`. Adapter equivalence means executing that same semantic contract through different native shells and comparing evidence, audit records, findings and verification—not merely comparing textual agent output.
+
+## Evidence-bounded learning
+
+Learning runs through the same primary shell but cannot rewrite the security boundary:
+
+```text
+observe → compare → propose → validate → independently verify
+→ human approve → promote → checkpoint / rollback
+```
+
+Only reviewed, non-security improvements may be promoted. VM isolation, credentials, privileges, network allowlists, approval requirements and evidence-integrity controls remain outside the model's authority.
+
+## Boundaries
+
+1. The selected primary agent shell owns orchestration, execution and lifecycle coordination.
+2. Adapters provide provider-specific shell/tool integration while preserving shared semantics.
+3. Recipes are configuration/composition, not enforcement.
+4. MCP exposes only registry-approved capabilities.
+5. Skills provide reviewed instructions and never grant privilege.
+6. Audit records requested, approved, executed and observed actions.
+7. `policyctl` configures host/security policy and token accounting; it is not a sandbox.
+8. Lima/QEMU and VM/OS controls provide workload isolation.
+9. Evidence is preserved and hashed before destruction; important findings require independent verification.
 
 ## Security boundary rule
 
-The diagram intentionally separates **policy and agent logic** from the **VM/OS enforcement boundary**. Prompts, skills, MCP servers, adapters and `policyctl` must never be treated as containment mechanisms. Isolation depends on VM configuration, filesystem/mount controls, credential separation, network controls and explicit approval gates.
+Prompts, models, skills, MCP servers, adapters, CrewAI and `policyctl` must never be treated as containment mechanisms. Isolation depends on VM configuration, filesystem/mount controls, credential separation, network controls and explicit approval gates.
 
 ## Design principle
 
-> **Markdown specifies. YAML configures. Agent adapters operate. Policy constrains. Audit records. Evidence proves.**
+> **Markdown specifies. YAML configures. The primary agent shell operates and orchestrates. Adapters translate. Policy constrains. Audit records. Evidence proves. VM/OS controls contain.**
