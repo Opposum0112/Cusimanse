@@ -14,6 +14,7 @@ test -f cmd/policyctl/main.go
 test -f cmd/policyctl/main_test.go
 test -f recipes/goose/project.yaml
 test -f recipes/agents/primary-agent.yaml
+test -f recipes/agents/primary-shell.yaml
 test -f recipes/agents/learning-loop.yaml
 test -f recipes/agents/adapter-matrix.yaml
 test -f recipes/agent-selection.yaml
@@ -21,6 +22,10 @@ for adapter in goose opencode grok-build antigravity pi hermes codex prime-intel
 test -f recipes/adapters/claude-code.yaml
 test -f recipes/adapters/devin.yaml
 test -f docs/agent-and-adapter-strategy.md
+test -f docs/agent-shell-runbook.md
+grep -q 'shell_driven: true' recipes/agents/primary-agent.yaml
+grep -q 'shell_is_authoritative_operator: true' recipes/agents/primary-agent.yaml
+grep -q 'primary-agent-shell' recipes/agents/primary-shell.yaml
 grep -q 'owner: project' recipes/mcp/registry.yaml
 grep -q 'owner: project' recipes/skills/registry.yaml
 grep -q 'interface: adapter' recipes/tools/security-research.yaml
