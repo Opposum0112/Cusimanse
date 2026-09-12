@@ -8,25 +8,40 @@ There is one project execution model. **Goose is the reference operator/executor
 
 ## 1. Prerequisites
 
-Install/configure the selected agent. For the Goose reference path, ensure Goose, Git, Bash, Lima and QEMU are available. The selected experiment's tools recipe determines additional capabilities.
-
-## 2. Bootstrap
-
 From the repository root:
 
 ```bash
 ./scripts/install.sh
+source ./scripts/goose-env.sh
 ```
 
-This convenience script performs a read-only preflight and launches `recipes/install/project-bootstrap.yaml`. It is not a project controller and does not own experiment state.
+`install.sh` installs missing host packages when possible (Git, Bash, Python 3, Go, QEMU, Lima, Goose CLI), builds `./policyctl`, and runs `policyctl validate`.
 
-## 3. Run the complete project
+Configure the Goose model/provider and any API key in your user environment. **Do not put secrets in this repository.**
+
+## 2. Validate (lint / policy only)
+
+```bash
+bash ./scripts/tests/validate-project.sh
+```
+
+This does not boot a VM and is not evidence that the experiment works.
+
+## 3. Bootstrap recipes (Goose)
+
+```bash
+goose run --recipe recipes/install/project-bootstrap.yaml
+```
+
+This is a Goose recipe, not part of `install.sh`.
+
+## 4. Run the complete project
 
 ```bash
 goose run --recipe recipes/goose/project.yaml --params experiment=go-install-001 --params section=project
 ```
 
-Goose consumes the project contract and composes the modular recipes. The normal lifecycle is:
+Always use `section=project` for the full reference lifecycle. Goose consumes the project contract and composes the modular recipes. The normal lifecycle is:
 
 ```text
 discover → validate → preflight → install → plan → review → approve
@@ -34,7 +49,7 @@ discover → validate → preflight → install → plan → review → approve
 → independent verification → report → preserve → destroy
 ```
 
-## 4. Goose step purposes
+## 5. Goose step purposes
 
 | Step | Purpose |
 |---|---|
@@ -56,25 +71,27 @@ discover → validate → preflight → install → plan → review → approve
 | Preserve | hash/preserve evidence before destruction |
 | Destroy | delete the disposable VM after preservation |
 
-## 5. Run a section while iterating
+## 6. Iterating
+
+Re-run the same command. Do not pass `02`, `07`, or `08` as `section`; those are documentation chapter numbers, not recipe slices.
 
 ```bash
-goose run --recipe recipes/goose/project.yaml --params experiment=go-install-001 --params section=07
+goose run --recipe recipes/goose/project.yaml --params experiment=go-install-001 --params section=project
 ```
 
-The same safety, policy, audit and evidence requirements apply to section execution.
+The same safety, policy, audit and evidence requirements apply.
 
-## 6. Using another adapter
+## 7. Using another adapter
 
-The adapter consumes the same project contracts and recipes. Only the agent-specific wiring changes.
+The adapter consumes the same project contracts and recipes. Only the agent-specific wiring changes. There is no separate installer for OpenCode, Grok Build, or Antigravity in this repository yet; treat those adapters as `NOT_DEPLOYED` until an adapter directory documents a concrete command.
 
 ```text
 Markdown + YAML contracts
           ↓
      adapter layer
-  ┌────────┼───────────┐
+  ┌───────┼───────────┐
  Goose  OpenCode  Grok Build  Antigravity
-  └────────┼───────────┘
+  └───────┼───────────┘
           ↓
  approved tools/MCP/skills
           ↓
@@ -83,7 +100,7 @@ Markdown + YAML contracts
  evidence + audit + verification
 ```
 
-For OpenCode, Grok Build or Antigravity:
+For a future adapter:
 
 1. Load `AGENTS.md` and the relevant Markdown contract.
 2. Resolve the experiment's recipe composition.
@@ -93,27 +110,13 @@ For OpenCode, Grok Build or Antigravity:
 6. Keep provider-specific prompts and wiring in the adapter.
 7. Report unavailable capabilities as `NOT_DEPLOYED`.
 
-## 7. Recipe customization
+## 8. Recipe customization
 
 Start from the narrowest recipe family that matches the change. For example, change a workload without modifying the VM profile; change telemetry without modifying the workload.
 
-```text
-Experiment
-   ↓
-workload / VM / tools / install / instrumentation / monitoring
-   ↓
-routing / MCP / skills / stages / reporting
-   ↓
-experiment composition
-   ↓
-validate
-   ↓
-selected agent adapter
-```
-
 Recipe families and their purposes are documented in `recipes/README.md`. Recipes are deliberately composable rather than one large schema.
 
-## 8. Validation
+## 9. Validation
 
 ```bash
 bash ./scripts/tests/validate-project.sh
@@ -123,13 +126,14 @@ For focused checks:
 
 ```bash
 bash ./scripts/tests/validate-recipes.sh
-PYTHONPATH=scripts python3 -m unittest discover -s scripts/tests -v
 go test ./...
 ```
 
+Python unittests run only when `scripts/tests/test_*.py` exists.
+
 CI uses the project validation workflow. A failed validation must be investigated before declaring a runtime acceptance result; configuration alone is never evidence.
 
-## 9. Token dashboard
+## 10. Token dashboard
 
 Only `policyctl` owns the local token-usage dashboard:
 
@@ -137,4 +141,4 @@ Only `policyctl` owns the local token-usage dashboard:
 ./policyctl token-dashboard
 ```
 
-Default binding is localhost. The dashboard is observability, not authorization.
+Default binding is localhost. The dashboard is observability, not authorization. Build `policyctl` first (`./scripts/install.sh` or `go build -o policyctl ./cmd/policyctl`).

@@ -4,25 +4,36 @@ The `scripts/` directory contains supporting shell utilities and validation help
 
 The historical Python `labctl` controller was retired during the agent-neutral refactor. Do not recreate or depend on `scripts/bin/labctl` or `scripts/labctl/`.
 
-## Current scripts
+## Canonical host install
 
-### Installation convenience
+From the repository root:
 
 ```bash
 ./scripts/install.sh
+source ./scripts/goose-env.sh
+bash ./scripts/tests/validate-project.sh
 ```
 
-This is currently a Goose-oriented convenience entry point because Goose is the reference adapter. Generic agents should consume `recipes/install/project-bootstrap.yaml` through their own adapter rather than adding another controller here.
+`install.sh` runs `prerequisites.sh`, loads `goose-env.sh`, builds `./policyctl`, and validates policy. It does **not** launch Goose recipes or own experiment state.
 
-### Recipe validation
+Then, with Goose already configured (provider and API key stay outside the repo):
+
+```bash
+goose run --recipe recipes/install/project-bootstrap.yaml
+goose run --recipe recipes/goose/project.yaml --params experiment=go-install-001 --params section=project
+```
+
+Use `section=project` for the full reference lifecycle. Do not pass document numbers (`02`, `07`, `08`) as `section`.
+
+Generic agents should consume `recipes/install/project-bootstrap.yaml` through their own adapter rather than adding another controller here.
+
+## Recipe validation
 
 ```bash
 bash ./scripts/tests/validate-recipes.sh
 ```
 
-This parses recipe YAML and syntax-checks shell scripts.
-
-### Full project validation
+## Full project validation
 
 ```bash
 bash ./scripts/tests/validate-project.sh
@@ -33,7 +44,7 @@ The full validator checks recipe syntax, shell syntax, retired-controller absenc
 ## Test commands
 
 ```bash
-# Python tests
+# Python tests (skipped when no test_*.py modules exist)
 PYTHONPATH=scripts python3 -m unittest discover -s scripts/tests -v
 
 # Go tests

@@ -12,8 +12,18 @@ Validate the complete recipe-driven Goose workflow using a pinned Go installatio
 
 ## Run
 
+Host first (once per machine):
+
 ```bash
-goose run --recipe recipes/goose/project.yaml --params experiment=go-install-001 --params section=08
+./scripts/install.sh
+source ./scripts/goose-env.sh
+bash ./scripts/tests/validate-project.sh
+```
+
+Then the experiment. Use `section=project` (this chapter number is not a Goose parameter):
+
+```bash
+goose run --recipe recipes/goose/project.yaml --params experiment=go-install-001 --params section=project
 ```
 
 ## Required evidence
