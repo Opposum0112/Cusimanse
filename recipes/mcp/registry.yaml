@@ -1,4 +1,4 @@
-version: 3
+version: 4
 id: mcp-registry
 kind: mcp-registry
 owner: project
@@ -91,6 +91,36 @@ servers:
     approval: required-for-write
     data_class: runtime-telemetry
     status: declared
+  github:
+    purpose: repository, issue, pull-request and code research through an approved GitHub MCP connector
+    access: read-only-by-default
+    approval: required-for-write
+    data_class: repository-metadata
+    status: optional
+  filesystem:
+    purpose: controlled local workspace file inspection for analysis workflows
+    access: workspace-scoped
+    approval: required-for-write
+    data_class: local-workload
+    status: optional
+  fetch:
+    purpose: controlled public-reference retrieval for enrichment
+    access: read-only
+    approval: not-required
+    data_class: public-reference
+    status: optional
+  git:
+    purpose: local repository history and diff inspection
+    access: read-only
+    approval: required-for-write
+    data_class: repository-metadata
+    status: optional
+  memory:
+    purpose: scoped experiment context retrieval
+    access: read-only
+    approval: not-required
+    data_class: experiment-context
+    status: optional
 registry_rules:
   - every server has an owner and purpose
   - every write/VM/privileged capability has an approval rule
@@ -100,3 +130,4 @@ registry_rules:
   - external enrichment must record source and retrieval time
   - discovery does not imply approval
   - unknown or unavailable servers are NOT_DEPLOYED
+  - MCP connectors cannot expand the VM/OS security boundary
