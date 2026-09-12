@@ -1,4 +1,4 @@
-version: 1
+version: 2
 host:
   credentials: deny
   unrestricted_mounts: deny
@@ -16,6 +16,24 @@ network:
   public_mcp: deny
   public_gateway: deny
   localhost_services: allow
+mcp:
+  registry_required: true
+  unknown_server: NOT_DEPLOYED
+  public_reference_data: read-only
+  public_reference_submission: deny
+  privileged_tools: approval-required
+  vm_control: approval-required
+  write_operations: approval-required
+skills:
+  registry_required: true
+  unknown_skill: NOT_DEPLOYED
+  privilege_grant: deny
+  material_selection_audit: required
+reference_data:
+  source_citation: required
+  retrieval_time: required
+  private_data_submission: deny
+  important_finding_verification: required
 git:
   read: allow
   write: approval-required
