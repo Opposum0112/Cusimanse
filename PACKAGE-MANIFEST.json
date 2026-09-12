@@ -1,13 +1,14 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "package": "Cusimanse",
   "license": "MIT",
   "spdx": "MIT",
   "architecture": {
     "operator_model": "primary-agent-shell",
     "shell_driven": true,
-    "orchestration_owner": "selected-primary-agent",
-    "execution_owner": "selected-primary-agent",
+    "orchestration_owner": "selected-primary-agent-shell",
+    "execution_owner": "selected-primary-agent-shell",
+    "lifecycle_owner": "selected-primary-agent-shell",
     "security_boundary": "disposable-lima-qemu-vm-and-os-controls",
     "host_scripts_role": "bootstrap-validation-preflight-only"
   },
@@ -46,16 +47,46 @@
     "reference_experiment": "experiments/go-install-001"
   },
   "shell_forms": {
-    "goose": "goose run --text '<PROMPT>'",
-    "opencode": "opencode run '<PROMPT>'",
-    "grok-build": "grok -p '<PROMPT>'",
-    "antigravity": "agy -p '<PROMPT>'",
-    "pi": "pi -p '<PROMPT>'",
-    "hermes": "hermes -z '<PROMPT>'",
-    "codex": "codex '<PROMPT>'",
-    "prime-intellect": "prime-agent -p '<PROMPT>'",
-    "claude-code": "claude '<PROMPT>'",
-    "devin": "provider-managed"
+    "goose": {
+      "interactive": "goose",
+      "run": "goose run --text '<PROMPT>'"
+    },
+    "opencode": {
+      "interactive": "opencode",
+      "run": "opencode run '<PROMPT>'"
+    },
+    "grok-build": {
+      "interactive": "grok",
+      "run": "grok -p '<PROMPT>'"
+    },
+    "antigravity": {
+      "interactive": "agy",
+      "run": "verify with agy --help"
+    },
+    "pi": {
+      "interactive": "pi",
+      "run": "pi -p '<PROMPT>'"
+    },
+    "hermes": {
+      "interactive": "hermes",
+      "run": "TUI-first; use the installed Hermes interactive prompt flow"
+    },
+    "codex": {
+      "interactive": "codex",
+      "run": "verify with codex --help"
+    },
+    "prime-intellect": {
+      "interactive": "prime-agent",
+      "run": "prime-agent -p '<PROMPT>'"
+    },
+    "claude-code": {
+      "interactive": "claude",
+      "run": "verify with claude --help"
+    },
+    "devin": {
+      "interactive": "provider-managed",
+      "run": "provider-managed"
+    }
   },
   "acceptance": {
     "PASS": "runtime evidence plus required independent verification",
@@ -63,5 +94,5 @@
     "FAIL": "contract or safety violation",
     "NOT_DEPLOYED": "provider/runtime/configuration unavailable or unverified"
   },
-  "manifest_note": "This branch manifest describes the current package architecture and runtime entry points. Provider CLI versions must be verified by preflight; configuration or recipe presence is not runtime deployment proof."
+  "manifest_note": "Manifest is an architecture/runtime inventory, not runtime evidence. Provider CLI versions and commands must be verified by preflight; complete disposable-VM execution is required for runtime PASS."
 }
