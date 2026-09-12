@@ -17,9 +17,9 @@ test -f recipes/agents/primary-agent.yaml
 test -f recipes/agents/learning-loop.yaml
 test -f recipes/agents/adapter-matrix.yaml
 test -f recipes/agent-selection.yaml
-for adapter in goose opencode grok-build antigravity pi codex prime-intellect; do test -f "recipes/adapters/$adapter.yaml"; done
-test -f recipes/adapters/enterprise-claude-code.yaml
-test -f recipes/adapters/enterprise-devin.yaml
+for adapter in goose opencode grok-build antigravity pi hermes codex prime-intellect; do test -f "recipes/adapters/$adapter.yaml"; done
+test -f recipes/adapters/claude-code.yaml
+test -f recipes/adapters/devin.yaml
 test -f docs/agent-and-adapter-strategy.md
 grep -q 'owner: project' recipes/mcp/registry.yaml
 grep -q 'owner: project' recipes/skills/registry.yaml
