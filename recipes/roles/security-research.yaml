@@ -1,0 +1,33 @@
+version: 1
+id: security-research-roles
+kind: role-reference
+roles:
+  - threat-modeler
+  - workload-triager
+  - static-analyst
+  - dynamic-analyst
+  - network-analyst
+  - malware-analyst
+  - reverse-engineer
+  - vulnerability-researcher
+  - threat-intelligence-analyst
+  - detection-engineer
+  - forensic-analyst
+  - incident-response-analyst
+  - supply-chain-analyst
+  - cloud-security-analyst
+  - identity-security-analyst
+  - ai-security-researcher
+  - agent-security-researcher
+  - independent-verifier
+  - evidence-curator
+  - security-research-reporter
+execution:
+  roles_are_tasks_not_controllers: true
+  each_role_requires_contract: true
+  skills_from: recipes/skills/registry.yaml
+  tools_from: recipes/tools/security-research.yaml
+  mcp_from: recipes/mcp/registry.yaml
+  evidence_required_for_claims: true
+  privileged_actions: approval-required
+  unknown_capability: NOT_DEPLOYED
