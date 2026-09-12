@@ -1,0 +1,49 @@
+version: 1
+id: adapter-matrix
+kind: adapter-registry
+primary_candidates:
+  goose:
+    status: reference
+    install: goose
+    config_recipe: recipes/adapters/goose.yaml
+  opencode:
+    status: candidate
+    install: opencode
+    config_recipe: recipes/adapters/opencode.yaml
+  grok-build:
+    status: candidate
+    install: manual-or-provider-specific
+    config_recipe: recipes/adapters/grok-build.yaml
+  antigravity:
+    status: candidate
+    install: manual-or-provider-specific
+    config_recipe: recipes/adapters/antigravity.yaml
+  pi:
+    status: candidate
+    install: pi
+    config_recipe: recipes/adapters/pi.yaml
+  codex:
+    status: candidate
+    install: codex
+    config_recipe: recipes/adapters/codex.yaml
+  prime-intellect:
+    status: candidate
+    install: prime-agent
+    config_recipe: recipes/adapters/prime-intellect.yaml
+enterprise_adapters:
+  claude-code:
+    status: enterprise-candidate
+    install: claude
+    config_recipe: recipes/adapters/enterprise-claude-code.yaml
+  devin:
+    status: enterprise-candidate
+    install: provider-managed
+    config_recipe: recipes/adapters/enterprise-devin.yaml
+selection:
+  exactly_one_primary: true
+  interactive: true
+  preflight_selected_only: true
+  unavailable: NOT_DEPLOYED
+common_contract: recipes/agents/primary-agent.yaml
+learning_contract: recipes/agents/learning-loop.yaml
+security_boundary: disposable-vm-and-os-controls
