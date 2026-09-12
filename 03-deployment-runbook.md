@@ -2,143 +2,205 @@
 
 ![Experiment workflow](ai-security-lab-experiment-workflow.png)
 
-## Deployment model
+## Runtime model
 
-There is one project execution model. **Goose is the reference operator/executor.** The project is agent-neutral because the contracts and recipes are independent of the agent; OpenCode, Grok Build and Antigravity can be implemented as adapters around the same model.
+Cusimanse is **terminal-first and purely primary-agent-shell driven at runtime**. Exactly one selected primary agent owns the complete operator, execution and orchestration lifecycle. Host scripts only bootstrap, install prerequisites, select/configure the adapter, validate and preflight.
 
-## 1. Prerequisites
+The security boundary is the disposable Lima/QEMU VM plus VM/OS controls. Agents, skills, MCP, CrewAI and `policyctl` are not containment mechanisms.
 
-From the repository root:
+For the most granular provider-specific procedure, use `docs/agent-shell-runbook.md`.
+
+## 1. Bootstrap
 
 ```bash
-./scripts/install.sh
-source ./scripts/goose-env.sh
+./scripts/prerequisites.sh
 ```
 
-`install.sh` installs missing host packages when possible (Git, Bash, Python 3, Go, QEMU, Lima, Goose CLI), builds `./policyctl`, and runs `policyctl validate`.
-
-Configure the Goose model/provider and any API key in your user environment. **Do not put secrets in this repository.**
-
-## 2. Validate (lint / policy only)
+Choose exactly one primary interactively, or select explicitly:
 
 ```bash
+CUSIMANSE_PRIMARY_ADAPTER=grok-build ./scripts/prerequisites.sh
+CUSIMANSE_PRIMARY_ADAPTER=antigravity ./scripts/prerequisites.sh
+CUSIMANSE_PRIMARY_ADAPTER=pi ./scripts/prerequisites.sh
+CUSIMANSE_PRIMARY_ADAPTER=hermes ./scripts/prerequisites.sh
+CUSIMANSE_PRIMARY_ADAPTER=prime-intellect ./scripts/prerequisites.sh
+CUSIMANSE_PRIMARY_ADAPTER=codex ./scripts/prerequisites.sh
+CUSIMANSE_PRIMARY_ADAPTER=opencode ./scripts/prerequisites.sh
+CUSIMANSE_PRIMARY_ADAPTER=goose ./scripts/prerequisites.sh
+```
+
+Selection is written to `.cusimanse/primary-agent.yaml`. Provider/manual candidates remain `NOT_DEPLOYED` until configured and exercised.
+
+## 2. Preflight and repository validation
+
+```bash
+./scripts/agent-preflight.sh
+./policyctl validate
 bash ./scripts/tests/validate-project.sh
 ```
 
-This does not boot a VM and is not evidence that the experiment works.
-
-## 3. Bootstrap recipes (Goose)
+Then verify the selected native shell:
 
 ```bash
-goose run --recipe recipes/install/project-bootstrap.yaml
+cat .cusimanse/primary-agent.yaml
+command -v <PRIMARY_COMMAND>
+<PRIMARY_COMMAND> --help
 ```
 
-This is a Goose recipe, not part of `install.sh`.
+## 3. Start the selected primary shell
 
-## 4. Run the complete project
+| Adapter | Interactive shell | Native run form |
+|---|---|---|
+| Goose | `goose` | `goose run --text '<PROMPT>'` |
+| OpenCode | `opencode` | `opencode run '<PROMPT>'` |
+| Grok Build | `grok` | `grok -p '<PROMPT>'` |
+| Antigravity | `agy` | verify with `agy --help` |
+| Pi | `pi` | `pi -p '<PROMPT>'` |
+| Hermes | `hermes` | TUI-first; use native interactive flow |
+| Prime Agent | `prime-agent` | `prime-agent -p '<PROMPT>'` |
+| Codex | `codex` | verify with `codex --help` |
 
-```bash
-goose run --recipe recipes/goose/project.yaml --params experiment=go-install-001 --params section=project
-```
+Never assume that a Goose command or flag works in another shell.
 
-Always use `section=project` for the full reference lifecycle. Goose consumes the project contract and composes the modular recipes. The normal lifecycle is:
+## 4. Give the shell the Cusimanse contract
 
 ```text
-discover → validate → preflight → install → plan → review → approve
-→ provision → instrument → execute → collect → reduce → forensics
-→ independent verification → report → preserve → destroy
+Operate this Cusimanse repository as the selected primary agent shell.
+Load recipes/agents/primary-agent.yaml and recipes/agents/primary-shell.yaml.
+Load the selected adapter recipe and the experiment YAML.
+Execute the complete lifecycle: Discover → Validate → Preflight → Plan → Review
+→ Approve → Provision → Instrument → Execute → Collect → Reduce → Forensics
+→ Independent verification → Report → Preserve → Destroy.
+Do not bypass policy, approvals, credentials, VM/OS controls or evidence integrity.
+Do not claim PASS without runtime evidence and independent verification.
 ```
 
-## 5. Goose step purposes
+## 5. Non-destructive smoke test
 
-| Step | Purpose |
-|---|---|
-| Discover | resolve Markdown contracts, experiment and recipes |
-| Validate | reject invalid recipe references and configuration |
-| Preflight | verify required host/VM/tool capabilities |
-| Install | invoke declared prerequisite installation |
-| Plan | create the proposed execution sequence |
-| Review | identify risky actions and required approvals |
-| Approve | obtain human approval for policy-controlled operations |
-| Provision | create the disposable Lima/QEMU VM |
-| Instrument | start telemetry before the workload |
-| Execute | perform the approved workload |
-| Collect | capture runtime evidence and audit records |
-| Reduce | create deterministic summaries without replacing raw evidence |
-| Forensics | analyse preserved artifacts |
-| Verify | independently test important findings |
-| Report | generate findings and evidence manifest |
-| Preserve | hash/preserve evidence before destruction |
-| Destroy | delete the disposable VM after preservation |
-
-## 6. Iterating
-
-Re-run the same command. Do not pass `02`, `07`, or `08` as `section`; those are documentation chapter numbers, not recipe slices.
-
-```bash
-goose run --recipe recipes/goose/project.yaml --params experiment=go-install-001 --params section=project
-```
-
-The same safety, policy, audit and evidence requirements apply.
-
-## 7. Using another adapter
-
-The adapter consumes the same project contracts and recipes. Only the agent-specific wiring changes. There is no separate installer for OpenCode, Grok Build, or Antigravity in this repository yet; treat those adapters as `NOT_DEPLOYED` until an adapter directory documents a concrete command.
+Before provisioning a VM:
 
 ```text
-Markdown + YAML contracts
-          ↓
-     adapter layer
-  ┌───────┼───────────┐
- Goose  OpenCode  Grok Build  Antigravity
-  └───────┼───────────┘
-          ↓
- approved tools/MCP/skills
-          ↓
- Lima/QEMU + instrumentation
-          ↓
- evidence + audit + verification
+Load the Cusimanse contracts and selected adapter recipe.
+Report the selected adapter, contract paths, approval gates, security boundary,
+and expected evidence outputs.
+Do not modify the host, VM, credentials or repository.
 ```
 
-For a future adapter:
+Expected: contract discovery only, with no privileged/destructive operation.
 
-1. Load `AGENTS.md` and the relevant Markdown contract.
-2. Resolve the experiment's recipe composition.
-3. Map agent tools/MCP/skills to the registries.
-4. Apply `policyctl` decisions and approval requirements.
-5. Execute the same lifecycle and preserve the same evidence semantics.
-6. Keep provider-specific prompts and wiring in the adapter.
-7. Report unavailable capabilities as `NOT_DEPLOYED`.
+## 6. Reference experiment
 
-## 8. Recipe customization
+Use `experiments/go-install-001` for adapter equivalence. The primary shell should load:
 
-Start from the narrowest recipe family that matches the change. For example, change a workload without modifying the VM profile; change telemetry without modifying the workload.
+```text
+experiments/go-install-001/experiment.yaml
+experiments/go-install-001/lima.yaml
+experiments/go-install-001/run.sh
+```
 
-Recipe families and their purposes are documented in `recipes/README.md`. Recipes are deliberately composable rather than one large schema.
+The primary shell remains responsible for the lifecycle while calling only declared scripts/tools as needed.
 
-## 9. Validation
+## 7. Runtime evidence checks
+
+After the run:
 
 ```bash
-bash ./scripts/tests/validate-project.sh
+find evidence blackboard experiments/go-install-001 -maxdepth 3 -type f -print
 ```
 
-For focused checks:
+A runtime `PASS` requires:
+
+- selected primary shell owned the lifecycle;
+- contract and adapter recipe loaded;
+- preflight passed;
+- approval records exist for privileged/destructive actions;
+- VM/OS controls enforced isolation;
+- instrumentation started before workload execution;
+- raw evidence was collected;
+- important findings were independently verified;
+- evidence was hashed/preserved before destruction;
+- report and audit records exist;
+- recorded inputs permit replay.
+
+## 8. Adapter-specific smoke commands
+
+### Grok Build
 
 ```bash
-bash ./scripts/tests/validate-recipes.sh
-go test ./...
+grok --help
+grok inspect
+grok -p 'Load the Cusimanse primary-agent contract and perform only the non-destructive shell check.'
 ```
 
-Python unittests run only when `scripts/tests/test_*.py` exists.
+### Antigravity
 
-CI uses the project validation workflow. A failed validation must be investigated before declaring a runtime acceptance result; configuration alone is never evidence.
+```bash
+agy --help
+agy
+```
 
-## 10. Token dashboard
+Use the installed release's supported prompt mode after confirming help output.
 
-Only `policyctl` owns the local token-usage dashboard:
+### Pi
+
+```bash
+pi --help
+pi -p 'Load the Cusimanse primary-agent contract and perform only the non-destructive shell check.'
+```
+
+### Hermes
+
+```bash
+hermes --help
+hermes
+```
+
+Hermes is TUI-first; perform the smoke prompt interactively rather than depending on an undocumented one-shot option.
+
+### Prime Agent
+
+```bash
+prime-agent --help
+prime-agent -p 'Load the Cusimanse primary-agent contract and perform only the non-destructive shell check.'
+```
+
+### Codex
+
+```bash
+codex --help
+codex
+```
+
+Use the installed Codex release's documented non-interactive mode only after confirming its help output.
+
+### OpenCode
+
+```bash
+opencode --help
+opencode run 'Load the Cusimanse primary-agent contract and perform only the non-destructive shell check.'
+```
+
+## 9. Adapter equivalence
+
+Run `go-install-001` with Goose and then with one candidate adapter. Compare semantic lifecycle, runtime telemetry, evidence, findings, audit records and independent verification. Textual similarity between agent responses is not equivalence.
+
+## 10. Learning
+
+Learning remains in the primary shell:
+
+```text
+verified run → compare → propose → validate/replay
+→ independent verification → human approve → promote → rollback checkpoint
+```
+
+Only reviewed non-security improvements may be promoted. Security boundaries, credentials, privileges, network allowlists, approval requirements and evidence-integrity rules remain outside autonomous learning authority.
+
+## 11. Token dashboard
+
+`policyctl` provides local token accounting/observability:
 
 ```bash
 ./policyctl token-dashboard
 ```
 
-Default binding is localhost. The dashboard is observability, not authorization. Build `policyctl` first (`./scripts/install.sh` or `go build -o policyctl ./cmd/policyctl`).
+It is not an authorization or containment layer.
