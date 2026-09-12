@@ -6,241 +6,352 @@
 
 > **Autonomous, agentic security research platform for controlled workload detonation, runtime analysis, anomaly detection and evidence extraction inside disposable virtual machines.**
 
+Cusimanse is an **agent-neutral, terminal-first security research platform**. The selected primary agent shell is the operator after bootstrap: it loads YAML contracts, plans, requests approval, orchestrates the VM lifecycle, executes approved actions, observes, collects evidence, verifies, reports, preserves and destroys. Host scripts are bootstrap/validation tools, not a second orchestration controller.
+
 [![CI](https://github.com/Opposum0112/Cusimanse/actions/workflows/validate.yml/badge.svg)](https://github.com/Opposum0112/Cusimanse/actions/workflows/validate.yml)
 
-Cusimanse is an **agent-neutral security research platform**. The primary operator is a replaceable adapter selected at bootstrap; experiment semantics live in YAML contracts and recipes, while VM/OS controls remain the security boundary.
-
-## Primary operator model
-
-The reference operator is Goose, but it is **not an architectural dependency**. Cusimanse can select a different operator when its adapter satisfies the common primary-agent contract.
+## Primary-agent shell model
 
 ```text
-YAML contracts → Primary operator → policy/approval → Lima/QEMU VM
-       ↑                 ↓                         ↓
-  recipes/agents     orchestrate/execute       telemetry/evidence
-       ↑                 ↓                         ↓
- learning proposals ← verify/report ← preserve → destroy
+Human / CI intent
+      ↓
+Markdown + YAML contracts
+      ↓
+Selected PRIMARY AGENT SHELL
+      ↓
+Discover → Validate → Preflight → Plan → Review → Approve
+      ↓
+Provision → Instrument → Execute → Collect → Reduce
+      ↓
+Forensics → Independent verification → Report
+      ↓
+Preserve evidence → Destroy disposable VM
 ```
 
-The operator owns planning, orchestration, approved execution, observation, evidence collection, reporting and lifecycle coordination. It does **not** own VM isolation, host credentials, privilege grants, policy bypass or final evidence verification.
+**Important:** the entire operator, execution and orchestration cycle runs from the selected primary agent shell. `scripts/*.sh` prepare and validate the environment; they do not replace the primary agent or introduce a parallel controller.
 
-### Adapter matrix
+The security boundary remains **Lima/QEMU + VM/OS controls**. Agents, prompts, skills, MCP, CrewAI and `policyctl` are not containment mechanisms.
 
-| Operator | Role | Status | Best fit |
-|---|---|---|---|
-| Goose | operator/executor | reference | current stable adapter |
-| OpenCode | operator/executor | candidate | programmable CLI workflow |
-| Grok Build | operator/orchestrator | candidate | provider-managed agent workflow |
-| Antigravity | operator/orchestrator | candidate | interactive/provider workflow |
-| Pi | operator/executor | candidate | minimal custom autonomous loop |
-| Hermes | operator/executor | candidate | self-improving research operator |
-| Codex | operator/executor | candidate | coding/CLI-oriented execution |
-| Prime Intellect | self-improving operator | candidate | research/self-improvement experiments |
-| Claude Code | enterprise operator | candidate | enterprise-controlled workflows |
-| Devin | enterprise operator | candidate | provider-managed enterprise workflows |
+## Operator matrix
 
-`candidate` means the adapter contract exists; it is not a claim of provider E2E success. Runtime availability, credentials and smoke tests must pass before an adapter becomes `PASS`.
+| Adapter | Shell | One-shot / prompt form | Role | Status |
+|---|---|---|---|---|
+| Goose | `goose` | `goose run --text '<PROMPT>'` | reference operator | reference |
+| OpenCode | `opencode` | `opencode run '<PROMPT>'` | programmable operator | candidate |
+| Grok Build | `grok` | `grok -p '<PROMPT>'` | provider operator/orchestrator | candidate |
+| Antigravity | `agy` | `agy -p '<PROMPT>'` | interactive/provider operator | candidate |
+| Pi | `pi` | `pi -p '<PROMPT>'` | thin custom operator | candidate |
+| Hermes | `hermes` | `hermes -z '<PROMPT>'` | self-improving operator | candidate |
+| Codex | `codex` | `codex '<PROMPT>'` | CLI/coding operator | candidate |
+| Prime Intellect | `prime-agent` | `prime-agent -p '<PROMPT>'` | self-improving operator | candidate |
+| Claude Code | `claude` | `claude '<PROMPT>'` | enterprise operator | candidate |
+| Devin | provider-managed | provider-managed | enterprise operator | candidate |
 
-## Evidence-bounded self-learning
+CLI syntax is adapter-specific and provider releases can change. Preflight must verify the installed command before claiming runtime availability.
 
-A primary operator may learn from verified runs, but learning is deliberately constrained:
-
-`observe → compare → propose → validate → independently verify → human approve → promote`
-
-Allowed promotion includes non-security recipe defaults, adapter command templates, routing hints and evidence-reduction heuristics. Learning cannot change VM isolation, credentials, privileges, network allowlists, approval requirements or evidence-integrity rules. See `recipes/agents/learning-loop.yaml` and `docs/agent-and-adapter-strategy.md`.
-
-## Selecting and running a primary operator
-
-### 1. Interactive selection
-
-On a supported host:
+## 5-minute repository validation
 
 ```bash
+git clone <REPOSITORY_URL> Cusimanse
+cd Cusimanse
+git checkout agent-and-adapter
+
 ./scripts/prerequisites.sh
-```
-
-Choose one operator when prompted. For automation:
-
-```bash
-CUSIMANSE_PRIMARY_ADAPTER=pi ./scripts/prerequisites.sh
-```
-
-Supported choices include `goose`, `opencode`, `grok-build`, `antigravity`, `pi`, `hermes`, `codex`, `prime-intellect`, `claude-code` and `devin`. The bootstrap records the selection in `.cusimanse/primary-agent.yaml`, installs only adapters with a verified installer, and runs selected-adapter preflight. Provider/manual-managed candidates are reported as `NOT_DEPLOYED` rather than using an unverified installer.
-
-### 2. Common preflight
-
-```bash
 ./scripts/agent-preflight.sh
 ./policyctl validate
 bash ./scripts/tests/validate-project.sh
 ```
 
-Preflight checks adapter availability/configuration, contract loading, YAML recipes, policy, audit/evidence paths and a non-destructive smoke test. Never put provider secrets in the repository.
+The bootstrap presents an interactive primary-agent selection. For repeatable testing, select explicitly:
 
-### 3. Common execution contract
+```bash
+CUSIMANSE_PRIMARY_ADAPTER=grok-build ./scripts/prerequisites.sh
+CUSIMANSE_PRIMARY_ADAPTER=antigravity ./scripts/prerequisites.sh
+CUSIMANSE_PRIMARY_ADAPTER=pi ./scripts/prerequisites.sh
+CUSIMANSE_PRIMARY_ADAPTER=hermes ./scripts/prerequisites.sh
+CUSIMANSE_PRIMARY_ADAPTER=prime-intellect ./scripts/prerequisites.sh
+CUSIMANSE_PRIMARY_ADAPTER=codex ./scripts/prerequisites.sh
+CUSIMANSE_PRIMARY_ADAPTER=opencode ./scripts/prerequisites.sh
+CUSIMANSE_PRIMARY_ADAPTER=goose ./scripts/prerequisites.sh
+```
 
-All adapters should execute the same semantic flow:
+Selection is recorded in `.cusimanse/primary-agent.yaml`. Provider/manual-managed candidates are reported as `NOT_DEPLOYED` rather than using an unverified installer.
+
+## Runtime testing: one adapter at a time
+
+### 1. Verify the selected shell
+
+```bash
+cat .cusimanse/primary-agent.yaml
+command -v <PRIMARY_COMMAND>
+<PRIMARY_COMMAND> --help
+```
+
+Run the adapter's native interactive shell. Do not wrap the lifecycle in another agent/controller.
+
+### 2. Non-destructive smoke test
+
+Give the selected shell this instruction:
+
+```text
+Operate this Cusimanse repository from the primary-agent shell.
+Load recipes/agents/primary-agent.yaml and recipes/agents/primary-shell.yaml.
+Load the selected adapter recipe.
+Report the selected adapter, contract paths, approval gates, security boundary,
+and expected evidence outputs. Do not modify the host, VM, credentials or repository.
+```
+
+Expected: contract/recipe discovery and safety checks, with no privileged or destructive operation.
+
+### 3. Load the reference experiment
+
+The primary shell must load:
+
+```text
+experiments/go-install-001/experiment.yaml
+experiments/go-install-001/lima.yaml
+experiments/go-install-001/run.sh
+```
+
+Then follow the common lifecycle:
 
 ```text
 Discover → Validate → Preflight → Plan → Review → Approve
-→ Provision → Instrument → Execute → Collect → Reduce
-→ Forensics → Independent verification → Report → Preserve → Destroy
+→ Provision VM → Start instrumentation → Execute workload
+→ Collect → Reduce → Forensics → Independent verification
+→ Report → Hash/preserve evidence → Destroy VM
 ```
 
-### Operator-specific implementation and run steps
+### 4. Check outputs
 
-The following steps describe the intended adapter path. Provider authentication and exact CLI/API invocation remain adapter-specific and must be verified on the target host.
+```bash
+find evidence blackboard experiments/go-install-001 -maxdepth 3 -type f -print
+```
 
-**Grok Build**
-1. Select `grok-build` during prerequisites.
-2. Configure the supported Grok/Build provider access outside git.
-3. Run `./scripts/agent-preflight.sh` and confirm contract/recipe/policy checks.
-4. Give the operator the common YAML project contract, not a rewritten experiment prompt.
-5. Run the non-destructive adapter smoke test.
-6. Execute the approved `go-install-001` experiment.
-7. Compare audit, evidence and findings with the Goose reference.
+A runtime `PASS` requires audit records, runtime evidence, independent verification, a report and preservation before VM destruction. Configuration alone is never runtime `PASS`.
 
-**Antigravity**
-1. Select `antigravity`.
-2. Configure its supported local/provider runtime outside git.
-3. Run agent preflight and project validation.
-4. Load the common YAML contract through the adapter.
-5. Perform the smoke test before VM execution.
-6. Execute only approved VM actions and preserve evidence before destroy.
+## Adapter-specific deployment and shell commands
 
-**Pi**
-1. Select `pi`; the prerequisites script can install Pi when its verified installer is available.
-2. Configure the model/provider outside git.
-3. Run preflight and load `recipes/agents/primary-agent.yaml`.
-4. Use Pi as the thin control loop and Cusimanse as the lifecycle/safety contract.
-5. Run `go-install-001`, preserve evidence and compare the result with the reference run.
+### Grok Build
 
-**Hermes**
-1. Select `hermes`.
-2. Install/configure Hermes using its supported distribution; the bootstrap deliberately does not run an unverified installer.
-3. Run `./scripts/agent-preflight.sh`.
-4. Load the common YAML project contract through `recipes/adapters/hermes.yaml`.
-5. Run the non-destructive smoke test, then an approved reference experiment.
-6. Enable evidence-bounded learning only after verified runs exist.
+```bash
+CUSIMANSE_PRIMARY_ADAPTER=grok-build ./scripts/prerequisites.sh
+./scripts/agent-preflight.sh
+grok --help
+grok
+```
 
-**Prime Intellect**
-1. Select `prime-intellect`.
-2. Configure the supported Prime Intellect/Prime Agent environment outside git.
-3. Run preflight and verify the common contract.
-4. Treat self-improvement as a controlled experiment with checkpoints and replay.
-5. Execute the reference experiment and independently verify outputs.
-6. Promote only reviewed, non-security learning proposals.
+One-shot smoke form:
 
-**Codex**
-1. Select `codex`; prerequisites can install the CLI when the verified npm path is available.
-2. Configure the provider outside git.
-3. Run preflight and project validation.
-4. Pass the common YAML contract to the Codex adapter.
-5. Scope tools/actions to the declared adapter and policy; never expose unrestricted host credentials or mounts.
-6. Run the reference experiment and compare evidence with the Goose baseline.
+```bash
+grok -p 'Load recipes/agents/primary-agent.yaml and perform only the non-destructive Cusimanse contract check.'
+```
 
-**OpenCode**
-1. Select `opencode` and install/configure the supported CLI.
-2. Run preflight and validate the common contract.
-3. Use the OpenCode adapter to translate the YAML contract into approved actions.
-4. Smoke-test, execute `go-install-001`, preserve evidence and compare against the reference.
+Then use the interactive `grok` shell for the full approved experiment lifecycle.
 
-**Goose reference**
-1. Select `goose`.
-2. Configure its provider outside git.
-3. Run preflight.
-4. Execute the existing Goose project recipe as the baseline for adapter-equivalence testing.
+### Antigravity
 
-**Claude Code / Devin**
-1. Select the enterprise adapter.
-2. Configure enterprise identity, provider access, audit and approval controls outside git.
-3. Run preflight without exposing secrets.
-4. Execute the same YAML contract through the enterprise adapter.
-5. Validate that enterprise integrations strengthen identity/audit controls without bypassing VM/OS enforcement.
+```bash
+CUSIMANSE_PRIMARY_ADAPTER=antigravity ./scripts/prerequisites.sh
+./scripts/agent-preflight.sh
+agy --help
+agy
+```
 
-### Replacing Goose safely
+Where supported by the installed release, the prompt form is:
 
-Do not switch the project by merely changing a model name. The selected operator must first pass adapter-equivalence testing:
+```bash
+agy -p 'Load the Cusimanse primary-agent contract and perform only the non-destructive contract check.'
+```
 
-`contract load → recipe load → policy check → smoke test → VM experiment → evidence preservation → independent verification → report`
+Antigravity is provider/installation dependent; do not mark it deployed merely because the recipe exists.
 
-Keep Goose as a reference until the selected operator produces equivalent experiment semantics and acceptable evidence/audit output.
+### Pi
 
-## CrewAI evaluation
+```bash
+CUSIMANSE_PRIMARY_ADAPTER=pi ./scripts/prerequisites.sh
+./scripts/agent-preflight.sh
+pi --help
+pi
+```
 
-A **role-based CrewAI model is a strong fit for the research-analysis layer**, especially where several specialist roles can work independently. It is less suitable as the sole security controller.
+Smoke form:
 
-Recommended architecture:
+```bash
+pi -p 'Load the Cusimanse primary-agent contract and perform only the non-destructive contract check.'
+```
+
+Use Pi as the thin control loop while Cusimanse contracts and VM/OS controls define the lifecycle and boundary.
+
+### Hermes
+
+```bash
+CUSIMANSE_PRIMARY_ADAPTER=hermes ./scripts/prerequisites.sh
+./scripts/agent-preflight.sh
+hermes --help
+hermes
+```
+
+The adapter records the intended prompt form as:
+
+```bash
+hermes -z 'Load the Cusimanse primary-agent contract and perform only the non-destructive contract check.'
+```
+
+Use the installed Hermes release's supported prompt mode if its CLI differs.
+
+### Prime Intellect / Prime Agent
+
+```bash
+CUSIMANSE_PRIMARY_ADAPTER=prime-intellect ./scripts/prerequisites.sh
+./scripts/agent-preflight.sh
+prime-agent --help
+prime-agent
+```
+
+Smoke form:
+
+```bash
+prime-agent -p 'Load the Cusimanse primary-agent contract and perform only the non-destructive contract check.'
+```
+
+Treat self-improvement as a controlled research loop: checkpoint → compare → propose → validate → independent verification → human approval → promote.
+
+### Codex
+
+```bash
+CUSIMANSE_PRIMARY_ADAPTER=codex ./scripts/prerequisites.sh
+./scripts/agent-preflight.sh
+codex --help
+codex
+```
+
+Load the YAML contract through the Codex adapter and keep all actions inside the declared approval/policy and disposable-VM boundary.
+
+### OpenCode
+
+```bash
+CUSIMANSE_PRIMARY_ADAPTER=opencode ./scripts/prerequisites.sh
+./scripts/agent-preflight.sh
+opencode --help
+opencode
+```
+
+Smoke form:
+
+```bash
+opencode run 'Load the Cusimanse primary-agent contract and perform only the non-destructive contract check.'
+```
+
+### Goose reference
+
+```bash
+CUSIMANSE_PRIMARY_ADAPTER=goose ./scripts/prerequisites.sh
+./scripts/agent-preflight.sh
+goose
+```
+
+Goose remains the reference adapter for equivalence testing; it is not a permanent architectural dependency.
+
+## Adapter equivalence test
+
+To replace Goose, run the same experiment with one selected adapter and compare:
 
 ```text
-Selected primary operator
-          │
-          ▼
-     CrewAI research crew
-  ┌───────┼────────┐
-Planner  Analysts  Verifier
-  │        │          │
-  └────────┼──────────┘
-           ▼
-     evidence/blackboard
-           │
-           ▼
-      Reporter
+contract load
+→ recipe load
+→ policy check
+→ shell smoke test
+→ VM experiment
+→ instrumentation
+→ evidence preservation
+→ independent verification
+→ report
 ```
 
-The primary operator should retain lifecycle authority. CrewAI can coordinate Planner, Static Analyst, Runtime Analyst, Network Analyst, Malware/RE Analyst, Detection Engineer, Forensics Analyst, Independent Verifier and Reporter roles. Privileged operations must return through the primary adapter and Cusimanse approval/policy controls. This is preferable to putting the VM boundary inside a role-based framework.
+Keep Goose as the reference until the selected adapter demonstrates equivalent experiment semantics and acceptable audit/evidence output.
 
-## Implementation roadmap
+## Evidence-bounded self-learning
 
-1. Select one primary adapter.
-2. Verify its runtime/provider configuration.
-3. Validate `recipes/agents/primary-agent.yaml`.
-4. Verify recipes, policy, audit and evidence paths.
-5. Run a non-destructive smoke test.
-6. Execute `go-install-001`.
-7. Compare results with Goose.
-8. Replay for adapter equivalence.
-9. Enable evidence-bounded learning.
-10. Validate and independently verify learning proposals.
-11. Human-review and promote only non-security changes.
-12. Keep rollback metadata and Goose as the reference until equivalence is demonstrated.
+```text
+observe → compare → propose → validate → independently verify
+→ human approve → promote → checkpoint/rollback
+```
 
-## Testing status
+Learning may improve non-security recipe defaults, adapter command templates, routing hints and evidence-reduction heuristics. It cannot modify VM isolation, credentials, privileges, network allowlists, approval requirements or evidence-integrity rules at runtime.
 
-CI validates repository structure, shell syntax, ShellCheck, Go formatting/vet, policy tests and recipe validation. Provider credentials, installed agent runtimes and disposable VM execution are environment-dependent. Therefore an adapter is not `PASS` from configuration alone.
+## Architecture
 
-Acceptance states: `PASS` = runtime evidence; `PARTIAL` = incomplete coverage; `FAIL` = contract violation; `NOT_DEPLOYED` = unavailable/unconfigured/disabled.
+![Cusimanse deployment architecture](docs/images/cusimanse-deployment-architecture.svg)
+
+The deployment architecture explicitly separates the **primary agent shell** from the **security boundary**:
+
+```text
+Contracts / recipes
+       ↓
+Primary agent shell
+       ↓
+policy + approval
+       ↓
+Lima / QEMU VM boundary
+       ↓
+workload + instrumentation
+       ↓
+evidence → verification → report
+       ↓
+preserve → destroy
+```
+
+See `01-deployment-architecture.md` and `docs/agent-shell-runbook.md`.
+
+## CrewAI role-based analysis
+
+CrewAI is a good fit as a **research-analysis layer**, not as the sole security controller. The selected primary agent retains lifecycle authority and can delegate analysis to Planner, Static Analyst, Runtime Analyst, Network Analyst, Malware/RE Analyst, Detection Engineer, Forensics Analyst, Independent Verifier and Reporter roles. Privileged operations return through the primary shell and Cusimanse approval/policy controls.
+
+## Repository contracts and recipes
+
+- `recipes/agents/primary-agent.yaml` — replaceable primary-agent contract
+- `recipes/agents/primary-shell.yaml` — terminal-first operator/runtime contract
+- `recipes/agents/learning-loop.yaml` — evidence-bounded learning
+- `recipes/agents/adapter-matrix.yaml` — supported adapter matrix
+- `recipes/adapters/` — provider-specific adapter contracts
+- `recipes/agent-selection.yaml` — interactive/explicit primary selection
+- `recipes/orchestration/` — orchestration strategies
+- `recipes/mcp/` — MCP registry and connectors
+- `recipes/skills/` — skills registry
+- `recipes/reference/` — security tools/framework references
+- `recipes/detection/` — detection validation
+- `recipes/experiments/` — experiment contracts
+- `docs/agent-shell-runbook.md` — granular terminal runtime test procedure
+- `docs/agent-and-adapter-strategy.md` — adapter architecture and migration strategy
+
+## Acceptance states
+
+| State | Meaning |
+|---|---|
+| `PASS` | Runtime evidence and required verification demonstrate the capability |
+| `PARTIAL` | Some required coverage is missing |
+| `FAIL` | Contract or safety requirement was violated |
+| `NOT_DEPLOYED` | Runtime/provider/configuration is unavailable or not verified |
 
 ## Security boundary
 
-AI agents, prompts, skills, MCP servers, CrewAI and `policyctl` are **not** security boundaries. Enforcement comes from disposable VM/OS controls, filesystem/mount controls, credential separation, network controls and approval gates.
+AI agents, prompts, skills, MCP servers, CrewAI and `policyctl` are **not** security boundaries. Enforcement comes from disposable VM/OS controls, filesystem/mount controls, credential separation, network controls and explicit approval gates.
 
-Untrusted workloads should run in disposable Lima/QEMU VMs. Preserve and hash evidence before VM destruction. Important findings require independent verification. Use only systems and workloads you are authorized to test.
-
-## Recipes and contracts
-
-- `recipes/agents/primary-agent.yaml` — replaceable primary-operator contract
-- `recipes/agents/learning-loop.yaml` — evidence-bounded learning contract
-- `recipes/adapters/` — provider/agent adapter contracts, including Hermes
-- `recipes/orchestration/` — orchestration strategies
-- `recipes/mcp/` — MCP contracts and registry
-- `recipes/skills/` — skills registry
-- `recipes/reference/` — frameworks, tools and research references
-- `recipes/detection/` — detection validation
-- `recipes/experiments/` — reference experiments
-
-See `docs/agent-and-adapter-strategy.md` for architecture, implementation phases and adapter requirements.
+Use only systems and workloads you are authorized to test. Preserve and hash evidence before destroying disposable VMs.
 
 ## Documentation
 
 - `01-deployment-architecture.md` — deployment architecture
+- `02-system-requirements.md` — host requirements
 - `03-deployment-runbook.md` — deployment/runbook
 - `04-security-model.md` — security model
 - `05-multi-agent-operating-model.md` — multi-agent operation
 - `06-observability-and-evidence.md` — observability and evidence
 - `07-experiment-framework.md` — experiment framework
 - `10-validation-and-acceptance.md` — validation and acceptance
-- `AGENTS.md` — agent/adapter operating instructions
+- `11-current-antigravity-reference.md` — Antigravity reference
+- `AGENTS.md` — agent operating instructions
 - `SECURITY.md` — security boundaries and reporting
 
 ## License
