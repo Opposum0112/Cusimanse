@@ -1,4 +1,4 @@
-version: 2
+version: 3
 id: anthropic-cybersecurity-skills
 kind: upstream-skill-catalog
 source:
@@ -30,6 +30,8 @@ selected_skill_families:
     - analyzing-macro-malware-in-office-documents
     - analyzing-malicious-pdf-with-peepdf
     - analyzing-android-malware-with-apktool
+    - analyzing-cobalt-strike-beacon-configuration
+    - analyzing-cobaltstrike-malleable-c2-profiles
   forensics:
     - acquiring-disk-image-with-dd-and-dcfldd
     - analyzing-disk-image-with-autopsy
@@ -54,6 +56,18 @@ selected_skill_families:
     - achieving-cmmc-level-2-compliance
   phishing_and_email:
     - analyzing-email-headers-for-phishing-investigation
+  additional_defensive_families:
+    - incident-response
+    - threat-hunting
+    - digital-forensics
+    - endpoint-security
+    - vulnerability-management
+    - devsecops
+    - identity-access-management
+    - web-application-security
+    - container-security
+    - network-security
+    - mobile-security
 review_exclusions:
   - offensive credential-access and privilege-escalation procedures remain catalog-only until separately approved
   - exploitation, persistence and destructive procedures require explicit authorization
