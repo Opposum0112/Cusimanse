@@ -1,4 +1,4 @@
-version: 1
+version: 2
 id: skill-registry
 kind: skill-registry
 owner: project
@@ -16,8 +16,71 @@ skills:
     path: .agents/skills/experiment-run.md
     purpose: execute the selected experiment lifecycle
     trust: repository-reviewed
+  security-research:
+    path: .agents/skills/security-research.md
+    purpose: catalog and coordinate security research skills
+    trust: repository-reviewed
+  workload-triage:
+    path: .agents/skills/security-research-triage.md
+    purpose: initial workload classification and research planning
+    trust: repository-reviewed
+  static-analysis:
+    path: .agents/skills/static-analysis.md
+    purpose: deterministic non-executing workload inspection
+    trust: repository-reviewed
+  dynamic-analysis:
+    path: .agents/skills/dynamic-analysis.md
+    purpose: runtime behavior analysis inside disposable VMs
+    trust: repository-reviewed
+  network-analysis:
+    path: .agents/skills/network-analysis.md
+    purpose: DNS, socket, flow and packet analysis
+    trust: repository-reviewed
+  malware-analysis:
+    path: .agents/skills/malware-analysis.md
+    purpose: suspicious workload behavior analysis
+    trust: repository-reviewed
+  reverse-engineering:
+    path: .agents/skills/reverse-engineering.md
+    purpose: executable structure and behavior analysis
+    trust: repository-reviewed
+  threat-intelligence:
+    path: .agents/skills/threat-intelligence.md
+    purpose: attributable indicator and behavior enrichment
+    trust: repository-reviewed
+  vulnerability-research:
+    path: .agents/skills/vulnerability-research.md
+    purpose: vulnerability hypothesis and reproduction research
+    trust: repository-reviewed
+  dependency-analysis:
+    path: .agents/skills/dependency-analysis.md
+    purpose: dependency provenance and supply-chain analysis
+    trust: repository-reviewed
+  detection-engineering:
+    path: .agents/skills/detection-engineering.md
+    purpose: evidence-backed YARA, Sigma and network detections
+    trust: repository-reviewed
+  forensics:
+    path: .agents/skills/forensics.md
+    purpose: preservation and correlation of forensic artifacts
+    trust: repository-reviewed
+  ioc-extraction:
+    path: .agents/skills/ioc-extraction.md
+    purpose: deterministic indicator extraction and normalization
+    trust: repository-reviewed
+  attack-mapping:
+    path: .agents/skills/attack-mapping.md
+    purpose: evidence-backed MITRE ATT&CK mapping
+    trust: repository-reviewed
+  independent-verification:
+    path: .agents/skills/independent-verification.md
+    purpose: independent challenge and verification of findings
+    trust: repository-reviewed
+
 rules:
   - skills are instructions, not security boundaries
   - skills cannot grant privileges
   - selected skills are recorded in audit events
+  - external reference data is enrichment, not evidence
   - unknown skills are NOT_DEPLOYED
+  - missing skill capability is NOT_DEPLOYED
