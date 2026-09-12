@@ -13,13 +13,13 @@ Cusimanse is an **agent-neutral, terminal-first security research platform**. Ex
 ## 1. Primary-agent shell model
 
 ```text
-Human / CI intent
+Human / normal shell
       ↓
-Markdown + YAML contracts
+Bootstrap / prerequisites / selection / preflight
       ↓
 SELECT ONE PRIMARY AGENT SHELL
       ↓
-Discover → Validate → Preflight → Plan → Review → Approve
+Discover → Validate → Plan → Review → Approve
       ↓
 Provision → Instrument → Execute → Collect → Reduce
       ↓
@@ -28,7 +28,53 @@ Forensics → Independent verification → Report
 Preserve evidence → Destroy disposable VM
 ```
 
-**The whole operator and execution/orchestration cycle runs in the selected primary agent shell.** `scripts/*.sh` are limited to bootstrap, prerequisite installation, adapter selection, configuration, validation and preflight. They do not introduce a second orchestration controller.
+**The runtime operator and execution/orchestration cycle runs in the selected primary agent shell.** However, Cusimanse deliberately has two distinct command planes:
+
+| Plane | Runs from | Responsibilities | Control relationship |
+|---|---|---|---|
+| **Normal shell / host shell** | User's ordinary terminal (`bash`, `zsh`, etc.) | Git, prerequisites, adapter selection, configuration, validation, preflight, `policyctl`, and host-side setup | **Outside agent control** |
+| **Primary agent shell** | Selected agent (`goose`, `opencode`, `grok`, `agy`, `pi`, `codex`, `prime-agent`, etc.) | Load contracts/recipes, reason, plan, request approval, operate the experiment, execute approved workload, collect/reduce evidence, verify, report, preserve and destroy | **Agent-controlled runtime operator** |
+
+### Important: `policyctl` is outside the agent control plane
+
+`policyctl` intentionally runs from the **normal host shell**, independently of the selected agent. It is a host-side policy/configuration and token-observability utility; it is **not an agent tool, not an agent subcommand, not an orchestration controller, and not the VM security boundary**.
+
+The separation is intentional:
+
+```text
+NORMAL HOST SHELL                         PRIMARY AGENT SHELL
+─────────────────                         ───────────────────
+./scripts/prerequisites.sh               goose / opencode / grok / agy / pi / ...
+./scripts/agent-preflight.sh                         │
+./policyctl validate                                  │
+./policyctl ...                                       │
+host configuration                                    │
+                                                     │
+                         ┌───────────────────────────┘
+                         ↓
+                  YAML contracts / recipes
+                         ↓
+                  Agent runtime lifecycle
+                         ↓
+              Lima/QEMU + VM/OS controls
+                         ↓
+                  Instrument / execute
+                         ↓
+                Evidence / verification
+```
+
+The primary agent **must not gain control of `policyctl`** or use it as a way to change host security policy. Policy decisions and host-side policy configuration remain outside the agent control plane. The actual isolation boundary remains the disposable VM plus VM/OS, filesystem/mount, privilege, credential and network controls.
+
+### Command classification rule
+
+When following this README, use these markers:
+
+- **`[NORMAL SHELL]`** — type the command in your ordinary host terminal. This includes all `scripts/*.sh` commands and all `policyctl` commands.
+- **`[AGENT SHELL]`** — enter the command/prompt in the selected primary agent's native terminal/interface.
+- **`[AGENT PROMPT]`** — text supplied to the selected agent shell; it is not a host shell command.
+- **`[BOTH / OBSERVE]`** — a normal-shell command used to inspect files/artifacts after the agent run.
+
+Do not paste a `[NORMAL SHELL]` command into an agent prompt, and do not treat an `[AGENT PROMPT]` as a shell command.
 
 ## 2. Operator matrix
 
@@ -52,6 +98,7 @@ Do not copy Goose command syntax to another agent. Provider CLI versions are ver
 From a clean host/worktree:
 
 ```bash
+# [NORMAL SHELL]
 git clone <REPOSITORY_URL> Cusimanse
 cd Cusimanse
 git checkout agent-and-adapter
@@ -65,6 +112,7 @@ bash ./scripts/tests/validate-project.sh
 The prerequisites script interactively selects exactly one primary agent. For repeatable testing, set it explicitly:
 
 ```bash
+# [NORMAL SHELL]
 CUSIMANSE_PRIMARY_ADAPTER=grok-build ./scripts/prerequisites.sh
 CUSIMANSE_PRIMARY_ADAPTER=antigravity ./scripts/prerequisites.sh
 CUSIMANSE_PRIMARY_ADAPTER=pi ./scripts/prerequisites.sh
@@ -80,6 +128,7 @@ Selection is recorded in `.cusimanse/primary-agent.yaml`.
 ## 4. Verify the selected shell
 
 ```bash
+# [NORMAL SHELL]
 cat .cusimanse/primary-agent.yaml
 command -v <PRIMARY_COMMAND>
 <PRIMARY_COMMAND> --help
@@ -87,16 +136,27 @@ command -v <PRIMARY_COMMAND>
 
 The help check is important because CLI flags are provider-specific and can change between releases.
 
+Then launch the selected native agent interface:
+
+```text
+# [AGENT SHELL]
+<PRIMARY_COMMAND>
+```
+
+The `<PRIMARY_COMMAND>` above means the selected agent from `.cusimanse/primary-agent.yaml`; it is not a literal command to copy unchanged.
+
 ## 5. Non-destructive smoke test
 
 Start the selected native shell and provide:
 
 ```text
+[AGENT PROMPT]
 Operate this Cusimanse repository from the primary-agent shell.
 Load recipes/agents/primary-agent.yaml and recipes/agents/primary-shell.yaml.
 Load the selected adapter recipe.
 Report the selected adapter, contract paths, approval gates, security boundary,
 and expected evidence outputs. Do not modify the host, VM, credentials or repository.
+Do not invoke policyctl or change host policy.
 ```
 
 Expected: contract discovery and safety checks without privileged or destructive actions.
@@ -106,15 +166,24 @@ Expected: contract discovery and safety checks without privileged or destructive
 Use `experiments/go-install-001` as the common adapter-equivalence test. The primary shell loads:
 
 ```text
+[AGENT SHELL / AGENT PROMPT]
 experiments/go-install-001/experiment.yaml
 experiments/go-install-001/lima.yaml
 experiments/go-install-001/run.sh
 ```
 
-Then it drives the complete semantic lifecycle:
+Before the agent run, host policy validation remains a normal-shell operation:
+
+```bash
+# [NORMAL SHELL]
+./policyctl validate
+```
+
+The agent then drives the experiment lifecycle without controlling `policyctl`:
 
 ```text
-Discover → Validate → Preflight → Plan → Review → Approve
+[AGENT SHELL]
+Discover → Validate → Plan → Review → Approve
 → Provision VM → Start instrumentation → Execute workload
 → Collect → Reduce → Forensics → Independent verification
 → Report → Hash/preserve evidence → Destroy VM
@@ -123,6 +192,7 @@ Discover → Validate → Preflight → Plan → Review → Approve
 Check artifacts after the run:
 
 ```bash
+# [BOTH / OBSERVE — NORMAL SHELL]
 find evidence blackboard experiments/go-install-001 -maxdepth 3 -type f -print
 ```
 
@@ -135,6 +205,7 @@ A runtime `PASS` requires runtime evidence, audit records, independent verificat
 Install/select:
 
 ```bash
+# [NORMAL SHELL]
 CUSIMANSE_PRIMARY_ADAPTER=grok-build ./scripts/prerequisites.sh
 ./scripts/agent-preflight.sh
 grok --help
@@ -143,14 +214,16 @@ grok inspect
 
 Interactive:
 
-```bash
+```text
+# [AGENT SHELL]
 grok
 ```
 
 Headless smoke test:
 
 ```bash
-grok -p 'Load recipes/agents/primary-agent.yaml and perform only the non-destructive Cusimanse contract check.'
+# [NORMAL SHELL — launches the selected agent interface; prompt executes in the agent]
+grok -p 'Load recipes/agents/primary-agent.yaml and perform only the non-destructive Cusimanse contract check. Do not invoke policyctl.'
 ```
 
 Grok's current documentation supports `grok -p` for headless scripting and `grok inspect` for discovered configuration. citeturn1search0turn1search2
@@ -160,6 +233,7 @@ Grok's current documentation supports `grok -p` for headless scripting and `grok
 Install/select:
 
 ```bash
+# [NORMAL SHELL]
 CUSIMANSE_PRIMARY_ADAPTER=antigravity ./scripts/prerequisites.sh
 ./scripts/agent-preflight.sh
 agy --help
@@ -167,14 +241,16 @@ agy --help
 
 Interactive:
 
-```bash
+```text
+# [AGENT SHELL]
 agy
 ```
 
-If the installed release supports the recorded prompt form, use:
+If the installed release supports the recorded prompt form, use it from the normal shell only as the mechanism that launches the agent:
 
 ```bash
-agy -p 'Load the Cusimanse primary-agent contract and perform only the non-destructive contract check.'
+# [NORMAL SHELL — launches the agent with an agent prompt]
+agy -p 'Load the Cusimanse primary-agent contract and perform only the non-destructive contract check. Do not invoke policyctl.'
 ```
 
 Because Antigravity CLI behavior is installation/version dependent in this project, `agy --help` is a required runtime check before claiming support.
@@ -184,6 +260,7 @@ Because Antigravity CLI behavior is installation/version dependent in this proje
 Install/select:
 
 ```bash
+# [NORMAL SHELL]
 CUSIMANSE_PRIMARY_ADAPTER=pi ./scripts/prerequisites.sh
 ./scripts/agent-preflight.sh
 pi --help
@@ -191,14 +268,16 @@ pi --help
 
 Interactive:
 
-```bash
+```text
+# [AGENT SHELL]
 pi
 ```
 
 Print/smoke form:
 
 ```bash
-pi -p 'Load the Cusimanse primary-agent contract and perform only the non-destructive contract check.'
+# [NORMAL SHELL — launches the agent with an agent prompt]
+pi -p 'Load the Cusimanse primary-agent contract and perform only the non-destructive contract check. Do not invoke policyctl.'
 ```
 
 The prerequisites path uses the current Pi package name configured by the branch; verify the installed version with `pi --help` before runtime acceptance.
@@ -208,6 +287,7 @@ The prerequisites path uses the current Pi package name configured by the branch
 Install/select:
 
 ```bash
+# [NORMAL SHELL]
 CUSIMANSE_PRIMARY_ADAPTER=hermes ./scripts/prerequisites.sh
 ./scripts/agent-preflight.sh
 hermes --help
@@ -215,7 +295,8 @@ hermes --help
 
 Interactive:
 
-```bash
+```text
+# [AGENT SHELL]
 hermes
 ```
 
@@ -226,6 +307,7 @@ Hermes is documented as a terminal UI/interactive CLI. Use its native interactiv
 Install/select:
 
 ```bash
+# [NORMAL SHELL]
 CUSIMANSE_PRIMARY_ADAPTER=prime-intellect ./scripts/prerequisites.sh
 ./scripts/agent-preflight.sh
 prime-agent --help
@@ -233,14 +315,16 @@ prime-agent --help
 
 Interactive:
 
-```bash
+```text
+# [AGENT SHELL]
 prime-agent
 ```
 
 Print/smoke form:
 
 ```bash
-prime-agent -p 'Load the Cusimanse primary-agent contract and perform only the non-destructive contract check.'
+# [NORMAL SHELL — launches the agent with an agent prompt]
+prime-agent -p 'Load the Cusimanse primary-agent contract and perform only the non-destructive contract check. Do not invoke policyctl.'
 ```
 
 Prime Agent currently documents `-p/--print`, JSON/RPC modes, persistent sessions and evidence-bounded refinement. Its generated commands execute with user permissions, so Cusimanse still requires the external VM/OS security boundary. citeturn0search1turn0search2
@@ -250,6 +334,7 @@ Prime Agent currently documents `-p/--print`, JSON/RPC modes, persistent session
 Install/select:
 
 ```bash
+# [NORMAL SHELL]
 CUSIMANSE_PRIMARY_ADAPTER=codex ./scripts/prerequisites.sh
 ./scripts/agent-preflight.sh
 codex --help
@@ -257,17 +342,19 @@ codex --help
 
 Interactive:
 
-```bash
+```text
+# [AGENT SHELL]
 codex
 ```
 
-Use the installed Codex release's documented non-interactive mode only after checking `codex --help`. Do not infer Codex syntax from Goose or another adapter.
+Use the installed Codex release's documented non-interactive mode only after checking `codex --help`. Do not infer Codex syntax from Goose or another adapter. Any one-shot invocation is a normal-shell launch of the agent, while the prompt and resulting lifecycle remain agent-side.
 
 ### OpenCode
 
 Install/select:
 
 ```bash
+# [NORMAL SHELL]
 CUSIMANSE_PRIMARY_ADAPTER=opencode ./scripts/prerequisites.sh
 ./scripts/agent-preflight.sh
 opencode --help
@@ -275,14 +362,16 @@ opencode --help
 
 Interactive:
 
-```bash
+```text
+# [AGENT SHELL]
 opencode
 ```
 
 Non-interactive smoke test:
 
 ```bash
-opencode run 'Load the Cusimanse primary-agent contract and perform only the non-destructive contract check.'
+# [NORMAL SHELL — launches the agent with an agent prompt]
+opencode run 'Load the Cusimanse primary-agent contract and perform only the non-destructive contract check. Do not invoke policyctl.'
 ```
 
 OpenCode documents `opencode` for the TUI and `opencode run` for scripted/non-interactive use. citeturn1search1
@@ -290,9 +379,16 @@ OpenCode documents `opencode` for the TUI and `opencode run` for scripted/non-in
 ### Goose reference
 
 ```bash
+# [NORMAL SHELL]
 CUSIMANSE_PRIMARY_ADAPTER=goose ./scripts/prerequisites.sh
 ./scripts/agent-preflight.sh
 goose --help
+```
+
+Then:
+
+```text
+# [AGENT SHELL]
 goose
 ```
 
@@ -303,10 +399,11 @@ Goose remains the reference adapter for equivalence testing, not a permanent arc
 For each candidate adapter, compare the same `go-install-001` semantic run:
 
 ```text
+[AGENT SHELL]
 contract load
 → recipe load
-→ policy check
-→ shell smoke test
+→ experiment planning
+→ approval
 → VM experiment
 → instrumentation
 → evidence preservation
@@ -314,42 +411,57 @@ contract load
 → report
 ```
 
+Host-side policy validation remains outside the agent:
+
+```bash
+# [NORMAL SHELL]
+./policyctl validate
+```
+
 Keep Goose as the reference until the selected adapter demonstrates equivalent experiment semantics and acceptable audit/evidence output.
 
 ## 9. Evidence-bounded self-learning
 
 ```text
+[AGENT SHELL]
 verified run → compare → propose → validate/replay
 → independent verification → human approve → promote
 ```
 
-Learning may improve reviewed non-security recipe defaults, routing hints, adapter command templates and evidence-reduction heuristics. It cannot modify VM isolation, credentials, privileges, network allowlists, approval requirements or evidence-integrity rules at runtime.
+Learning may improve reviewed non-security recipe defaults, routing hints, adapter command templates and evidence-reduction heuristics. It cannot modify VM isolation, credentials, privileges, network allowlists, approval requirements or evidence-integrity rules at runtime. It also cannot take control of `policyctl` or use `policyctl` to alter host security policy.
 
 ## 10. Architecture
 
 ![Cusimanse deployment architecture](docs/images/cusimanse-deployment-architecture.svg)
 
 ```text
-Contracts / recipes
-       ↓
-Primary agent shell
-       ↓
-policy + approval
-       ↓
-Lima / QEMU VM boundary
-       ↓
-workload + instrumentation
-       ↓
-evidence → verification → report
-       ↓
-preserve → destroy
+NORMAL HOST SHELL
+  ├── bootstrap / prerequisites / selection / validation
+  └── policyctl (independent host-side policy/configuration + token observability)
+                         │
+                         │ policy state / validation result
+                         ▼
+PRIMARY AGENT SHELL
+  ├── contracts / recipes
+  ├── plan / approval / execution / orchestration
+  ├── instrumentation / collection / verification
+  └── report / preserve / destroy
+                         │
+                         ▼
+              Lima / QEMU VM + OS controls
+                         │
+                         ▼
+                 workload + instrumentation
+                         │
+                         ▼
+                 evidence → verification
 ```
 
 See `01-deployment-architecture.md` and `docs/agent-shell-runbook.md`.
 
 ## 11. CrewAI role-based analysis
 
-CrewAI is a good fit as a **research-analysis layer**, not as the sole security controller. The selected primary agent retains lifecycle authority and may delegate specialist analysis to Planner, Static Analyst, Runtime Analyst, Network Analyst, Malware/RE Analyst, Detection Engineer, Forensics Analyst, Independent Verifier and Reporter roles. Privileged operations return through the primary shell and Cusimanse approval/policy controls.
+CrewAI is a good fit as a **research-analysis layer**, not as the sole security controller. The selected primary agent retains lifecycle authority and may delegate specialist analysis to Planner, Static Analyst, Runtime Analyst, Network Analyst, Malware/RE Analyst, Detection Engineer, Forensics Analyst, Independent Verifier and Reporter roles. Privileged operations remain subject to the external host policy controls and Cusimanse approval/security boundary.
 
 ## 12. Recipes and contracts
 
@@ -377,7 +489,7 @@ CrewAI is a good fit as a **research-analysis layer**, not as the sole security 
 
 ## 14. Security boundary
 
-AI agents, prompts, skills, MCP servers, CrewAI and `policyctl` are **not** security boundaries. Enforcement comes from disposable VM/OS controls, filesystem/mount controls, credential separation, network controls and explicit approval gates.
+AI agents, prompts, skills, MCP servers and CrewAI are **not** security boundaries. `policyctl` is also **not** the sandbox boundary; it is deliberately kept outside the agent control plane as an independent host-side policy/configuration and token-observability utility. Enforcement comes from disposable VM/OS controls, filesystem/mount controls, credential separation, network controls and explicit approval gates.
 
 Use only systems and workloads you are authorized to test. Preserve and hash evidence before destroying disposable VMs.
 
