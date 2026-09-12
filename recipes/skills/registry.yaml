@@ -1,10 +1,30 @@
-version: 3
+version: 4
 id: skill-registry
 kind: skill-registry
 owner: project
 source: .agents/skills/
 external_sources:
   - recipes/reference/security-skill-sources.yaml
+external_candidates:
+  openai-security-best-practices:
+    source: openai-skills
+    upstream_path: skills/.curated/security-best-practices
+    purpose: secure-by-default code review
+    status: candidate-review-required
+  openai-security-threat-model:
+    source: openai-skills
+    upstream_path: skills/.curated/security-threat-model
+    purpose: repository-grounded threat modeling
+    status: candidate-review-required
+  openai-security-ownership-map:
+    source: openai-skills
+    upstream_path: skills/.curated/security-ownership-map
+    purpose: sensitive-code ownership and bus-factor analysis
+    status: candidate-review-required
+  anthropic-security-review-community:
+    source: anthropic-skills
+    purpose: community security-review skill candidates
+    status: candidate-review-required
 skills:
   evidence-reduction:
     path: .agents/skills/evidence-reduction.md
@@ -85,5 +105,6 @@ rules:
   - external reference data is enrichment, not evidence
   - external skills require source review before import
   - namespace or branding does not establish trust
+  - candidate skills remain NOT_DEPLOYED until reviewed and copied into the repository
   - unknown skills are NOT_DEPLOYED
   - missing skill capability is NOT_DEPLOYED
