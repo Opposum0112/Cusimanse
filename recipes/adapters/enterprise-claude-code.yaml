@@ -1,0 +1,18 @@
+version: 1
+id: enterprise-claude-code
+kind: enterprise-agent-adapter
+status: candidate
+command: claude
+contract: recipes/agents/primary-agent.yaml
+enterprise:
+  secrets: external-secret-store
+  audit: required
+  approvals: required-for-privileged-actions
+  network: deny-by-default
+execution:
+  project_recipe: recipes/routing/project.yaml
+  learning: recipes/agents/learning-loop.yaml
+constraints:
+  - never bypass policy or VM controls
+  - never expose host credentials
+  - never claim PASS without evidence
