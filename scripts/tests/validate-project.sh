@@ -27,10 +27,21 @@ test -f cmd/policyctl/main_test.go
 test -f recipes/goose/project.yaml
 test -f antigravity/README.md
 test -f grok/README.md
+test -f recipes/skills/registry.yaml
+test -f recipes/mcp/registry.yaml
+test -f recipes/tools/security-research.yaml
+test -f recipes/reference/security-research-databases.yaml
 
 grep -q 'owner: project' recipes/mcp/registry.yaml
 grep -q 'owner: project' recipes/skills/registry.yaml
 grep -q 'interface: adapter' recipes/tools/security-research.yaml
+grep -q 'mitre-attack:' recipes/mcp/registry.yaml
+grep -q 'nvd-cve:' recipes/mcp/registry.yaml
+grep -q 'cisa-kev:' recipes/mcp/registry.yaml
+grep -q 'mitre-attack:' recipes/reference/security-research-databases.yaml
+grep -q 'dynamic-analysis:' recipes/skills/registry.yaml
+grep -q 'detection-engineering:' recipes/skills/registry.yaml
+grep -q 'independent-verification:' recipes/skills/registry.yaml
 
 echo '== Go validation =='
 test -z "$(gofmt -l .)"
