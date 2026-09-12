@@ -4,7 +4,9 @@
 
 ## Role of external harnesses
 
-Antigravity, OpenCode, Codex and other harnesses may be useful development or research clients, but they are not the project execution authority in this architecture. Goose owns the project recipe workflow.
+Antigravity, OpenCode, Codex and other harnesses may be useful development or research clients. **Goose is the primary Cusimanse operator, executor and lifecycle orchestrator.** Compatible adapters consume the same Markdown contracts and YAML recipes.
+
+CrewAI is an optional role-based multi-agent orchestration framework. It can coordinate specialist research roles inside a declared Cusimanse run, but it is not a project controller and cannot bypass Goose, `policyctl`, approval, audit or VM/cloud enforcement.
 
 ## MCP and skills
 
@@ -14,7 +16,7 @@ The repository keeps capability definitions portable through:
 - `recipes/skills/registry.yaml`
 - `.agents/skills/`
 
-The registry is the project inventory; actual client configuration remains harness-specific.
+The registry is the project inventory; actual client configuration remains harness-specific. CrewAI roles must use the same approved tool, MCP and skill registries.
 
 ## Volatile external behavior
 
