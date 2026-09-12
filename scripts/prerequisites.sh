@@ -1,92 +1,74 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
 LOCAL_BIN="${HOME}/.local/bin"
-
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 log() { printf '%s\n' "$*"; }
 fail() { printf 'Prerequisite FAIL: %s\n' "$*" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
-
-OS="$(uname -s)"
-ARCH="$(uname -m)"
-DISTRO="unknown"
-if [ -r /etc/os-release ]; then
-  . /etc/os-release
-  DISTRO="${ID:-unknown}"
-fi
-
-log "Cusimanse prerequisite bootstrap"
-log "Detected OS=${OS} distro=${DISTRO} architecture=${ARCH}"
-mkdir -p "$LOCAL_BIN"
-export PATH="$LOCAL_BIN:$PATH"
-
+OS="$(uname -s)"; ARCH="$(uname -m)"; DISTRO="unknown"
+if [ -r /etc/os-release ]; then . /etc/os-release; DISTRO="${ID:-unknown}"; fi
+mkdir -p "$LOCAL_BIN" "$ROOT/.cusimanse"; export PATH="$LOCAL_BIN:$PATH"
 install_linux_packages() {
   local packages=(git bash curl python3 ruby golang)
   case "$DISTRO" in
-    ubuntu|debian|linuxmint|pop) packages+=(qemu-system-x86 qemu-utils) ;;
-    fedora|rhel|rocky|almalinux) packages+=(qemu-system-x86-core qemu-img) ;;
-    arch|manjaro) packages+=(qemu-desktop) ;;
-    opensuse*|sles) packages+=(qemu) ;;
-    *) fail "unsupported Linux distribution '$DISTRO'; install git, bash, curl, python3, ruby, Go and QEMU using its supported package manager" ;;
+    ubuntu|debian|linuxmint|pop) packages+=(qemu-system-x86 qemu-utils);;
+    fedora|rhel|rocky|almalinux) packages+=(qemu-system-x86-core qemu-img);;
+    arch|manjaro) packages+=(qemu-desktop);;
+    opensuse*|sles) packages+=(qemu);;
+    *) fail "unsupported Linux distribution '$DISTRO'";;
   esac
-
-  if ! have sudo && [ "$(id -u)" -ne 0 ]; then fail "sudo is required to install missing packages"; fi
+  if ! have sudo && [ "$(id -u)" -ne 0 ]; then fail 'sudo is required to install missing packages'; fi
   case "$DISTRO" in
-    ubuntu|debian|linuxmint|pop)
-      if have sudo; then sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}"; else apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}"; fi ;;
-    fedora|rhel|rocky|almalinux)
-      if have sudo; then sudo dnf install -y "${packages[@]}"; else dnf install -y "${packages[@]}"; fi ;;
-    arch|manjaro)
-      if have sudo; then sudo pacman -Sy --needed --noconfirm "${packages[@]}"; else pacman -Sy --needed --noconfirm "${packages[@]}"; fi ;;
-    opensuse*|sles)
-      if have sudo; then sudo zypper --non-interactive install "${packages[@]}"; else zypper --non-interactive install "${packages[@]}"; fi ;;
+    ubuntu|debian|linuxmint|pop) ${SUDO:-sudo} apt-get update && ${SUDO:-sudo} DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}";;
+    fedora|rhel|rocky|almalinux) ${SUDO:-sudo} dnf install -y "${packages[@]}";;
+    arch|manjaro) ${SUDO:-sudo} pacman -Sy --needed --noconfirm "${packages[@]}";;
+    opensuse*|sles) ${SUDO:-sudo} zypper --non-interactive install "${packages[@]}";;
   esac
 }
-
-if [ "$OS" = "Darwin" ]; then
-  have brew || fail "Homebrew is required on macOS for automated prerequisites"
-  brew install git python3 ruby go qemu lima
-elif [ "$OS" = "Linux" ]; then
-  missing=0
-  for tool in git bash curl python3 ruby go qemu-system-x86_64; do have "$tool" || missing=1; done
-  if [ "$missing" -eq 1 ]; then install_linux_packages; fi
-else
-  fail "unsupported host OS '$OS'; use a supported Linux/macOS host or install prerequisites manually"
-fi
-
+if [ "$OS" = "Darwin" ]; then have brew || fail 'Homebrew is required on macOS'; brew install git python3 ruby go qemu lima;
+elif [ "$OS" = "Linux" ]; then missing=0; for tool in git bash curl python3 ruby go qemu-system-x86_64; do have "$tool" || missing=1; done; [ "$missing" -eq 0 ] || install_linux_packages;
+else fail "unsupported host OS '$OS'"; fi
 if ! have limactl; then
-  if [ "$OS" = "Darwin" ] && have brew; then
-    brew install lima
-  elif [ "$OS" = "Linux" ]; then
-    case "$DISTRO" in
-      ubuntu|debian|linuxmint|pop) if have sudo; then sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y lima; else apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y lima; fi ;;
-      fedora|rhel|rocky|almalinux) if have sudo; then sudo dnf install -y lima; else dnf install -y lima; fi ;;
-      arch|manjaro) if have sudo; then sudo pacman -Sy --needed --noconfirm lima; else pacman -Sy --needed --noconfirm lima; fi ;;
-      opensuse*|sles) if have sudo; then sudo zypper --non-interactive install lima; else zypper --non-interactive install lima; fi ;;
-      *) fail "Lima is missing and this Linux distribution has no supported automated package path" ;;
-    esac
-  fi
+  if [ "$OS" = "Darwin" ]; then brew install lima; else case "$DISTRO" in
+    ubuntu|debian|linuxmint|pop) ${SUDO:-sudo} apt-get update && ${SUDO:-sudo} DEBIAN_FRONTEND=noninteractive apt-get install -y lima;;
+    fedora|rhel|rocky|almalinux) ${SUDO:-sudo} dnf install -y lima;; arch|manjaro) ${SUDO:-sudo} pacman -Sy --needed --noconfirm lima;;
+    opensuse*|sles) ${SUDO:-sudo} zypper --non-interactive install lima;; *) fail "Lima is missing and '$DISTRO' has no supported automated package path";; esac; fi
 fi
-
-# Goose's documented CLI installer, used only when Goose is absent.
-if ! have goose; then
-  curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash
-fi
-
-for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
-  if [ -f "$rc" ] && ! grep -Fq 'export PATH="$HOME/.local/bin:$PATH"' "$rc"; then
-    printf '\n# Cusimanse user-local tools\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$rc"
-  fi
-done
-
-missing=()
-for tool in git bash python3 ruby go qemu-system-x86_64 limactl goose; do
-  have "$tool" || missing+=("$tool")
-done
-
-if [ "${#missing[@]}" -ne 0 ]; then fail "required tools still missing: ${missing[*]}"; fi
-
-log "OS PASS: ${OS} ${DISTRO} ${ARCH}"
-log "Tools PASS: git bash python3 ruby go qemu-system-x86_64 limactl goose"
-log "Prerequisite PASS"
-log "Shell: source scripts/goose-env.sh before running Goose"
+if ! have goose; then curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash; fi
+adapter_available() { case "$1" in goose) have goose;; opencode) have opencode;; pi) have pi;; codex) have codex;; prime-intellect) have prime-agent;; grok-build|antigravity|claude-code|devin) return 1;; *) return 1;; esac; }
+install_adapter() { case "$1" in
+  goose) :;; opencode) if ! have opencode && have npm; then npm install -g opencode-ai; fi;;
+  pi) if ! have pi && have npm; then npm install -g @mariozechner/pi-coding-agent; fi;;
+  codex) if ! have codex && have npm; then npm install -g @openai/codex; fi;;
+  *) log "$1 is provider/manual-managed; no unverified installer is executed.";; esac; }
+select_primary() {
+  if [ -n "${CUSIMANSE_PRIMARY_ADAPTER:-}" ]; then printf '%s\n' "$CUSIMANSE_PRIMARY_ADAPTER"; return; fi
+  if [ ! -t 0 ]; then printf 'goose\n'; return; fi
+  cat <<'EOF'
+Select one primary Cusimanse operator:
+  1) goose
+  2) opencode
+  3) grok-build
+  4) antigravity
+  5) pi
+  6) codex
+  7) prime-intellect
+  8) claude-code (enterprise)
+  9) devin (enterprise)
+EOF
+  read -r -p 'Primary adapter [1-9]: ' choice
+  case "$choice" in 1) echo goose;; 2) echo opencode;; 3) echo grok-build;; 4) echo antigravity;; 5) echo pi;; 6) echo codex;; 7) echo prime-intellect;; 8) echo claude-code;; 9) echo devin;; *) fail 'invalid primary adapter selection';; esac
+}
+PRIMARY="$(select_primary)"; install_adapter "$PRIMARY"
+if ! adapter_available "$PRIMARY"; then case "$PRIMARY" in grok-build|antigravity|prime-intellect|claude-code|devin) log "Primary adapter '$PRIMARY': NOT_DEPLOYED — provider/manual setup required.";; *) fail "selected primary adapter '$PRIMARY' is unavailable";; esac; else log "Primary adapter '$PRIMARY': AVAILABLE"; fi
+cat > "$ROOT/.cusimanse/primary-agent.yaml" <<EOF
+version: 1
+primary_adapter: $PRIMARY
+contract: recipes/agents/primary-agent.yaml
+learning: recipes/agents/learning-loop.yaml
+selected_at: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+EOF
+for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do if [ -f "$rc" ] && ! grep -Fq 'export PATH="$HOME/.local/bin:$PATH"' "$rc"; then printf '\n# Cusimanse user-local tools\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$rc"; fi; done
+missing=(); for tool in git bash python3 ruby go qemu-system-x86_64 limactl goose; do have "$tool" || missing+=("$tool"); done
+[ "${#missing[@]}" -eq 0 ] || fail "required tools still missing: ${missing[*]}"
+log "OS PASS: ${OS} ${DISTRO} ${ARCH}"; log "Required tools PASS"; log "Primary adapter: $PRIMARY"; log "Prerequisite PASS"
