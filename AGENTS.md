@@ -1,8 +1,8 @@
-# AGENTS.md — AI Security Lab Rules
+# AGENTS.md — Cusimanse Rules
 
 ## Mission
 
-Build and operate a reproducible, disposable AI-assisted security research environment operated through a declared agent adapter and configured by modular recipes. Goose is the current reference adapter; the project is agent-neutral and may also be operated through compatible adapters such as Antigravity or Grok.
+Build and operate a reproducible, disposable AI-assisted security research environment operated through a declared agent adapter and configured by modular recipes. **Goose is the primary/reference operator, executor and lifecycle orchestrator.** Optional role-based frameworks such as CrewAI may coordinate specialist research roles without replacing Goose or the Cusimanse lifecycle contract.
 
 ## Mandatory rules
 
@@ -21,19 +21,20 @@ Build and operate a reproducible, disposable AI-assisted security research envir
 13. Record versions and reproducibility metadata.
 14. Prefer deterministic data reduction before LLM analysis.
 15. Treat skills as instructions, not privileges.
-16. Record material MCP, skill, policy and approval decisions in the audit layer.
+16. Record material MCP, skill, policy, orchestration and approval decisions in the audit layer.
+17. CrewAI is optional role orchestration only; it must not bypass Goose, policy, approval, audit or VM/cloud enforcement.
 
 ## Execution boundary
 
-The selected agent adapter is the project orchestrator/operator/executor for a run. Goose is the reference adapter, while Antigravity, Grok and future compatible adapters may implement the same project contracts. Do not introduce a competing project controller. `policyctl` is limited to host/security policy configuration and the local token-usage dashboard.
+Goose is the primary project orchestrator/operator/executor for a run. Other compatible adapters may implement the same project contracts. CrewAI can provide specialist role collaboration inside the declared orchestration recipe, but must return structured results to Goose rather than becoming a competing project controller. `policyctl` is limited to host/security policy configuration and the local token-usage dashboard.
 
 ## Privileged operations
 
-Treat sudo, host filesystem changes, SSH, cloud credentials, network reconfiguration and destructive non-disposable changes as approval-required.
+Treat sudo, host filesystem changes, SSH, cloud credentials, network reconfiguration, CrewAI orchestration activation and destructive non-disposable changes as approval-required.
 
 ## Evidence
 
-Claims must reference evidence. A plan or audit event is not a substitute for workload evidence.
+Claims must reference evidence. A plan, crew result or audit event is not a substitute for workload evidence.
 
 ## Completion
 
