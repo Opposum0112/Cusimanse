@@ -17,8 +17,8 @@ install_linux_packages() {
 if [ "$OS" = "Darwin" ]; then have brew || fail 'Homebrew is required on macOS'; brew install git python3 ruby go qemu lima; elif [ "$OS" = "Linux" ]; then missing=0; for tool in git bash curl python3 ruby go qemu-system-x86_64; do have "$tool" || missing=1; done; [ "$missing" -eq 0 ] || install_linux_packages; else fail "unsupported host OS '$OS'"; fi
 if ! have limactl; then if [ "$OS" = "Darwin" ]; then brew install lima; else case "$DISTRO" in ubuntu|debian|linuxmint|pop) ${SUDO:-sudo} apt-get update && ${SUDO:-sudo} DEBIAN_FRONTEND=noninteractive apt-get install -y lima;; fedora|rhel|rocky|almalinux) ${SUDO:-sudo} dnf install -y lima;; arch|manjaro) ${SUDO:-sudo} pacman -Sy --needed --noconfirm lima;; opensuse*|sles) ${SUDO:-sudo} zypper --non-interactive install lima;; *) fail "Lima is missing and '$DISTRO' has no supported automated package path";; esac; fi; fi
 if ! have goose; then curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash; fi
-adapter_available() { case "$1" in goose) have goose;; opencode) have opencode;; pi) have pi;; hermes) have hermes;; codex) have codex;; prime-intellect) have prime-agent;; *) return 1;; esac; }
-install_adapter() { case "$1" in goose) :;; opencode) if ! have opencode && have npm; then npm install -g opencode-ai; fi;; pi) if ! have pi && have npm; then npm install -g @mariozechner/pi-coding-agent; fi;; codex) if ! have codex && have npm; then npm install -g @openai/codex; fi;; *) log "$1 is provider/manual-managed; no unverified installer is executed.";; esac; }
+adapter_available() { case "$1" in goose) have goose;; opencode) have opencode;; pi) have pi;; hermes) have hermes;; codex) have codex;; prime-intellect) have prime-agent;; grok-build) have grok;; antigravity) have agy;; claude-code) have claude;; devin) return 1;; *) return 1;; esac; }
+install_adapter() { case "$1" in goose) :;; opencode) if ! have opencode && have npm; then npm install -g @opencode/cli; fi;; pi) if ! have pi && have npm; then npm install -g @earendil-works/pi-coding-agent; fi;; codex) if ! have codex && have npm; then npm install -g @openai/codex; fi;; *) log "$1 is provider/manual-managed; no unverified installer is executed.";; esac; }
 select_primary() { if [ -n "${CUSIMANSE_PRIMARY_ADAPTER:-}" ]; then printf '%s\n' "$CUSIMANSE_PRIMARY_ADAPTER"; return; fi; if [ ! -t 0 ]; then printf 'goose\n'; return; fi; cat <<'EOF'
 Select one primary Cusimanse operator:
   1) goose
@@ -39,6 +39,7 @@ cat > "$ROOT/.cusimanse/primary-agent.yaml" <<EOF
 version: 1
 primary_adapter: $PRIMARY
 contract: recipes/agents/primary-agent.yaml
+shell_contract: recipes/agents/primary-shell.yaml
 learning: recipes/agents/learning-loop.yaml
 selected_at: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 EOF
