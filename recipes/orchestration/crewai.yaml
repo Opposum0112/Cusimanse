@@ -1,0 +1,66 @@
+id: crewai-orchestration
+kind: orchestration
+framework: crewai
+mode: optional-role-based-multi-agent
+operator: goose
+purpose: Coordinate specialist research roles through CrewAI while Goose remains the primary Cusimanse operator, executor and lifecycle authority.
+
+preflight:
+  command: crewai --version
+  missing_state: NOT_DEPLOYED
+
+roles:
+  planner:
+    purpose: turn the experiment contract into a bounded research plan
+    apply: false
+  researcher:
+    purpose: investigate the declared research question and hypotheses
+    apply: false
+  runtime-analyst:
+    purpose: analyse runtime telemetry and execution behavior
+    apply: false
+  forensics:
+    purpose: reduce and analyse preserved evidence
+    apply: false
+  detection-analyst:
+    purpose: compare observed behavior with declared detection expectations
+    apply: false
+  verifier:
+    purpose: independently challenge and verify findings
+    apply: false
+  reporter:
+    purpose: produce a reproducible research report
+    apply: false
+
+flow:
+  - plan
+  - review
+  - approve
+  - execute
+  - collect
+  - analyse
+  - verify
+  - report
+
+integration:
+  input: Cusimanse experiment contract and blackboard artifacts
+  output: structured role results and recommendations for Goose
+  tools: recipes/tools/security-research.yaml
+  mcp: recipes/mcp/registry.yaml
+  skills: recipes/skills/registry.yaml
+
+safety:
+  crewai_is_security_boundary: false
+  bypass_goose: deny
+  bypass_policy: deny
+  bypass_approval: deny
+  direct_host_execution: deny
+  direct_cloud_execution: deny
+  secrets_to_agents: deny
+  evidence_required: true
+  independent_verification_required: true
+  unavailable_capability: NOT_DEPLOYED
+
+policy:
+  fail_closed: true
+  require_explicit_apply: true
