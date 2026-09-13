@@ -23,4 +23,14 @@ description: Reduce unnecessary agent context, tool calls, duplicated work, and 
 - failure/`NOT_DEPLOYED` states
 
 ## Session accounting
-Every agent/model/tool session should emit token usage when available: session ID, agent, model, input tokens, output tokens, tool-call count, cache usage, estimated cost, and optimization notes. Token accounting is observability only and cannot authorize actions.
+Every agent/model/tool session should emit token usage when available: session ID, agent, model, input tokens, output tokens, tool-call count, cache usage, estimated cost, and optimization notes.
+
+Start the localhost-only dashboard for a session with:
+
+```bash
+cusimanse-token-dashboard
+```
+
+The command is installed by the host installer under the observability/governance plane and uses `reports/token-usage/usage.json` by default. `policyctl token-dashboard` is the underlying policy-compatible dashboard interface. The dashboard is observability only: it cannot authorize execution, relax policy, or bypass the VM/OS boundary.
+
+If an upstream optimization executable such as Ponytail, Numbat, or Miller is unavailable, record it as `NOT_DEPLOYED` and retain the declarative skill/recipe fallback. Installation must never silently replace a missing security control with an optimization tool.
