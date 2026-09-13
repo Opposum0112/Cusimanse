@@ -19,6 +19,7 @@ test -f crewai/README.md
 test -f docs/images/cusimanse-mascot.svg
 test -f docs/images/cusimanse-logo.svg
 python3 -m json.tool manifest/PACKAGE-MANIFEST.json >/dev/null
+grep -q '^module github.com/Opposum0112/Cusimanse/packages/labprobe$' packages/labprobe/go.mod
 for adapter in antigravity claude-code codex devin enterprise-claude-code enterprise-devin goose grok-build hermes opencode pi prime-intellect; do test -f "recipes/adapters/$adapter.yaml" || { echo "FAIL: missing adapter $adapter" >&2; exit 1; }; done
 grep -q 'owner: project' recipes/mcp/registry.yaml
 grep -q 'owner: project' recipes/skills/registry.yaml
@@ -28,7 +29,8 @@ grep -q 'crew-orchestration' cmd/policyctl/main.go
 if [ -e scripts/bin/labctl ] || [ -d scripts/labctl ]; then echo 'FAIL: retired labctl remains' >&2; exit 1; fi
 for legacy in profiles.yaml state.yaml skills-registry.md 01-deployment-architecture.md 02-system-requirements.md 03-deployment-runbook.md 04-security-model.md 05-multi-agent-operating-model.md 06-observability-and-evidence.md 07-experiment-framework.md 08-go-install-001.md 09-operations-and-maintenance.md 10-validation-and-acceptance.md 11-current-antigravity-reference.md blackboard-schema.md PACKAGE-MANIFEST.json ai-security-lab-architecture.png ai-security-lab-experiment-workflow.png; do if [ -e "$legacy" ]; then echo "FAIL: legacy root file remains: $legacy" >&2; exit 1; fi; done
 if [ -d infra ]; then echo 'FAIL: retired duplicate infra tree remains' >&2; exit 1; fi
-if grep -Rni --exclude-dir=.git --exclude='*.sum' 'ai-security-lab' . >/tmp/cusimanse-legacy-refs.txt; then echo 'FAIL: legacy ai-security-lab references remain:' >&2; cat /tmp/cusimanse-legacy-refs.txt >&2; exit 1; fi
+legacy_project='ai-'"security-lab"
+if grep -Rni --exclude-dir=.git --exclude='*.sum' "$legacy_project" . >/tmp/cusimanse-legacy-refs.txt; then echo 'FAIL: legacy project references remain:' >&2; cat /tmp/cusimanse-legacy-refs.txt >&2; exit 1; fi
 if [ -e docs/research-workflow.md ]; then echo 'FAIL: duplicate research workflow document remains' >&2; exit 1; fi
 if [ -e docs/images/cusimanse-architecture.png ] || [ -e docs/images/cusimanse-workflow.png ]; then echo 'FAIL: duplicate architecture/workflow image remains' >&2; exit 1; fi
 
