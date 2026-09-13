@@ -1,42 +1,57 @@
 # 08 — go-install-001
 
-![Experiment workflow](../docs/images/cusimanse-workflow.png)
-
 ## Purpose
 
-Validate the complete recipe-driven Goose workflow using a pinned Go installation workload in disposable Lima/QEMU compute.
+Validate a recipe-driven Go installation workload inside disposable Lima/QEMU compute with VM-side instrumentation, durable evidence, independent verification and a reproducible research report.
 
-## Recipe composition
+## Contract → recipe example
 
-`recipes/experiments/go-install-001.yaml` selects the workload, host profile, compute profile, tools, instrumentation, monitoring, routing, reporting and token telemetry.
+This is the reference example for creating a Cusimanse experiment:
 
-## Run
+- **Contract:** this file defines purpose, scope, safety, evidence and acceptance.
+- **Experiment recipe:** `recipes/experiments/go-install-001.yaml` composes the host, VM, tools, instrumentation, agent, orchestration, audit, reporting and observability profiles.
+- **Workload recipe:** `recipes/workloads/go-install-001.yaml` defines the exact Go workload and declares that it executes only inside disposable compute.
+- **Session:** `runs/<session-id>/session.yaml` snapshots the selected profiles and tracks lifecycle state.
 
-Host first (once per machine):
+## Researcher execution
 
-```bash
-./scripts/install.sh
-source ./scripts/goose-env.sh
-bash ./scripts/tests/validate-project.sh
-```
-
-Then the experiment. Use `section=project` (this contract number is not a Goose parameter):
+From the Cusimanse repository root, use the **normal host shell** for preparation and agent startup:
 
 ```bash
-goose run --recipe recipes/goose/project.yaml --params experiment=go-install-001 --params section=project
+./scripts/cusimanse-host.sh
+./scripts/prerequisites.sh
+./scripts/agent-preflight.sh
+./policyctl validate
 ```
+
+Start the selected primary agent, for example:
+
+```bash
+goose
+```
+
+Then give the primary agent the experiment prompt from `docs/prompts/go-install-001.md`.
+
+The prompt causes the primary agent to validate the recipe, request approval, provision the disposable VM and start instrumentation. The actual workload is executed **inside the VM**, not on the host:
+
+```bash
+go install github.com/Opposum0112/ai-security-lab/packages/labprobe@v0.1.0
+```
+
+The agent then collects evidence, delegates specialist analysis, verifies findings, writes the report, finalizes the session and destroys the VM only after evidence preservation.
 
 ## Required evidence
 
 - workload execution record
 - process/syscall/network/filesystem evidence
-- evidence hashes
-- Goose/MCP/skill audit events
+- evidence hashes and provenance
+- agent/MCP/skill audit events when applicable
 - forensic findings
 - independent verification
 - reproducibility manifest
 - final research report
+- finalized token/session dashboard snapshot
 
 ## Acceptance
 
-PASS requires actual runtime evidence. If MCP, a collector, a backend or another capability is unavailable, record `NOT_DEPLOYED` or `PARTIAL`; never simulate execution.
+PASS requires actual disposable-compute runtime evidence and independent verification. If a capability is unavailable, record `NOT_DEPLOYED` or `PARTIAL`; never simulate execution.
