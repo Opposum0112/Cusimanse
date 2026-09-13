@@ -1,0 +1,93 @@
+{
+  "manifest_version": 5,
+  "package": "Cusimanse",
+  "license": "MIT",
+  "spdx": "MIT",
+  "architecture": {
+    "operator_model": "primary-agent-shell",
+    "shell_driven": true,
+    "orchestration_owner": "selected-primary-agent-shell",
+    "execution_owner": "selected-primary-agent-shell",
+    "lifecycle_owner": "selected-primary-agent-shell",
+    "security_boundary": "disposable-lima-qemu-vm-and-os-controls",
+    "host_scripts_role": "bootstrap-validation-preflight-only",
+    "architecture_source": "docs/architecture/cusimanse-architecture.svg",
+    "architecture_mermaid": "docs/architecture/cusimanse-architecture.mmd"
+  },
+  "source_of_truth": {
+    "contracts": "contracts/",
+    "recipes": "recipes/",
+    "policies": "policies/",
+    "agent_metadata": ".agents/",
+    "promoted_skills": "skills/",
+    "runtime_helpers": "scripts/",
+    "research_packages": "packages/"
+  },
+  "host_inventory": {
+    "profile": "recipes/host/research-host.yaml",
+    "tool_inventory": "recipes/tools/security-research.yaml",
+    "bootstrap": "scripts/prerequisites.sh",
+    "preflight": "scripts/agent-preflight.sh",
+    "policy": "policies/host-policy.yaml"
+  },
+  "primary_agent_contracts": [
+    "recipes/agents/primary-agent.yaml",
+    "recipes/agents/primary-shell.yaml",
+    "recipes/agents/learning-loop.yaml",
+    "recipes/agents/adapter-matrix.yaml",
+    "recipes/agent-selection.yaml"
+  ],
+  "adapter_contracts": [
+    "recipes/adapters/goose.yaml",
+    "recipes/adapters/opencode.yaml",
+    "recipes/adapters/grok-build.yaml",
+    "recipes/adapters/antigravity.yaml",
+    "recipes/adapters/pi.yaml",
+    "recipes/adapters/hermes.yaml",
+    "recipes/adapters/codex.yaml",
+    "recipes/adapters/prime-intellect.yaml",
+    "recipes/adapters/claude-code.yaml",
+    "recipes/adapters/devin.yaml"
+  ],
+  "runtime_documentation": [
+    "README.md",
+    "contracts/01-deployment-architecture.md",
+    "contracts/03-deployment-runbook.md",
+    "contracts/10-validation-and-acceptance.md",
+    "docs/system-requirements.md",
+    "docs/agent-shell-runbook.md"
+  ],
+  "experiment_prompts": [
+    "docs/prompts/go-install-001.md",
+    "docs/prompts/npm-install-001.md"
+  ],
+  "runtime_validation": {
+    "bootstrap": "scripts/prerequisites.sh",
+    "preflight": "scripts/agent-preflight.sh",
+    "repository_validation": "scripts/tests/validate-project.sh",
+    "policy_validation": "policyctl validate",
+    "reference_experiments": [
+      "experiments/go-install-001",
+      "experiments/npm-install-001"
+    ]
+  },
+  "shell_forms": {
+    "goose": {"interactive": "goose", "run": "verify with goose --help"},
+    "opencode": {"interactive": "opencode", "run": "opencode run '<PROMPT>'"},
+    "grok-build": {"interactive": "grok", "run": "grok -p '<PROMPT>'"},
+    "antigravity": {"interactive": "agy", "run": "verify with agy --help"},
+    "pi": {"interactive": "pi", "run": "pi -p '<PROMPT>'"},
+    "hermes": {"interactive": "hermes", "run": "TUI-first; use the installed Hermes interactive prompt flow"},
+    "codex": {"interactive": "codex", "run": "verify with codex --help"},
+    "prime-intellect": {"interactive": "prime-agent", "run": "prime-agent -p '<PROMPT>'"},
+    "claude-code": {"interactive": "claude", "run": "verify with claude --help"},
+    "devin": {"interactive": "provider-managed", "run": "provider-managed"}
+  },
+  "acceptance": {
+    "PASS": "runtime evidence plus required independent verification",
+    "PARTIAL": "incomplete required coverage",
+    "FAIL": "contract or safety violation",
+    "NOT_DEPLOYED": "provider/runtime/configuration unavailable or unverified"
+  },
+  "manifest_note": "The manifest is an architecture and source-of-truth inventory, not runtime evidence. Host tooling is declared in recipes/host and recipes/tools; bootstrap and preflight implement that inventory. Provider CLI versions and commands must be verified by preflight. Complete disposable-VM execution is required for runtime PASS."
+}
