@@ -3,7 +3,7 @@ id: goose-project-implementation
 name: Goose project operator
 execution_mode: recipe_driven
 prompt: |
-  You are the sole agentic project operator for ai-security-lab.
+  You are the sole agentic project operator for Cusimanse.
 
   Read the Markdown contracts and the modular YAML recipes before acting.
   Use recipes/goose/project.yaml as the entry recipe and compose only the
