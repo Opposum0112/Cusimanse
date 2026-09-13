@@ -1,8 +1,14 @@
-version: 1
+version: 2
 id: research-host
 kind: host-profile
 execution_surface: host
 tools_recipe: recipes/tools/security-research.yaml
+bootstrap:
+  script: scripts/prerequisites.sh
+  mode: capability-driven
+preflight:
+  script: scripts/agent-preflight.sh
+  source_of_truth: recipes/tools/security-research.yaml
 agents:
   planner: read-only
   reviewer: read-only
@@ -17,3 +23,7 @@ host_monitoring:
   bind_address: 127.0.0.1
 host_mounts_to_vm: []
 credentials_to_vm: deny
+boundary:
+  vm_provider: lima
+  vm_backend: qemu
+  workload_execution: disposable-vm-only
