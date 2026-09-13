@@ -1,212 +1,460 @@
 # 🦝 Cusimanse
 
-<p align="center">
-  <img src="docs/images/cusimanse-mascot.svg" alt="Cusimanse mascot — curious cyber raccoon for security research" width="1000">
-</p>
-
 > **Autonomous, agentic security research platform for controlled workload detonation, runtime analysis, anomaly detection and evidence extraction inside disposable virtual machines.**
 
-[![CI](https://github.com/Opposum0112/Cusimanse/actions/workflows/validate.yml/badge.svg)](https://github.com/Opposum0112/Cusimanse/actions/workflows/validate.yml) [![Go](https://img.shields.io/badge/Go-1.23%2B-00ADD8?logo=go)](https://go.dev/) [![Shell](https://img.shields.io/badge/Shell-Bash-4EAA25?logo=gnubash)](https://www.gnu.org/software/bash/) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Release](https://img.shields.io/github/v/release/Opposum0112/Cusimanse?include_prereleases&label=release)](https://github.com/Opposum0112/Cusimanse/releases)
+**Architecture Refactor branch:** this branch adds stateful orchestration, Taskflow-style campaign recipes, self-learning primary-agent contracts, evidence-bounded skill promotion, additional tools and MCP profiles. **`main` is unchanged.**
 
-Cusimanse is named after the hyper-curious mongoose that obsessively flips over every leaf and stone to uncover hidden details. The platform applies the same curiosity to software workloads: provision an isolated environment, observe execution, collect evidence, analyze behavior and preserve artifacts for independent verification.
+## 1. What Cusimanse is
 
-## About
+Cusimanse is an agent-neutral security research platform. It lets a researcher describe an experiment, select a primary terminal agent, provision a disposable Lima/QEMU VM, observe execution, collect evidence, verify findings and preserve artifacts before destruction.
 
-Cusimanse is a **research and experimentation platform**, not a production malware sandbox. It combines disposable Lima/QEMU virtual machines with agent adapters, composable recipes, instrumentation, policy checks, evidence handling and optional observability integrations. The design keeps experiment semantics independent from the agent used to operate them.
+It deliberately separates responsibilities:
 
-**Status:** `v1.0.0-beta.1` — early beta. Strangers should treat the first successful outcome as **host install + lint**, not a proven VM sandbox.
+```text
+YAML recipe / campaign
+        ↓
+Taskflow-style task semantics
+        ↓
+LangGraph stateful execution
+        ↓
+Primary agent adapter
+        ↓
+Cusimanse experiment
+        ↓
+Lima + QEMU + VM/OS security boundary
+        ↓
+Evidence + telemetry + audit
+        ↓
+Case/evidence store
+        ↓
+Voyager-style skill learning
+        ↓
+SKILL.md + deterministic scripts
+        ↓
+Replay + independent verification + approval
+        ↓
+Validated skill library
+```
 
-## Limitations
+### Core principle
 
-Read this before cloning.
+> **Markdown specifies. YAML configures. Agent adapters operate. Policy constrains. Audit records. Evidence proves. Learning reuses only what has been verified.**
 
-- **This is a beta research lab, not a product.** APIs, recipes and adapters can change. There is no claim of sandbox-escape resistance or production security certification.
-- **Green CI is lint only.** GitHub Actions checks shell syntax, ShellCheck, `gofmt`, `go vet`, `policyctl` unit tests and file presence. It does **not** boot Lima, run `go-install-001`, or exercise MCP/skills.
-- **The only implemented operator path is Goose.** OpenCode, Grok Build and Antigravity are documented targets (`NOT_DEPLOYED`) until an adapter directory gives a concrete command.
-- **Skills and MCP registries are contracts.** Declared servers/skills are not a running MCP stack. Missing pieces must be reported as `NOT_DEPLOYED`.
-- **You must configure Goose yourself.** Model provider and API keys live in your user environment. They must never be committed.
-- **Host coverage is uneven.** `scripts/prerequisites.sh` targets common Linux distros and macOS with Homebrew. Unsupported distros fail closed. x86_64 is the tested baseline; arm64 is `PARTIAL` until you evidence it.
-- **`jq` / `yq` / `ripgrep` / collectors are not installed by default.** Experiments select them. Absence is `NOT_DEPLOYED`, not a silent substitute.
-- **`install.sh` does not start an experiment.** It only prepares the host and builds `./policyctl`.
-- **Do not pass document numbers as Goose `section`.** Use `section=project` for the full reference run. `01`–`11` are Markdown chapters.
-- **Do not publish credentials, private workload data, or unredacted evidence.**
-- **Use only systems and software you are authorized to test.**
+Cusimanse is a research platform, not a production malware sandbox or a claim of sandbox-escape resistance.
 
-A stranger-ready test stops at step 3 below if Goose or a VM is not available. That is still a valid result.
+## 2. The architecture in simple terms
 
-## How to start
+There are several different problems here. Do not solve them with one framework.
 
-Tested intent: a Linux or macOS host with sudo/Homebrew, ~16 GB RAM, 50 GB+ free disk, and Git.
+| Problem | Component | Meaning |
+|---|---|---|
+| Research definition | YAML | What should be investigated? |
+| Workflow recipe | Taskflow-style YAML | What tasks happen and in what dependency order? |
+| Runtime state | LangGraph | Where is this case in its execution graph? |
+| Agent operation | Adapter | Which terminal agent performs the work? |
+| Isolation | Lima/QEMU + VM/OS | Where can untrusted work execute? |
+| Evidence | Run artifacts | What actually happened? |
+| Case memory | Evidence/case store | What artifacts, findings and provenance exist? |
+| Retrieval | Vector/semantic index | Which prior capabilities are relevant? |
+| Learning | Voyager-style loop | How can a demonstrated procedure become reusable? |
+| Skill package | SKILL.md + scripts | How is a reusable capability packaged? |
+| Verification | Replay + independent check | Does the capability really work? |
+| Governance | Human approval + policy | Should it be promoted or executed? |
+| Tool access | MCP | Which scoped tools are exposed? |
+| Host policy | `policyctl` | Host-side configuration and token observability |
 
-Clone (private repo: you need access), then work from the repository root.
+No AI framework is the security boundary. The VM/OS, mounts, credentials, privilege and network controls are the security boundary.
+
+## 3. Two command planes
+
+### Normal host shell
+
+Use the normal shell for Git, prerequisite installation, adapter selection, preflight, validation, `policyctl`, host setup and post-run inspection.
+
+### Agent shell
+
+The selected primary agent operates the experiment: loading contracts, planning, requesting approval, provisioning/operating the VM, instrumentation, workload execution, evidence collection, analysis, verification, reporting and preservation.
+
+`policyctl` remains **outside the agent control plane**. It is not the orchestrator, sandbox, agent harness or enforcement boundary.
+
+## 4. Where GitHub Security Lab Taskflow fits
+
+GitHub Security Lab Taskflow is used as a **reference for YAML taskflow semantics**, not as the entire Cusimanse platform.
+
+The useful idea is to represent a campaign as a sequence of reusable tasks, agent roles, dependencies, completion requirements, handoffs and approval points.
+
+```text
+Taskflow-style YAML
+        ↓
+   Campaign tasks
+        ↓
+    LangGraph
+        ↓
+  Case execution
+```
+
+Cusimanse adds the pieces Taskflow alone does not define for this project: disposable VM isolation, evidence provenance, verification, skill promotion and the existing agent-adapter contract.
+
+Reference recipe: `recipes/workflows/security-research-taskflow.yaml`.
+
+## 5. Where LangGraph fits
+
+LangGraph is the **stateful execution layer**. It should track runtime state and checkpoints, not become the authoritative evidence archive.
+
+Typical case state:
+
+```text
+case_id
+campaign_id
+current_node
+current_hypothesis
+retrieved_skills
+tool_traces
+execution_ids
+pending_hitl
+status
+```
+
+Typical graph:
+
+```text
+Discover → Validate → Retrieve → Plan → Review → Approve
+→ Provision → Instrument → Execute → Collect → Analyze
+→ Verify → Learn → Promote → Preserve → Destroy
+```
+
+The durable case/evidence store remains responsible for artifact identity, findings, execution records, verification and provenance.
+
+## 6. Where Voyager-style learning fits
+
+Voyager is a **learning pattern**, not a required runtime dependency.
+
+The Cusimanse adaptation is:
+
+```text
+New task
+   ↓
+Retrieve relevant skills
+   ↓
+Execute selected capability
+   ↓
+Observe evidence
+   ↓
+Success? ── No ──→ refine candidate ──→ retry
+   │
+  Yes
+   ↓
+Create candidate skill
+   ↓
+Replay on distinct artifact
+   ↓
+Independent verification
+   ↓
+Human approval
+   ↓
+Versioned validated skill
+   ↓
+Index for future retrieval
+```
+
+A single successful LLM interaction does **not** automatically become trusted knowledge. Skills have provenance, capability metadata, evaluation history and promotion state.
+
+### Skill package
+
+```text
+skills/
+└── validated/
+    └── evidence-pe-import-analysis/
+        ├── SKILL.md
+        ├── scripts/
+        ├── references/
+        └── eval/
+```
+
+`SKILL.md` describes the capability; deterministic scripts perform repeatable operations; references explain context; evaluation cases establish whether the capability works.
+
+## 7. Self-learning primary adapters: Prime Agent and Hermes
+
+Prime Agent and Hermes are optional **primary agent/operator adapters**. They can provide agent-native skills, memory, iterative work and self-improvement mechanisms. Cusimanse surrounds those capabilities with an evidence and promotion contract.
+
+### Prime Agent
+
+```text
+Cusimanse campaign
+       ↓
+Prime Agent session
+       ↓
+Retrieve/use candidate skills
+       ↓
+Operate approved experiment in VM
+       ↓
+Capture traces + evidence
+       ↓
+Candidate capability
+       ↓
+Cusimanse replay/evaluation
+       ↓
+Independent verification
+       ↓
+Human approval
+       ↓
+Validated SKILL.md
+```
+
+Prime's own generated commands, subagents, memory or refinements are not evidence and do not bypass the VM boundary.
+
+### Hermes
+
+```text
+Cusimanse case
+       ↓
+Hermes session
+       ↓
+Native skills/memory + retrieved Cusimanse skills
+       ↓
+Approved VM operation
+       ↓
+Evidence + execution trace
+       ↓
+Candidate skill
+       ↓
+Replay + independent verification
+       ↓
+Promotion gate
+```
+
+The same shared `recipes/agents/self-learning-primary.yaml` contract is used for both adapters. Installation/provider setup remains explicit and must be verified on the target host; credentials never belong in Git.
+
+### Why this separation matters
+
+Agent self-improvement asks: **“How can the agent become better at performing tasks?”**
+
+Cusimanse institutional learning asks: **“What capability have we demonstrated strongly enough to preserve and reuse?”**
+
+The second question requires evidence, provenance and verification.
+
+## 8. Campaign example
+
+`recipes/campaigns/security-research-learning.yaml` demonstrates the intended campaign model:
+
+```yaml
+id: security-research-learning
+version: 1.0
+kind: campaign
+roles: [hunter, soc_analyst, detection_engineer, tool_integrator]
+stages:
+  - discover
+  - retrieve
+  - plan
+  - approve
+  - execute
+  - collect
+  - analyze
+  - verify
+  - learn
+  - promote
+promotion:
+  minimum_validated_cases: 2
+  minimum_distinct_artifacts: 2
+  require_replay: true
+  require_independent_verification: true
+  require_human_approval: true
+```
+
+This keeps campaign semantics in YAML instead of hard-coding a monolithic Python workflow.
+
+## 9. Evidence-bounded learning
+
+A learned capability should be represented with relations such as:
+
+```text
+Artifact ──→ Finding
+Artifact ──→ SkillCandidate
+Skill ──→ Execution ──→ Artifact
+Execution ──→ Verification
+Skill ──→ validated_on / failed_on / derived_from
+```
+
+Promotion policy is defined in `recipes/learning/skill-promotion.yaml`.
+
+Required gates include:
+
+- two validated cases
+- two distinct artifacts
+- replay
+- independent verification
+- provenance
+- capability manifest
+- false-positive threshold
+- human approval
+
+Rejected candidates and failed evaluations remain recorded rather than silently disappearing.
+
+## 10. MCP architecture
+
+MCP provides scoped access to tools and research data. The Architecture Refactor profile is in `recipes/mcp/architecture-refactor.yaml`.
+
+Conceptually:
+
+```text
+Agent
+  ↓
+MCP
+  ├── repo/evidence access
+  ├── VM control
+  ├── policy information
+  ├── ATT&CK/CVE/KEV enrichment
+  ├── Sigma/YARA references
+  └── observability
+```
+
+Security rules:
+
+- stdio/local binding is preferred
+- public exposure is denied
+- privileged actions require approval
+- secrets are never passed as MCP arguments
+- external enrichment is cited and audited
+- unknown integrations are `NOT_DEPLOYED`
+
+MCP is a tool-access mechanism, not a security boundary.
+
+## 11. Additional tool stack
+
+The optional Architecture Refactor toolset can be requested with:
+
+```bash
+CUSIMANSE_INSTALL_ARCH_REFACTOR=1 ./scripts/prerequisites.sh
+```
+
+It attempts to install:
+
+| Area | Tools |
+|---|---|
+| Core/runtime | Git, Bash, curl, Python, Go, Ruby, QEMU, Lima |
+| Data/transform | jq, yq, ripgrep, SQLite |
+| Binary analysis | file, binutils, strings/objdump, strace, lsof |
+| Network | tcpdump, tshark/wireshark CLI |
+| Detection | YARA where packaged |
+| Stateful learning | LangGraph, PyYAML |
+| Retrieval | Chroma and Qdrant Python clients |
+| Observability | OpenTelemetry Python API/SDK |
+
+The list is a capability inventory, not a requirement that every experiment use every tool. Missing optional components remain `NOT_DEPLOYED`.
+
+Prime Agent and Hermes are deliberately explicit adapter installations rather than silently downloading model-agent runtimes or consuming credentials.
+
+## 12. Repository structure
+
+The Architecture Refactor adds dedicated locations without replacing the existing structure:
+
+```text
+Cusimanse/
+├── .agents/
+│   ├── agents/                  # agent role instructions
+│   ├── skills/                  # reusable operator skills
+│   └── mcp_config.json          # agent MCP configuration
+├── recipes/
+│   ├── agents/                  # primary-agent contracts
+│   ├── campaigns/               # research campaign semantics
+│   ├── experiments/             # experiment definitions
+│   ├── install/                 # installation/bootstrap
+│   ├── instrumentation/         # runtime instrumentation
+│   ├── learning/                # skill learning/promotion
+│   ├── lima/                    # VM profiles
+│   ├── mcp/                     # MCP registries/profiles
+│   ├── orchestration/            # execution engines
+│   ├── routing/                 # adapter routing
+│   ├── stages/                  # composable stages
+│   ├── tools/                   # tool contracts
+│   └── workflows/               # Taskflow-style workflows
+├── skills/
+│   └── validated/               # versioned validated capabilities
+├── tools/
+│   └── architecture-refactor/   # architecture tool inventory
+├── experiments/
+│   └── go-install-001/           # existing reference experiment
+├── scripts/
+│   ├── prerequisites.sh
+│   └── tests/architecture-refactor.sh
+├── cmd/policyctl/                # host-side policy utility
+├── docs/
+│   ├── architecture-refactor.md
+│   └── runtime-architecture.md
+└── README.md
+```
+
+The existing experiment and Goose path remain compatibility baselines.
+
+## 13. Installation
+
+### Baseline
 
 ```bash
 git clone https://github.com/Opposum0112/Cusimanse.git
 cd Cusimanse
-git checkout main
-```
-
-### Step 1 — Host install (required)
-
-```bash
-./scripts/install.sh
-```
-
-Expect `Install PASS (host tools + policyctl)`.
-
-This installs missing packages when the OS is supported (Git, Bash, Python 3, Go, QEMU, Lima, Goose CLI), writes `./policyctl`, and runs `policyctl validate`. It does **not** start Goose or a VM.
-
-If this fails, stop. Fix the host (unsupported distro, missing sudo, no Homebrew on macOS, no `qemu-system-x86_64` on PATH). Do not continue to Goose.
-
-### Step 2 — Environment (each new shell)
-
-```bash
-source ./scripts/goose-env.sh
-```
-
-This sets project paths only. No secrets.
-
-### Step 3 — Lint / policy check (stranger-complete if you stop here)
-
-```bash
+git checkout architecture-refactor
+./scripts/prerequisites.sh
+./policyctl validate
 bash ./scripts/tests/validate-project.sh
 ```
 
-Expect `PASS project validation`.
-
-This is the same class of check as CI. It is **not** evidence that a disposable VM experiment works.
-
-### Step 4 — Goose config (you do this outside git)
-
-1. Confirm `command -v goose` succeeds (step 1 should have installed the CLI if it was missing).
-2. Configure Goose’s model/provider using Goose’s own docs.
-3. Put any API key in your shell or Goose user config — **never in this repository.**
-
-If you cannot configure a provider, stop. Record Goose as `NOT_DEPLOYED`. Steps 1–3 were still a successful stranger test of the install path.
-
-### Step 5 — Bootstrap recipes (optional, needs Goose)
+### Architecture Refactor optional stack
 
 ```bash
-goose run --recipe recipes/install/project-bootstrap.yaml
+CUSIMANSE_INSTALL_ARCH_REFACTOR=1 ./scripts/prerequisites.sh
+bash ./scripts/tests/architecture-refactor.sh
 ```
 
-### Step 6 — Reference experiment (optional, needs Goose + Lima/QEMU + approval)
+### Agent selection
 
 ```bash
-goose run \
-  --recipe recipes/goose/project.yaml \
-  --params experiment=go-install-001 \
-  --params section=project
+export CUSIMANSE_PRIMARY_ADAPTER=goose
+# or
+export CUSIMANSE_PRIMARY_ADAPTER=prime-agent
+# or
+export CUSIMANSE_PRIMARY_ADAPTER=hermes
 ```
 
-Use `section=project` only. Privileged or VM actions should wait for human approval. Preserve and hash evidence before any VM destroy.
+An adapter is not `PASS` merely because its name is configured. The CLI, provider and adapter contract must be available and exercised.
 
-Lifecycle if the operator path works:
+## 14. Runtime usage
+
+### Phase A — normal shell
+
+```bash
+./policyctl validate
+bash ./scripts/tests/architecture-refactor.sh
+```
+
+### Phase B — select and preflight the agent
+
+Verify the selected CLI and provider configuration. Keep API keys outside Git.
+
+### Phase C — load the campaign
+
+The agent loads:
 
 ```text
-Discover → Validate → Preflight → Install → Plan → Review → Approve
-→ Provision → Instrument → Execute → Collect → Reduce → Forensics
-→ Independent verification → Report → Preserve → Destroy
+recipes/campaigns/security-research-learning.yaml
+recipes/workflows/security-research-taskflow.yaml
+recipes/orchestration/langgraph.yaml
+recipes/agents/self-learning-primary.yaml
 ```
 
-More detail: [`03-deployment-runbook.md`](03-deployment-runbook.md). Requirements: [`02-system-requirements.md`](02-system-requirements.md).
+### Phase D — retrieve skills
 
-### What “worked” means
+Candidate skills are filtered by capability metadata, risk tier, tool requirements and validation state. Retrieval ranking alone never grants authority.
 
-| You reached | Honest result |
-|---|---|
-| Step 3 `PASS project validation` | Host install + lint works. Publish-worthy as a **beta install path**. |
-| Step 5 Goose recipe runs without inventing tools | Goose adapter can load contracts. |
-| Step 6 leaves hashed evidence under `runs/<id>/` before VM destroy | Reference experiment exercised. Only then may that run be `PASS`. |
+### Phase E — execute
 
-## What Cusimanse does
+The primary agent operates the approved experiment. The workload executes inside the disposable VM. Instrumentation starts before execution where the experiment requires it.
 
-```text
-Experiment contract
-       ↓
-Agent adapter
-(Goose / OpenCode / Grok Build / Antigravity)
-       ↓
-recipes + MCP + skills + policy
-       ↓
-plan → review → approval
-       ↓
-disposable Lima / QEMU VM
-       ↓
-instrument → execute → collect
-       ↓
-blackboard + evidence + telemetry
-       ↓
-reduce → forensics → verify
-       ↓
-report → preserve → destroy
-```
+### Phase F — evidence
 
-The platform is **agent-neutral**. Goose is the current reference adapter, not the project identity. Adapter-specific prompts, tool wiring and integration details stay at the adapter boundary; experiment semantics remain shared.
+Preserve raw artifacts, telemetry, audit records, reductions and verification records. Hash evidence before VM destruction.
 
-## Deployment architecture
-
-The deployment model separates the **agent/operator plane** from the **VM/OS enforcement boundary**. Shared contracts define experiment semantics; adapters operate approved actions; disposable Lima/QEMU VMs contain the workload; instrumentation and evidence pipelines provide the basis for analysis and verification.
-
-![Cusimanse deployment architecture](docs/images/cusimanse-deployment-architecture.svg)
-
-**Control flow:** `Intent → Contract → Adapter → Policy/Approval → Disposable VM → Instrument → Execute → Collect → Verify → Preserve → Destroy`
-
-For the detailed deployment layers, boundaries and lifecycle, see [`01-deployment-architecture.md`](01-deployment-architecture.md).
-
-## Security boundary
-
-AI agents, prompts, skills, MCP servers and `policyctl` are **not** security boundaries. Enforcement comes from the VM/OS boundary, filesystem and mount controls, credential separation, network controls and explicit approval gates.
-
-Key invariants:
-
-- Untrusted workloads run in disposable VMs.
-- Host credentials and unrestricted host mounts are denied.
-- Privileged and destructive operations require approval.
-- Public MCP/gateway exposure is denied by default.
-- Instrumentation starts before the target workload.
-- Evidence is preserved and hashed before VM destruction.
-- Important findings require independent verification.
-- Missing integrations are reported as `NOT_DEPLOYED`, never silently substituted.
-- AI assertions are never treated as evidence.
-
-See [`04-security-model.md`](04-security-model.md) and [`SECURITY.md`](SECURITY.md).
-
-## Recipes and composition
-
-Recipes are intentionally small and composable. Do not turn the project recipe into a monolith.
-
-| Concern | Recipe family |
-|---|---|
-| Experiments | `recipes/experiments/` |
-| Workloads | `recipes/workloads/` |
-| Routing | `recipes/routing/` |
-| Installation | `recipes/install/` |
-| Host profile | `recipes/host/` |
-| VM profile | `recipes/lima/` |
-| Tools | `recipes/tools/` |
-| Instrumentation | `recipes/instrumentation/` |
-| Agent monitoring | `recipes/agent-monitoring/` |
-| Agent roles | `recipes/agents/` |
-| Orchestration/stages | `recipes/orchestration/`, `recipes/stages/` |
-| Reporting | `recipes/reporting/` |
-| MCP | `recipes/mcp/` |
-| Skills | `recipes/skills/` |
-| Audit | `recipes/audit/` |
-
-`recipes/goose/project.yaml` is the reference Goose adapter composition. Other adapters must consume the same project contracts.
-
-## Agent adapters
-
-**Goose** — current reference operator/executor.
-
-**OpenCode**, **Grok Build**, and **Antigravity** are documented adapter *targets*. They are `NOT_DEPLOYED` until an adapter directory documents a concrete command. Do not treat those names as installers.
-
-An adapter must not bypass policy, suppress audit, expose credentials, alter experiment semantics or claim `PASS` without evidence.
-
-## Observation and evidence
-
-Cusimanse treats runtime artifacts as the source of truth. Typical run output is:
+Typical run layout:
 
 ```text
 runs/<run-id>/
@@ -221,60 +469,38 @@ runs/<run-id>/
 └── manifest.json
 ```
 
-The blackboard is coordination metadata, not evidence. Large raw evidence should be deterministically reduced before LLM analysis where practical while retaining the original artifacts.
+### Phase G — learning
 
-Optional monitoring integrations include OpenTelemetry, Phoenix, Numbat and ADR. These provide observability/detection capabilities, not isolation boundaries.
+If the experiment reveals a reusable procedure, create a candidate skill. Evaluate it independently, replay it on a distinct artifact and request human promotion.
 
-## `policyctl`
+### Phase H — cleanup
 
-Build it with `./scripts/install.sh` or `go build -o policyctl ./cmd/policyctl`. `policyctl` is deliberately narrow: host/security policy configuration and the local token-usage dashboard. It is **not** the experiment controller, sandbox or agent harness.
+Only after preservation and hashing should the disposable VM be destroyed.
+
+## 15. Integration testing with the existing architecture
+
+Run:
 
 ```bash
-./policyctl show
-./policyctl validate
-./policyctl check --action credentials
-./policyctl check --action mounts
-./policyctl check --action host-root
-./policyctl check --action sudo
-./policyctl check --action vm
-./policyctl check --action network
-./policyctl check --action git-write
-./policyctl check --action push
-./policyctl token-dashboard
+bash ./scripts/tests/architecture-refactor.sh
 ```
 
-A policy decision is not enforcement by itself; the adapter must honor it and host/VM controls enforce it.
+The integration validation checks:
 
-## Validation and CI
+1. new architecture files and contracts exist
+2. shell syntax is valid
+3. YAML contracts parse when PyYAML is available
+4. Go formatting and `go vet` remain clean
+5. the existing project validation still passes
+6. `recipes/goose/project.yaml` remains referenced
+7. `go-install-001` remains referenced
+8. policyctl remains outside the agent control plane
+9. Lima/QEMU remains the documented security boundary
+10. independent verification remains a skill-promotion requirement
 
-Local validation includes recipe YAML parsing, shell syntax, architecture checks, Go formatting, `go vet`, unit tests, build checks and policy checks. Optional Python tests run when test modules are present.
+This is a **static/integration validation**, not a claim that a VM was booted. A runtime `PASS` requires actual execution and preserved evidence.
 
-GitHub Actions validates pushes and pull requests with least-privilege read permissions, concurrency cancellation, pinned action revisions, shell checks and Go checks. Dependency update automation covers Go modules and GitHub Actions.
-
-The release workflow packages the repository from an immutable version tag and publishes checksums with the GitHub release. Release artifacts are generated from Git history rather than from a developer working tree.
-
-Do not describe a capability as `PASS` unless it was actually exercised with evidence.
-
-## Contributing
-
-Bug reports, documentation fixes, tests, recipes and adapter improvements are welcome. Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a pull request.
-
-- **Bug:** use the bug-report issue template and include reproducible steps, environment details and relevant logs with secrets removed.
-- **Security vulnerability:** do **not** open a public issue; follow [`SECURITY.md`](SECURITY.md).
-- **Feature/change:** explain the experiment or operator contract being improved and include tests or validation evidence where practical.
-- **Pull requests:** keep changes focused, preserve security invariants and wait for required CI checks.
-
-## Reporting bugs and security issues
-
-For ordinary defects, use GitHub Issues with the **Bug Report** template. For vulnerabilities involving credential exposure, host escape, unsafe mounts, privilege escalation, malicious workflow changes or other security-sensitive behavior, use the private reporting process described in [`SECURITY.md`](SECURITY.md).
-
-Please never publish credentials, tokens, private keys, sensitive workload data or unredacted forensic artifacts in an issue or pull request.
-
-## Beta release policy
-
-`v1.0.0-beta.*` releases are pre-production research releases. They are intended for authorized, controlled environments and may contain incomplete integrations or breaking changes. A beta release is not a claim of production security certification, sandbox escape resistance or operational completeness.
-
-## Acceptance states
+## 16. Acceptance states
 
 | State | Meaning |
 |---|---|
@@ -282,34 +508,71 @@ Please never publish credentials, tokens, private keys, sensitive workload data 
 | `PARTIAL` | Capability worked but coverage/evidence is incomplete |
 | `FAIL` | Tested behavior did not meet the contract |
 | `NOT_DEPLOYED` | Capability unavailable or intentionally disabled |
+| `CANDIDATE` | Skill generated from evidence but not yet promoted |
+| `VALIDATED` | Skill passed the required verification/promotion gates |
 
-Configuration is not evidence. AI output is not evidence.
+Configuration is not evidence. AI output is not evidence. Retrieval ranking is not validation.
 
-## Responsible use
+## 17. Security model
 
-Use Cusimanse only against systems, software and workloads you own or are explicitly authorized to test. Untrusted workloads should run in disposable Lima/QEMU VMs. Never give an agent unrestricted host access or credentials merely because a prompt requests them.
+```text
+              Agent / LLM
+                   │
+             not a boundary
+                   │
+                   ▼
+        ┌────────────────────┐
+        │ Cusimanse workflow │
+        └─────────┬──────────┘
+                  │
+                  ▼
+        ┌────────────────────┐
+        │ Lima / QEMU / VM   │  ← security boundary
+        │ mounts             │
+        │ credentials       │
+        │ privilege         │
+        │ network            │
+        └─────────┬──────────┘
+                  │
+                  ▼
+              Workload
+```
 
-AI-generated plans, commands, code and findings can be wrong, incomplete, stale or unsafe. Human researchers remain responsible for authorization, scope, approvals, safety and final interpretation.
+Skills, prompts, MCP, vector stores, LangGraph and Taskflow are not isolation mechanisms.
 
-## Documentation
+Important invariants:
 
-- `01-deployment-architecture.md` — deployment architecture
+- untrusted workloads run in disposable VMs
+- host credentials are not exposed to learned skills
+- unrestricted host-root mounts are denied
+- destructive/privileged actions require approval
+- public MCP exposure is denied by default
+- evidence is preserved before destruction
+- important findings receive independent verification
+- missing capabilities are reported as `NOT_DEPLOYED`
+
+## 18. Documentation map
+
+- `docs/architecture-refactor.md` — detailed architecture and responsibility boundaries
+- `docs/runtime-architecture.md` — installation, runtime workflow and adapter operation
+- `01-deployment-architecture.md` — deployment model
 - `02-system-requirements.md` — requirements
-- `03-deployment-runbook.md` — deployment/runbook
+- `03-deployment-runbook.md` — existing deployment/runbook
 - `04-security-model.md` — security model
 - `05-multi-agent-operating-model.md` — multi-agent operation
-- `06-observability-and-evidence.md` — observability and evidence
+- `06-observability-and-evidence.md` — evidence/telemetry
 - `07-experiment-framework.md` — experiment framework
 - `08-go-install-001.md` — reference experiment
 - `09-operations-and-maintenance.md` — operations
-- `10-validation-and-acceptance.md` — validation and acceptance
+- `10-validation-and-acceptance.md` — validation
 - `11-current-antigravity-reference.md` — Antigravity reference
-- `AGENTS.md` — agent/adapter operating instructions
-- `AI-DISCLAIMER.md` — AI limitations and responsible use
-- `CONTRIBUTING.md` — contribution workflow
-- `SECURITY.md` — security reporting and boundaries
-- `RELEASE.md` — release process
+
+## 19. Limitations
+
+This branch is an architecture/integration refactor, not a security certification. CI/static validation cannot prove VM isolation or runtime sandbox resistance. Prime Agent, Hermes, LangGraph, vector retrieval and optional MCP integrations are not considered deployed until the target host actually exercises them. The existing Goose path remains the compatibility reference.
+
+Use only systems and workloads you are authorized to test. Never commit provider keys, credentials, private workload data or unredacted forensic artifacts.
 
 ## License
 
-**MIT License — Copyright (c) 2026 Opposum0112.** See [`LICENSE`](LICENSE) for the authoritative license and [`NOTICE`](NOTICE) for the responsible-use and third-party software notice.
+MIT License — Copyright (c) 2026 Opposum0112. See `LICENSE` and `NOTICE`.
