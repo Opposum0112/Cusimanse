@@ -1,0 +1,39 @@
+id: langgraph-runtime
+version: 1.0
+kind: orchestration
+purpose: "Stateful execution and checkpointing for security research cases"
+state:
+  case_id: string
+  campaign_id: string
+  current_node: string
+  current_hypothesis: string
+  retrieved_skills: array
+  tool_traces: array
+  execution_ids: array
+  pending_hitl: boolean
+  status: string
+persistence:
+  role: runtime_checkpoint
+  evidence_authority: external_case_store
+nodes:
+  - discover
+  - validate
+  - retrieve_skills
+  - plan
+  - review
+  - approve
+  - provision
+  - instrument
+  - execute
+  - collect
+  - analyze
+  - verify
+  - learn
+  - promote
+  - preserve
+  - destroy
+rules:
+  - privileged_actions_require_approval
+  - evidence_must_be_preserved_before_destroy
+  - ai_output_is_not_evidence
+  - missing_integrations_are_NOT_DEPLOYED
