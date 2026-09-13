@@ -1,0 +1,40 @@
+version: 1
+id: agent-observability
+kind: agent-observability
+purpose: >-
+  Declare the host-side observability stack for the selected primary agent. Installation
+  is performed by the all-inclusive interactive host installer; preflight verifies what
+  is actually deployed before a research session starts.
+components:
+  numbat:
+    recipe: recipes/agent-monitoring/numbat-agent.yaml
+    role: process-shell-network-filesystem-and-agent-tool observation
+    install: scripts/install-observability.sh
+    verification: numbat --help
+  phoenix:
+    recipe: recipes/agent-monitoring/phoenix-agent.yaml
+    role: OpenTelemetry traces spans model/tool calls errors and approvals
+    install: scripts/prerequisites.sh
+    verification: python3 -c 'import phoenix, opentelemetry; print("Phoenix/OpenTelemetry PASS")'
+  aegis:
+    recipe: recipes/observability/aegis.yaml
+    role: security/governance observability
+    install: scripts/install-observability.sh
+    verification: aegis --help
+  token_usage:
+    recipe: recipes/observability/token-dashboard.yaml
+    role: per-session model/token accounting and dashboard finalization
+    install: scripts/install.sh
+    verification: cusimanse-token-dashboard
+lifecycle:
+  install: scripts/install.sh
+  preflight: scripts/agent-preflight.sh
+  session_start: initialize declared observability
+  checkpoint: record observable model/tool activity
+  session_end: finalize token dashboard and observability snapshots
+status:
+  required_control_plane: true
+  missing_optional_backend: PARTIAL
+  observability_is_security_boundary: false
+  secrets_in_telemetry: deny
+  credentials_in_telemetry: deny
