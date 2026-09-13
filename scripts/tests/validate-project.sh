@@ -14,7 +14,7 @@ echo '== Shell syntax =='
 while IFS= read -r -d '' f; do bash -n "$f"; done < <(find . -path './.git' -prune -o -type f -name '*.sh' -print0)
 
 echo '== Architecture/integration checks =='
-for required in contracts/01-deployment-architecture.md contracts/02-system-requirements.md contracts/03-deployment-runbook.md contracts/04-security-model.md contracts/05-multi-agent-operating-model.md contracts/06-observability-and-evidence.md contracts/07-experiment-framework.md contracts/08-go-install-001.md contracts/09-operations-and-maintenance.md contracts/10-validation-and-acceptance.md contracts/11-harness-reference.md contracts/blackboard-schema.md policies/host-policy.yaml cmd/policyctl/main.go cmd/policyctl/main_test.go recipes/agents/primary-agent.yaml recipes/agents/primary-shell.yaml recipes/agents/adapter-matrix.yaml recipes/agent-selection.yaml recipes/skills/registry.yaml recipes/mcp/registry.yaml recipes/mcp/connectors.yaml recipes/orchestration/langgraph.yaml recipes/orchestration/crewai.yaml recipes/orchestration/taskflow.yaml recipes/session/session-state.yaml recipes/session/learning-workflow.yaml recipes/observability/token-dashboard.yaml docs/architecture/cusimanse-architecture.svg docs/architecture/cusimanse-architecture.mmd docs/README.md docs/research-workflow.md; do test -f "$required" || { echo "FAIL: missing $required" >&2; exit 1; }; done
+for required in contracts/01-deployment-architecture.md contracts/02-system-requirements.md contracts/03-deployment-runbook.md contracts/04-security-model.md contracts/05-multi-agent-operating-model.md contracts/06-observability-and-evidence.md contracts/07-experiment-framework.md contracts/08-go-install-001.md contracts/09-operations-and-maintenance.md contracts/10-validation-and-acceptance.md contracts/11-harness-reference.md contracts/blackboard-schema.md policies/host-policy.yaml cmd/policyctl/main.go cmd/policyctl/main_test.go recipes/agents/primary-agent.yaml recipes/agents/primary-shell.yaml recipes/agents/adapter-matrix.yaml recipes/agent-selection.yaml recipes/skills/registry.yaml recipes/mcp/registry.yaml recipes/mcp/connectors.yaml recipes/orchestration/langgraph.yaml recipes/orchestration/crewai.yaml recipes/orchestration/taskflow.yaml recipes/session/session-state.yaml recipes/session/learning-workflow.yaml recipes/observability/token-dashboard.yaml docs/architecture/cusimanse-architecture.svg docs/architecture/cusimanse-architecture.mmd docs/README.md docs/research-workflow.md docs/prompts/go-install-001.md docs/prompts/npm-install-001.md; do test -f "$required" || { echo "FAIL: missing $required" >&2; exit 1; }; done
 test -f crewai/README.md
 test -f docs/images/cusimanse-mascot.svg
 test -f docs/images/cusimanse-logo.svg
@@ -37,6 +37,11 @@ grep -q 'audit:' recipes/session/session-state.yaml
 grep -q 'dashboard_refresh_required_at_session_end: true' recipes/session/session-state.yaml
 grep -q 'independent_verification' recipes/session/learning-workflow.yaml
 grep -q 'human_approval_required: true' recipes/session/learning-workflow.yaml
+grep -q 'NORMAL HOST SHELL' docs/research-workflow.md
+grep -q 'PRIMARY AGENT' docs/research-workflow.md
+grep -q 'DISPOSABLE COMPUTE' docs/research-workflow.md
+grep -q 'go-install-001' docs/prompts/go-install-001.md
+grep -q 'npm-install-001' docs/prompts/npm-install-001.md
 
 echo '== Go validation =='
 test -z "$(gofmt -l .)"
