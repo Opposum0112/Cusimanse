@@ -1,0 +1,17 @@
+id: aegis
+version: 1
+component: observability
+provider: openai/aegis
+install:
+  method: go-install
+  package: github.com/openai/aegis/cmd/aegis@latest
+  fallback: official-release
+runtime:
+  bind: 127.0.0.1:4317
+  protocol: otlp-grpc
+  mode: governance
+security:
+  is_boundary: false
+  outbound_default: deny-unless-configured
+  credentials_from_agent_args: false
+status: NOT_DEPLOYED
