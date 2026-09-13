@@ -14,16 +14,16 @@ import (
 const statePath = "recipes/host-state.yaml"
 
 type setupState struct {
-	startedAt      string
-	completedAt    string
-	adapter        string
-	foundation     string
-	primary        string
-	control        string
-	observability  string
-	validation     string
-	vmStatus       string
-	vmInventory    string
+	startedAt     string
+	completedAt   string
+	adapter       string
+	foundation    string
+	primary       string
+	control       string
+	observability string
+	validation    string
+	vmStatus      string
+	vmInventory   string
 }
 
 func main() {
