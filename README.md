@@ -1,271 +1,210 @@
 # 🦝 Cusimanse
 
-> Autonomous, agentic security research platform for controlled workload detonation, runtime analysis, anomaly detection and evidence extraction inside disposable virtual machines.
+> Declarative, agentic, pluggable security-research platform for controlled experiments in disposable Lima/QEMU virtual machines.
 
-Cusimanse prepares a researcher host, selects exactly one primary terminal agent, runs workloads inside disposable Lima/QEMU VMs, collects evidence, independently verifies findings, and preserves artifacts before VM destruction.
+**Markdown specifies. YAML configures. The selected agent adapter operates and executes. CrewAI optionally coordinates specialist roles. The blackboard preserves runs, audit, evidence and analysis. VM/OS controls enforce the security boundary.**
 
 ## Architecture
 
-![Cusimanse architecture](docs/architecture/cusimanse-architecture.svg)
+![Canonical Cusimanse architecture](docs/architecture/cusimanse-architecture.svg)
+
+The canonical architecture is intentionally one diagram. The companion Mermaid flow is `docs/architecture/cusimanse-architecture.mmd`.
 
 ```text
-Researcher
-   │
-   ▼
-Go front door / preflight
-   ├── Host + VM
-   ├── Primary Agent Adapter
-   ├── Control + Learning
-   └── Observability + Governance
-              │
-              ▼
-       ONE primary agent shell
-              │
-       YAML / Taskflow / LangGraph
-              │
-              ▼
-       Lima + QEMU disposable VM
-              │
-        workload + evidence
-              │
-       verify → learn → preserve
+Intent
+  ↓
+Markdown contracts → YAML recipe graph
+  ↓
+Selected primary agent adapter
+  ├─ optional CrewAI role plugins
+  ├─ versioned Skill plugins
+  └─ scoped MCP plugins
+  ↓
+Plan → Review → Approve → Provision → Instrument
+  ↓
+Execute → Collect → Analyze → Verify
+  ↓
+Blackboard: runs + audit + raw evidence + telemetry + findings + provenance
+  ↓
+Technical research report + preservation manifest
+  ↓
+Self-learning: retrieve → evaluate → refine → replay → independently verify → approve → promote
+  ↺ validated skills return to the pluggable skill plane
 
-policyctl ───────► independent host-side policy
-OTEL/Phoenix/Numbat/Aegis ─► observability/governance
-CrewAI ──────────► optional specialist-role layer
-Skills/MCP ──────► declared capabilities/integrations
+policyctl ── independent host-side policy signal, outside the agent control plane
+Lima/QEMU + VM/OS ── actual enforcement boundary
 ```
 
-### Architecture diagrams
+## Quick start
 
-The repository retains the architecture diagrams from the architecture, agent/adaptor and CrewAI work:
-
-- `docs/architecture/cusimanse-architecture.svg` — primary system architecture.
-- `docs/images/cusimanse-deployment-architecture.svg` — deployment view.
-- `docs/images/cusimanse-refactored-architecture.svg` — refactored architecture view.
-- `docs/images/cusimanse-self-learning-loop.svg` — learning/promotion loop.
-- `docs/images/cusimanse-crew-orchestration.svg` — optional CrewAI role layer.
-- `docs/images/cusimanse-mascot.svg` — project identity.
-- `docs/images/ai-security-lab-architecture.svg` and `ai-security-lab-project-architecture.svg` — retained historical architecture references.
-
-## Researcher quick start
-
-There is one recommended setup path and one short research path.
-
-### 1. Prepare the researcher host
-
-From the repository root:
+### 1. Install and preflight
 
 ```bash
 ./scripts/cusimanse-host.sh
 ```
 
-The Go front door handles these planes interactively:
-
-1. **Host + VM** — Git, Bash, Python, Ruby, Go, QEMU and Lima.
-2. **Primary Agent** — select exactly one adapter.
-3. **Control + Learning** — YAML tooling, LangGraph-related tooling and research/learning utilities.
-4. **Observability + Governance** — OpenTelemetry, Phoenix, Numbat and Aegis.
-5. **Preflight** — host and capability checks.
-6. **Policy** — optional independent `policyctl validate`.
-
-Windows uses WSL2 for the Linux Lima/QEMU path. Native package managers are preferred with supported upstream/release/source fallbacks. Unavailable capabilities remain `NOT_DEPLOYED`.
-
-Manual alternatives remain available:
+Or use the individual surfaces:
 
 ```bash
 bash ./scripts/prerequisites.sh
 bash ./scripts/agent-preflight.sh
-bash ./scripts/install-observability.sh
 ./policyctl validate
 ```
 
-### 2. Select and verify one primary adapter
+The host scripts bootstrap, validate and configure. They do **not** replace the selected agent as the research operator.
 
-| Adapter | Interactive shell | Verify |
-|---|---|---|
-| Goose | `goose` | `goose --help` |
-| OpenCode | `opencode` | `opencode --help` |
-| Grok Build | `grok` | `grok --help` |
-| Antigravity | `agy` | `agy --help` |
-| Pi | `pi` | `pi --help` |
-| Hermes | `hermes` | `hermes --help` |
-| Codex | `codex` | `codex --help` |
-| Prime Agent | `prime-agent` | `prime-agent --help` |
-| Claude Code | `claude` | `claude --help` |
-| Devin | provider-managed | provider check |
-
-For manual selection:
+### 2. Select one primary agent shell
 
 ```bash
-export CUSIMANSE_PRIMARY_ADAPTER=prime-intellect
-prime-agent --help
-prime-agent
+export CUSIMANSE_PRIMARY_ADAPTER=goose
+# or: opencode, grok-build, antigravity, pi, hermes, codex, prime-intellect
 ```
 
-Use the native command form confirmed by that installed release. Do not copy flags between adapters. Goose is the reference adapter, not a permanent dependency.
+Then launch the native CLI, for example:
 
-### 3. Run the standard Cusimanse task
+```bash
+goose
+# or: opencode | grok | agy | pi | hermes | codex | prime-agent
+```
 
-Inside the selected agent shell, provide:
+Exactly one primary operator owns the case lifecycle. An unavailable adapter is `NOT_DEPLOYED`; it is not silently substituted.
+
+### 3. Run a recipe-driven research case
+
+Give the selected agent a prompt such as:
 
 ```text
-Act as the primary operator for one Cusimanse security-research case.
-
-Read the applicable recipes under recipes/agents, recipes/adapters,
-recipes/campaigns, recipes/workflows, recipes/orchestration and recipes/learning.
+Run experiments/go-install-001 as a Cusimanse security-research case.
+Read the applicable Markdown contracts and YAML recipes first.
 Use the selected adapter contract and follow:
 Discover → Validate → Retrieve → Plan → Review → Approve →
 Provision VM → Instrument → Execute → Collect → Analyze →
-Verify → Learn → Promote → Preserve → Destroy
+Verify → Report → Preserve → Destroy.
 
-Rules:
-- Run untrusted workloads only inside the disposable Lima/QEMU VM.
-- Do not invoke or modify policyctl; it is host-side and outside the agent control plane.
-- Do not expose host credentials to workloads or learned skills.
-- Retrieval never grants execution authority.
-- Preserve raw evidence, telemetry, audit records and hashes before VM destruction.
-- New learned procedures remain CANDIDATE until replay, independent verification,
-  provenance, capability and human-approval gates pass.
-- If a capability is unavailable, report NOT_DEPLOYED.
-- Never claim PASS without runtime evidence.
-
-At completion report case ID, campaign, state, tools used, VM state,
-evidence paths, verification result, skill state and failed gates.
+Run the workload only inside the disposable Lima/QEMU VM.
+Keep host credentials out of workloads, skills and MCP arguments.
+Treat retrieved skills as capabilities, not authority.
+Preserve raw evidence, telemetry, audit records and hashes before VM destruction.
+Never claim PASS without runtime evidence and independent verification.
+If a capability is unavailable, report NOT_DEPLOYED.
 ```
 
-### 4. Run the reference integration experiment
+The same experiment semantics can be consumed by another adapter; adapter-specific CLI details stay in `recipes/adapters` and `recipes/agents`.
 
-Ask the selected agent:
-
-```text
-Run experiments/go-install-001 as a Cusimanse integration test.
-Use the configured campaign/workflow and execute the workload inside a disposable
-Lima/QEMU VM. Start instrumentation before execution; collect raw evidence,
-telemetry and audit records; independently verify the result; preserve hashes;
-then destroy the VM. Do not bypass policy controls or modify policyctl.
-Report PASS, PARTIAL, FAIL or NOT_DEPLOYED strictly from evidence.
-```
-
-Inspect the result from the normal researcher shell:
+### 4. Inspect the research output
 
 ```bash
 find evidence blackboard runs experiments/go-install-001 -type f -print 2>/dev/null
+sha256sum <artifact>
 ```
 
-A runtime `PASS` requires actual VM execution and preserved evidence. Static CI success is not a sandbox-resistance test.
+The **blackboard** is the durable case view: execution/run records, audit events, raw artifacts, telemetry, findings, provenance, verification results and research-report inputs. Runtime checkpoints are separate state; they do not replace evidence.
 
-### 5. Test adapter equivalence
+## Contracts and recipes
 
-Repeat the same campaign and task contract with another adapter:
-
-```bash
-export CUSIMANSE_PRIMARY_ADAPTER=hermes
-hermes
-```
-
-Then try Prime Agent, Goose, OpenCode, Grok Build, Antigravity, Pi or Codex as available. The objective is to verify that changing the operator does not change the research contract, evidence requirements, policy separation or VM/OS security boundary.
-
-### 6. Test learning
-
-After a completed case:
+Contracts define **what must happen**. Recipes define **how the configured components are composed**.
 
 ```text
-Create one reusable research procedure from this case as a CANDIDATE SKILL.
-Include SKILL.md, deterministic helpers where appropriate, references, evaluation
-cases, capability/risk metadata and provenance. Do not promote it and do not alter
-original evidence.
+Markdown contract
+      ↓
+YAML recipe graph
+      ├─ campaign / experiment
+      ├─ workload / VM
+      ├─ tools / instrumentation
+      ├─ agent / adapter
+      ├─ roles / orchestration
+      ├─ skills / MCP
+      └─ audit / reporting
+      ↓
+selected primary agent
+      ↓
+approved disposable execution
 ```
 
-Replay the candidate on a **distinct artifact**, independently verify it, then require human approval before promotion:
+Useful locations:
+
+| Surface | Location |
+|---|---|
+| Primary agent contract | `recipes/agents/primary-agent.yaml` |
+| Primary shell contract | `recipes/agents/primary-shell.yaml` |
+| Agent selection | `recipes/agent-selection.yaml` |
+| CrewAI role plane | `recipes/orchestration/crewai.yaml` |
+| Skills registry | `recipes/skills/registry.yaml` |
+| MCP registry | `recipes/mcp/registry.yaml` |
+| Goose reference entry | `recipes/goose/project.yaml` |
+| Campaigns / experiments | `recipes/campaigns/`, `recipes/experiments/` |
+| Evidence / audit | `recipes/audit/`, `blackboard/` |
+| Runtime guidance | `docs/runtime-architecture.md` |
+
+See `recipes/README.md` for composition rules.
+
+## Pluggable roles, skills and MCP
+
+The operator plane is modular:
+
+- **Agent adapter** translates a provider's native shell into the common Cusimanse contract.
+- **CrewAI** is optional specialist-role coordination, not a security boundary or second project controller.
+- **Roles** are replaceable specialist capabilities such as planner, researcher, runtime analyst, forensics, verifier and reporter.
+- **Skills** are versioned `SKILL.md` capabilities with scripts/evaluations and provenance.
+- **MCP** provides scoped integrations; retrieval or tool availability never grants execution authority.
+
+Role/skill changes remain declarative and reviewable. External skills remain `candidate-review-required` until provenance, permissions, scripts, network behavior and capabilities are reviewed.
+
+## Self-learning
+
+An agent or campaign can propose improvements, but the base contracts are not self-modified at runtime.
 
 ```text
-CANDIDATE → replay → distinct artifact → independent verification
-→ provenance/capability checks → human approval → VALIDATED → retrieval index
+case evidence
+  → candidate skill / recipe improvement
+  → static review + capability metadata
+  → replay on distinct artifact
+  → independent verification
+  → human approval
+  → versioned validated skill
+  → indexed retrieval
 ```
 
-## Command interfaces
+A candidate that fails replay or verification remains a candidate and its failure evidence is retained.
 
-| Plane | Interface | Researcher use |
-|---|---|---|
-| Front door | `./scripts/cusimanse-host.sh` | Recommended interactive setup |
-| Host | `bash ./scripts/prerequisites.sh` | Manual dependency setup/repair |
-| Host | `bash ./scripts/agent-preflight.sh` | Capability preflight |
-| Agent | `goose`, `opencode`, `grok`, `agy`, `pi`, `hermes`, `codex`, `prime-agent`, `claude` | Primary operator shell |
-| Policy | `./policyctl validate` | Validate host policy |
-| Policy | `./policyctl show` | Review policy |
-| Policy | `./policyctl check --action <action>` | Evaluate/audit policy decision |
-| Recipes | `find recipes -name '*.yaml' -print` | Discover contracts |
-| VM | `limactl list` | List VMs |
-| VM | `limactl shell <vm>` | Controlled VM shell |
-| VM | `limactl stop <vm>` | Stop VM |
-| VM | `limactl delete <vm>` | Destroy after evidence preservation |
-| Evidence | `find evidence blackboard runs -type f -print` | Locate evidence |
-| Evidence | `sha256sum <file>` | Verify artifact integrity |
-| Skills | `find .agents/skills -name SKILL.md -print` | Discover skills |
-| Validation | `bash ./scripts/tests/validate-project.sh` | Repository validation |
-| Validation | `bash ./scripts/tests/architecture-refactor.sh` | Architecture contract validation |
-| Validation | `go test ./...` | Go tests |
+## Security boundary
 
-## Skills and MCP
+`policyctl` is deliberately **outside the agent control plane**. It supplies host-side policy/configuration and observability signals; it is not the sandbox.
 
-Skills use the repository's `SKILL.md`/Markdown instruction model and are registered in `recipes/skills/registry.yaml`. The registry includes security research, triage, static/dynamic analysis, network analysis, malware analysis, reverse engineering, threat intelligence, vulnerability research, dependency analysis, detection engineering, forensics, IOC extraction, ATT&CK mapping, evidence reduction, independent verification, skill authoring, supply-chain auditing and token optimization.
+The actual security boundary is **Lima/QEMU + VM/OS controls**: filesystem/mount policy, credentials, privilege and network controls. No agent, role, skill, MCP server, orchestration framework, prompt or vector index may replace or bypass that boundary.
 
-External skills are **candidate-review-required** until provenance, license, scripts, permissions, network behavior and capabilities are reviewed and copied into the repository. Skill presence or retrieval does not grant privilege.
-
-MCP integrations are declared in `recipes/mcp/registry.yaml` and `recipes/mcp/connectors.yaml`. Default transport is stdio, bind address is loopback, public exposure is denied, privileged/write/VM capabilities require approval, and secrets are never passed through MCP arguments. External reference data is enrichment, not evidence.
-
-Reference sources include MITRE ATT&CK, CISA KEV, NVD/CVE, CISA advisories, Sigma, YARA, Suricata, OWASP, URLhaus, MalwareBazaar, AbuseIPDB and AlienVault OTX. Record source and retrieval time and independently verify important findings.
-
-## CrewAI orchestration
-
-CrewAI is an **optional specialist-role layer**, not a security boundary, evidence store or competing project controller. It operates through `recipes/orchestration/crewai.yaml` and returns structured role results to the selected primary agent.
-
-Roles include planner, researcher, runtime analyst, forensics, detection analyst, verifier and reporter. CrewAI cannot bypass the primary agent, policy, approval, evidence-preservation or VM/OS controls. Missing CrewAI capability is `NOT_DEPLOYED`.
-
-See `crewai/README.md` and `docs/images/cusimanse-crew-orchestration.svg`.
-
-## Policy control
-
-`policyctl` is deliberately **outside the agent control plane**.
+## Shell surface
 
 ```bash
+# Host/bootstrap
+./scripts/cusimanse-host.sh
+bash ./scripts/prerequisites.sh
+bash ./scripts/agent-preflight.sh
+
+# Policy
 ./policyctl validate
 ./policyctl show
-./policyctl check --action credentials
-./policyctl check --action mounts
-./policyctl check --action host-root
-./policyctl check --action sudo
-./policyctl check --action vm
-./policyctl check --action network
-./policyctl check --action git-write
-./policyctl check --action crew-orchestration
+./policyctl check --action <action>
+
+# VM
+limactl list
+limactl shell <vm>
+limactl stop <vm>
+limactl delete <vm>
+
+# Evidence
+find evidence blackboard runs -type f -print
+sha256sum <file>
+
+# Validation
+bash ./scripts/tests/validate-project.sh
+bash ./scripts/tests/architecture-refactor.sh
+go test ./...
 ```
 
-The primary agent must not redefine, weaken or bypass these controls. VM/OS, filesystem/mount, privilege, credential and network controls remain the actual enforcement boundary.
+## Integration validation
 
-## Observability and governance
-
-The observability plane contains OpenTelemetry, Phoenix, Numbat and Aegis. These components provide monitoring/governance and are **not** workload-isolation boundaries. Lima/QEMU and host/OS controls remain authoritative.
-
-Recipes:
-
-```text
-recipes/observability/numbat.yaml
-recipes/observability/aegis.yaml
-```
-
-## Research lifecycle
-
-```text
-Discover → Validate → Retrieve → Plan → Review → Approve
-→ Provision VM → Instrument → Execute → Collect → Analyze
-→ Verify → Learn → Promote → Preserve → Destroy
-```
-
-YAML recipes specify semantics. The selected primary agent operates them. LangGraph provides stateful execution where configured. CrewAI provides optional specialist-role coordination. Durable evidence/case storage remains independent.
-
-## Validation
+Static validation covers contracts, recipes, skills, MCP policy, shell syntax, Go validation and architecture invariants. Runtime acceptance additionally requires a real disposable-VM execution with preserved evidence.
 
 ```bash
 ./policyctl validate
@@ -275,28 +214,27 @@ bash ./scripts/tests/architecture-refactor.sh
 go test ./...
 ```
 
-For runtime acceptance, also run `experiments/go-install-001` and preserve actual VM evidence. Static validation does not prove sandbox resistance.
-
-## System requirements
-
-- Linux or macOS directly; Windows through WSL2.
-- 4+ CPU cores recommended.
-- 16 GB RAM recommended.
-- 40+ GB free disk recommended.
-- Hardware virtualization enabled where applicable.
-- Network access only for permitted installation/research enrichment.
-- One supported primary agent for agent-driven cases.
-
-See `docs/system-requirements.md` and `docs/ARCHITECTURE-REFACTOR-RUNBOOK.md` for detailed requirements and runtime procedures.
+Static CI success does **not** prove sandbox resistance or make an unavailable integration `PASS`.
 
 ## Security invariants
 
-- Lima/QEMU disposable VM is the workload execution boundary.
+- Exactly one selected primary agent owns the case lifecycle.
+- Markdown contracts are declarative; YAML recipes configure composition.
+- Host scripts bootstrap/validate; the selected agent operates and executes.
+- CrewAI roles, skills and MCP are pluggable capabilities, not security boundaries.
 - `policyctl` remains outside the agent control plane.
-- Exactly one primary agent owns the runtime operator lifecycle for a case.
-- Host credentials are not exposed to workloads or learned skills.
-- Public MCP exposure is denied by default.
-- Observability, governance, skills, MCP and orchestration frameworks are not isolation boundaries.
-- Retrieval does not grant execution authority.
-- Evidence is preserved before VM destruction.
-- Learned capabilities require replay and independent verification before promotion.
+- Lima/QEMU and VM/OS controls are the enforcement boundary.
+- Host credentials never enter workloads, skills or MCP arguments.
+- Evidence is preserved and hashed before VM destruction.
+- Model output is not evidence.
+- Learned capabilities require replay, independent verification and human approval.
+- Missing capabilities are reported as `NOT_DEPLOYED`.
+
+## Documentation
+
+- `docs/architecture/cusimanse-architecture.svg` — canonical architecture diagram.
+- `docs/architecture/cusimanse-architecture.mmd` — canonical Mermaid flow.
+- `docs/production-architecture.md` — production architecture and evidence model.
+- `docs/runtime-architecture.md` — installation, runtime and integration procedure.
+- `docs/ARCHITECTURE-REFACTOR-RUNBOOK.md` — refactor validation/runbook.
+- `docs/agent-shell-runbook.md` — shell-driven operator workflow.
