@@ -20,83 +20,77 @@ Cusimanse turns Markdown research contracts and composable YAML recipes into rep
 | Agent | At least one supported primary terminal agent |
 | Network | Outbound access only where installation/experiment policy permits |
 
-Detailed requirements, host package-manager support and preflight behavior are in [`docs/system-requirements.md`](docs/system-requirements.md).
+Detailed requirements, package-manager support and preflight behavior: [`docs/system-requirements.md`](docs/system-requirements.md).
 
 ## Architecture
 
-![Cusimanse architecture](https://raw.githubusercontent.com/Opposum0112/Cusimanse/architecture-refactor/docs/architecture/cusimanse-architecture.svg)
+![Cusimanse architecture](docs/architecture/cusimanse-architecture.svg)
 
-**Canonical architecture source:** [`docs/architecture/cusimanse-architecture.svg`](docs/architecture/cusimanse-architecture.svg)
+- **Canonical rendering:** [`docs/architecture/cusimanse-architecture.svg`](docs/architecture/cusimanse-architecture.svg)
+- **Canonical editable Mermaid source:** [`docs/architecture/cusimanse-architecture.mmd`](docs/architecture/cusimanse-architecture.mmd)
 
-**Editable Mermaid workflow/source:** [`docs/architecture/cusimanse-architecture.mmd`](docs/architecture/cusimanse-architecture.mmd)
-
-The architecture diagram shows the complete control/data-plane relationship: researcher intent → contract → recipe → session → normal host shell → policy → primary agent → specialist multiagent orchestration → disposable VM → instrumentation/workload → evidence/blackboard → verification/report → optional learning → dashboard/session finalization.
+The Mermaid diagram explains the numbered research flow and the control/data planes from contract creation through session closure.
 
 ## Repository structure
 
 ```text
 Cusimanse/
-├── contracts/          # research contracts and reference semantics
-├── recipes/            # executable declarative composition and profiles
-├── experiments/        # reference experiment material/output
-├── .agents/            # agent roles, skills and MCP metadata
-├── skills/              # reviewed/promoted skills
-├── packages/            # research packages
-├── policies/            # host/action policy
-├── infra/               # optional gateways/observability components
-├── blackboard/          # durable case metadata
-├── reports/             # generated reports/token history
-├── docs/                # architecture + focused supporting guides
-├── scripts/             # bootstrap/preflight/validation helpers
-├── cmd/                 # policyctl and host tooling
-└── tools/               # research-tool documentation
+├── contracts/       # research contracts and reference semantics
+├── recipes/         # executable declarative composition and profiles
+├── experiments/     # reference experiment material/output
+├── .agents/         # agent roles, skills and MCP metadata
+├── skills/          # reviewed/promoted skills
+├── packages/        # research packages
+├── policies/        # host/action policy
+├── infra/           # optional gateways/observability
+├── blackboard/      # durable case metadata
+├── reports/         # generated reports/token history
+├── docs/            # architecture + focused guides
+├── scripts/         # bootstrap/preflight/validation helpers
+├── cmd/             # policyctl and host tooling
+└── tools/           # research-tool documentation
 ```
 
-**Organization rule:** contracts describe research semantics; recipes describe execution composition; README explains the researcher workflow; `docs/` contains only focused supporting guides and canonical architecture. Avoid duplicate end-to-end workflow documents.
+**Documentation rule:** contracts define research semantics, recipes define execution composition, README defines the researcher workflow, and `docs/` contains focused guides plus the canonical architecture. Do not duplicate the end-to-end workflow in another document.
 
 ## Researcher workflow
 
-The following is the canonical sequence. The command location is part of the workflow.
+### Step 1 — Define the experiment
 
-### Step 1 — Create an experiment from a contract + recipe
-
-**Run from the normal host shell at the Cusimanse repository root.**
-
-Use the existing Go experiment as the reference pattern:
+**Normal host shell, from the Cusimanse repository root.** Use `go-install-001` as the reference pattern:
 
 ```text
 contracts/08-go-install-001.md
-        │ defines purpose, safety, evidence and acceptance
+        │ what / why / scope / safety / evidence / acceptance
         ▼
 recipes/experiments/go-install-001.yaml
-        │ composes profiles
-        ├── recipes/workloads/go-install-001.yaml
-        ├── recipes/host/research-host.yaml
-        ├── recipes/lima/profiles/security-research.yaml
-        ├── recipes/tools/security-research.yaml
-        ├── recipes/agents/*
-        ├── recipes/orchestration/*
-        ├── recipes/audit/default.yaml
-        ├── recipes/reporting/default.yaml
-        └── recipes/observability/token-dashboard.yaml
+        │ composition
+        ├─ workload: recipes/workloads/go-install-001.yaml
+        ├─ host: recipes/host/research-host.yaml
+        ├─ compute: recipes/lima/profiles/security-research.yaml
+        ├─ tools: recipes/tools/security-research.yaml
+        ├─ instrumentation: recipes/instrumentation/*
+        ├─ agent/orchestration: recipes/agents/* + recipes/orchestration/*
+        └─ audit/reporting/observability: recipes/{audit,reporting,observability}/*
 ```
 
 For a new experiment:
 
-1. Write `contracts/<id>.md` — what is being researched, scope, safety, evidence and acceptance.
-2. Write `recipes/experiments/<id>.yaml` — how the workload and profiles are composed.
-3. Write `recipes/workloads/<id>.yaml` — exact commands, execution location and evidence requirements.
-4. Select the host, compute, tool, instrumentation, adapter, roles, skills/MCP, orchestration, policy, routing, audit, reporting and observability recipes.
-5. Create `runs/<session-id>/session.yaml` from `recipes/session/session-state.yaml` and snapshot all selected profiles.
-6. Validate the recipe graph before execution.
+1. Create `contracts/<id>.md` with purpose, scope, safety, evidence and acceptance.
+2. Create `recipes/experiments/<id>.yaml` to compose the required profiles.
+3. Create `recipes/workloads/<id>.yaml` with the exact approved commands and **where they execute**.
+4. Select the host/compute/tool/instrumentation/agent/orchestration/policy/routing/reporting/observability recipes.
+5. Create `runs/<session-id>/session.yaml` from `recipes/session/session-state.yaml` and snapshot the selected profiles.
+6. Validate before execution.
 
-**Go reference:** `go-install-001` is the model to copy. **npm test:** use the already-provided `npm-install-001` experiment as the second reference workload.
+Use the supplied `npm-install-001` as the second test/reference experiment.
 
-### Step 2 — Prepare the host with the normal shell
+### Step 2 — Install and validate the host
 
-From the repository root:
+**Normal host shell:**
 
 ```bash
+cd <CUSIMANSE_REPO_ROOT>
 ./scripts/cusimanse-host.sh
 ./scripts/prerequisites.sh
 ./scripts/agent-preflight.sh
@@ -104,92 +98,67 @@ From the repository root:
 ./scripts/tests/validate-project.sh
 ```
 
-The host profile declares host tooling through `recipes/host/research-host.yaml` → `recipes/tools/security-research.yaml`. These commands install/prepare/validate the host. They do **not** execute the target workload.
+Host tools are declared by `recipes/host/research-host.yaml` and `recipes/tools/security-research.yaml`. These commands prepare the host; they do not run the experiment workload.
 
-### Step 3 — Select exactly one primary agent
+### Step 3 — Select one primary agent
 
-Still in the **normal host shell**:
+**Normal host shell:**
 
 ```bash
-# Example
 command -v goose && goose --help
 ```
 
-Select one adapter from `recipes/agents/adapter-matrix.yaml`. Other examples are `opencode`, `grok`, `agy`, `pi`, `hermes`, `prime-agent`, `codex` and `claude`.
-
-Record the selected adapter/version and prompt reference in `runs/<session-id>/session.yaml`.
+Choose exactly one adapter from `recipes/agents/adapter-matrix.yaml` and record it in `session.yaml`. Other supported adapters include OpenCode, Grok Build, Antigravity, Pi, Hermes, Prime Agent, Codex and Claude Code. Verify provider-specific command syntax with the installed adapter's help.
 
 ### Step 4 — Start the primary agent
 
-Starting the agent is a **normal host-shell action**. The lifecycle moves into the agent after startup.
-
-Example:
+Starting the agent remains a **normal host-shell** operation:
 
 ```bash
 goose
 ```
 
-Provider-specific headless forms must be checked with the installed adapter's `--help`; do not assume every adapter accepts the same prompt flag.
+The selected primary agent then becomes the lifecycle operator. Do not start another tool as a competing lifecycle controller.
 
-### Step 5 — Give the experiment prompt to the primary agent
+### Step 5 — Provide the experiment prompt
 
-The prompt is entered **inside the primary agent**, not as normal host-shell commands.
+**Inside the primary agent**, provide the experiment-specific prompt:
 
-For Go, use `docs/prompts/go-install-001.md`. For npm, use `docs/prompts/npm-install-001.md`.
+- Go: `docs/prompts/go-install-001.md`
+- npm: `docs/prompts/npm-install-001.md`
 
-The prompt tells the primary agent to load the contract, experiment recipe, session state and selected profiles, then perform:
+The prompt loads the contract, experiment recipe, session YAML and profiles and instructs the primary agent to validate → plan → request approval → provision → instrument → execute → collect → analyze → verify → report → preserve → finalize → destroy.
 
-```text
-validate → preflight → plan → review/approval
-→ provision VM → instrument → execute
-→ collect/hash evidence → specialist analysis
-→ independent verification → report
-→ preserve → dashboard/token finalization → destroy VM
-→ finalize session state
-```
+### Step 6 — Multiagentic operation
 
-The researcher does **not** manually type these lifecycle commands one by one.
-
-### Step 6 — Primary-agent multiagentic operation
-
-The selected primary agent is the lifecycle authority. It coordinates the declared specialists:
+The primary agent is the single lifecycle authority and delegates declared specialist work:
 
 ```text
 Primary agent
-├── Planner
-├── Researcher
-├── Runtime analyst
-├── Forensics analyst
-├── Detection analyst
-├── Analysis agent
-├── Independent verifier
-└── Report generator
+├─ Planner
+├─ Researcher
+├─ Runtime analyst
+├─ Forensics analyst
+├─ Detection analyst
+├─ Analysis agent
+├─ Independent verifier
+└─ Report generator
 ```
 
-Optional orchestration tools are used only when selected by recipe:
+Optional tools are selected through recipes: **Taskflow** decomposes replayable tasks, **LangGraph** provides state/checkpoints, and **CrewAI** delegates specialist roles. They are coordination layers, not security boundaries.
 
-- **Taskflow:** breaks the research/learning task into replayable steps.
-- **LangGraph:** provides optional stateful graph/checkpoint execution.
-- **CrewAI:** delegates specialist roles.
+### Step 7 — Execute the workload in disposable compute
 
-They run under the primary agent; none is the sandbox or an independent lifecycle controller.
+The primary agent provisions the declared Lima/QEMU profile. VM/OS controls enforce the execution boundary. Instrumentation starts before the target workload.
 
-### Step 7 — Execute inside disposable compute
-
-The primary agent provisions the declared Lima/QEMU profile. VM/OS controls enforce mounts, credentials, privilege and network restrictions. Instrumentation starts inside the VM **before** the workload.
-
-#### Go test
-
-The Go workload recipe declares the commands and execution boundary. The actual workload runs inside the disposable VM; it is not run directly on the research host.
+**Go reference — inside the disposable VM:**
 
 ```bash
 go version
-go install github.com/Opposum0112/ai-security-lab/packages/labprobe@v0.1.0
+go install ./packages/labprobe
 ```
 
-#### npm test
-
-Use `recipes/workloads/npm-install-001.yaml`. The actual npm commands execute inside the disposable VM:
+**npm reference — inside the disposable VM:**
 
 ```bash
 node --version
@@ -199,152 +168,109 @@ cd /tmp/npm-test && npm init -y
 cd /tmp/npm-test && npm install lodash@4.17.21 --ignore-scripts
 ```
 
-The npm workload uses controlled networking and pinned package selection. Do not run these experiment commands directly on the research host.
+These workload commands are declared by their workload recipes and must not be run directly on the research host during an experiment.
 
-### Step 8 — Evidence, report and session state
+### Step 8 — Store evidence and report
 
-Each run is keyed by:
-
-```text
-runs/<session-id>/
-├── session.yaml
-├── audit/
-├── evidence/raw/ + index.yaml
-├── telemetry/
-├── provenance/
-├── blackboard/
-├── analysis/
-├── verification/
-├── research-report/
-├── preservation/
-├── observability/
-└── learning/
-```
-
-Raw evidence is ground truth and is hashed/preserved before VM destruction. The report distinguishes observation from inference and references the preserved artifacts.
-
-### Step 9 — Optional learning / skill improvement
-
-Learning runs **after the research result and verification**, only when the primary agent identifies a reusable improvement.
+Every session writes to `runs/<session-id>/`:
 
 ```text
-research result
-   ↓
-create candidate
-   ↓
-Taskflow: split into replayable tasks
-   ↓
-primary-agent execution
-   ↓
-evaluate against contract
-   ↓
-refine
-   ↓
-optional LangGraph checkpoints/replay
-   ↓
-independent verification
-   ↓
-human approval
-   ↓
-promote validated skill/recipe improvement
+session.yaml
+  audit/          evidence/        telemetry/       provenance/
+  blackboard/     analysis/        verification/   research-report/
+  preservation/   observability/   learning/
 ```
 
-The learning tools are installed/prepared through the selected host/control-plane profile. If the candidate requires workload execution, replay occurs in disposable compute. Learning produces candidate, evaluation, replay, verification and promotion records under `runs/<session-id>/learning/`. Nothing is promoted automatically, and learning cannot change the base contract, security policy, privileges or VM boundary.
+Raw evidence is ground truth. Hash and preserve it before VM destruction. The report references artifacts and distinguishes observation from inference.
 
-### Step 10 — Close every session
+### Step 9 — Optional learning
 
-The primary agent must finalize:
+Learning happens **after the research result and independent verification**, only if a reusable improvement is identified:
 
-1. evidence preservation and hashes;
-2. audit and provenance;
-3. independent verification;
-4. research report;
-5. token accounting;
-6. dashboard snapshot and active-session clearing;
-7. final `session.yaml` status (`COMPLETE`, `PARTIAL` or `FAILED`);
-8. disposable compute destruction only after preservation requirements are satisfied.
+```text
+candidate → Taskflow tasks → primary-agent execution
+→ evaluate → refine → optional LangGraph replay/checkpoints
+→ independent verification → human approval → promote
+```
+
+Learning/control tools are installed through the selected host/control-plane profile. If replay needs execution, it uses disposable compute. Outputs go under `runs/<session-id>/learning/`. No automatic promotion, privilege grant, policy change or base-contract mutation is allowed.
+
+### Step 10 — Close the session
+
+The primary agent finalizes evidence/hashes, audit, provenance, verification, report, token accounting, dashboard state and `session.yaml`; only then is disposable compute destroyed. Terminal state is `COMPLETE`, `PARTIAL` or `FAILED`.
 
 ## Policyctl commands
 
-`policyctl` is a **host-side governance/control-plane tool**, outside the agent control plane. It is not the sandbox.
-
-### Validate policy configuration
+`policyctl` is host-side governance. It is outside the agent control plane and is **not** the sandbox.
 
 ```bash
+# Validate policy configuration
 ./policyctl validate
-```
 
-### Check an action and append an audit record
-
-```bash
+# Check an action and append an audit event
 ./policyctl check --action credentials --audit-file /tmp/cusimanse-policy-audit.jsonl
 ./policyctl check --action host-root --audit-file /tmp/cusimanse-policy-audit.jsonl
 ./policyctl check --action crew-orchestration --audit-file /tmp/cusimanse-policy-audit.jsonl
-```
 
-Use policy decisions before applicable privileged, destructive, credential or orchestration actions and retain the audit reference in session state.
-
-### Token/dashboard command
-
-```bash
+# Show/finalize token dashboard state
 ./policyctl token-dashboard
 ```
 
-Session token accounting is finalized at the end of every session. Historical metrics may remain; the active session view is cleared/finalized.
+Retain policy/audit references in the session state. Never use `policyctl` as a substitute for VM isolation.
 
 ## Runtime validation commands
 
-### Static/project integration validation
+### Project/static integration
 
-Run from the repository root:
+From the repository root:
 
 ```bash
 ./scripts/tests/production-validation.sh
 ```
 
-This validates the architecture, recipes, Go code, policy configuration and project integration. It does not prove Lima/QEMU runtime execution.
+This validates project structure, recipes, Go code, policy and integration contracts. It does not prove VM runtime execution.
 
-### Runtime smoke validation
+### Lima/QEMU runtime smoke test
 
-Run on a suitable Linux/macOS research host with Lima and QEMU available:
+Run on a suitable research host with Lima/QEMU available:
 
 ```bash
 export CUSIMANSE_LIMA_PROFILE=recipes/lima/profiles/security-research.yaml
 ./scripts/tests/runtime-integration.sh
 ```
 
-Then verify the generated run:
+Verify the generated run:
 
 ```bash
 ./scripts/verify-run.sh reports/runtime/<run-id>
 ```
 
-A runtime `PASS` requires actual disposable-compute execution, evidence, verification and a passing run verifier. GitHub-hosted static CI alone cannot establish runtime PASS.
+Runtime `PASS` requires actual disposable-compute execution, instrumentation/evidence, independent verification and a passing verifier. Hosted static CI cannot establish runtime PASS.
 
 ## Security boundary
 
 1. Human authorization defines scope.
 2. Contracts and recipes define the permitted experiment.
 3. The selected primary agent operates the approved lifecycle.
-4. `policyctl` provides governance/policy decisions; it is not the sandbox.
-5. Lima/QEMU plus VM/OS controls enforce workload isolation.
-6. Instrumentation precedes target execution.
+4. `policyctl` provides governance decisions; it is not the sandbox.
+5. Lima/QEMU + VM/OS controls enforce workload isolation.
+6. Instrumentation precedes execution.
 7. Evidence is preserved and hashed before destruction.
 8. Important findings require independent verification.
 
-Agents, skills, MCP, Taskflow, LangGraph, CrewAI and model/harness gateways are coordination or capability layers, not containment boundaries.
+Agents, skills, MCP, Taskflow, LangGraph, CrewAI and model/harness gateways are coordination/capability layers, not containment boundaries.
 
 ## Documentation
 
-- [`docs/architecture/cusimanse-architecture.svg`](docs/architecture/cusimanse-architecture.svg) — canonical architecture rendering
-- [`docs/architecture/cusimanse-architecture.mmd`](docs/architecture/cusimanse-architecture.mmd) — canonical Mermaid architecture/workflow source
-- [`contracts/`](contracts/) — canonical research contracts
-- [`recipes/`](recipes/) — declarative experiment/profile configuration
-- [`docs/system-requirements.md`](docs/system-requirements.md) — detailed requirements
+- [`docs/architecture/cusimanse-architecture.svg`](docs/architecture/cusimanse-architecture.svg) — canonical architecture
+- [`docs/architecture/cusimanse-architecture.mmd`](docs/architecture/cusimanse-architecture.mmd) — canonical Mermaid workflow/source
+- [`contracts/`](contracts/) — canonical contracts
+- [`recipes/`](recipes/) — declarative configuration
+- [`docs/system-requirements.md`](docs/system-requirements.md) — requirements
 - [`docs/agent-shell-runbook.md`](docs/agent-shell-runbook.md) — adapter details
 - [`docs/production-architecture.md`](docs/production-architecture.md) — deployment/security model
 - [`docs/runtime-architecture.md`](docs/runtime-architecture.md) — runtime model
-- [`docs/integration-status.md`](docs/integration-status.md) — integration status
+- [`docs/integration-status.md`](docs/integration-status.md) — validation status
 - [`docs/prompts/`](docs/prompts/) — experiment-specific prompts
 
 ## Responsible use
