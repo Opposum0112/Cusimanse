@@ -33,11 +33,11 @@
   ],
   "runtime_documentation": [
     "README.md",
-    "01-deployment-architecture.md",
+    "contracts/01-deployment-architecture.md",
     "docs/agent-shell-runbook.md",
     "docs/agent-and-adapter-strategy.md",
-    "03-deployment-runbook.md",
-    "10-validation-and-acceptance.md"
+    "contracts/03-deployment-runbook.md",
+    "contracts/10-validation-and-acceptance.md"
   ],
   "runtime_validation": {
     "bootstrap": "scripts/prerequisites.sh",
@@ -47,46 +47,16 @@
     "reference_experiment": "experiments/go-install-001"
   },
   "shell_forms": {
-    "goose": {
-      "interactive": "goose",
-      "run": "goose run --text '<PROMPT>'"
-    },
-    "opencode": {
-      "interactive": "opencode",
-      "run": "opencode run '<PROMPT>'"
-    },
-    "grok-build": {
-      "interactive": "grok",
-      "run": "grok -p '<PROMPT>'"
-    },
-    "antigravity": {
-      "interactive": "agy",
-      "run": "verify with agy --help"
-    },
-    "pi": {
-      "interactive": "pi",
-      "run": "pi -p '<PROMPT>'"
-    },
-    "hermes": {
-      "interactive": "hermes",
-      "run": "TUI-first; use the installed Hermes interactive prompt flow"
-    },
-    "codex": {
-      "interactive": "codex",
-      "run": "verify with codex --help"
-    },
-    "prime-intellect": {
-      "interactive": "prime-agent",
-      "run": "prime-agent -p '<PROMPT>'"
-    },
-    "claude-code": {
-      "interactive": "claude",
-      "run": "verify with claude --help"
-    },
-    "devin": {
-      "interactive": "provider-managed",
-      "run": "provider-managed"
-    }
+    "goose": {"interactive": "goose", "run": "goose run --text '<PROMPT>'"},
+    "opencode": {"interactive": "opencode", "run": "opencode run '<PROMPT>'"},
+    "grok-build": {"interactive": "grok", "run": "grok -p '<PROMPT>'"},
+    "antigravity": {"interactive": "agy", "run": "verify with agy --help"},
+    "pi": {"interactive": "pi", "run": "pi -p '<PROMPT>'"},
+    "hermes": {"interactive": "hermes", "run": "TUI-first; use the installed Hermes interactive prompt flow"},
+    "codex": {"interactive": "codex", "run": "verify with codex --help"},
+    "prime-intellect": {"interactive": "prime-agent", "run": "prime-agent -p '<PROMPT>'"},
+    "claude-code": {"interactive": "claude", "run": "verify with claude --help"},
+    "devin": {"interactive": "provider-managed", "run": "provider-managed"}
   },
   "acceptance": {
     "PASS": "runtime evidence plus required independent verification",
