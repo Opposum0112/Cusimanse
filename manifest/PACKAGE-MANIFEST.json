@@ -1,5 +1,5 @@
 {
-  "manifest_version": 5,
+  "manifest_version": 6,
   "package": "Cusimanse",
   "license": "MIT",
   "spdx": "MIT",
@@ -21,7 +21,8 @@
     "agent_metadata": ".agents/",
     "promoted_skills": "skills/",
     "runtime_helpers": "scripts/",
-    "research_packages": "packages/"
+    "research_packages": "packages/",
+    "manifest": "manifest/PACKAGE-MANIFEST.json"
   },
   "host_inventory": {
     "profile": "recipes/host/research-host.yaml",
@@ -29,6 +30,14 @@
     "bootstrap": "scripts/prerequisites.sh",
     "preflight": "scripts/agent-preflight.sh",
     "policy": "policies/host-policy.yaml"
+  },
+  "agent_observability": {
+    "contract": "recipes/agent-monitoring/observability.yaml",
+    "providers": ["numbat", "phoenix", "aegis"],
+    "token_accounting": "recipes/observability/token-dashboard.yaml",
+    "installer": "scripts/install.sh",
+    "provider_installer": "scripts/install-observability.sh",
+    "preflight": "scripts/agent-preflight.sh"
   },
   "primary_agent_contracts": [
     "recipes/agents/primary-agent.yaml",
@@ -61,6 +70,10 @@
     "docs/prompts/go-install-001.md",
     "docs/prompts/npm-install-001.md"
   ],
+  "branding": {
+    "mascot": "docs/images/cusimanse-mascot.svg",
+    "logo": "docs/images/cusimanse-logo.svg"
+  },
   "runtime_validation": {
     "bootstrap": "scripts/prerequisites.sh",
     "preflight": "scripts/agent-preflight.sh",
@@ -69,7 +82,8 @@
     "reference_experiments": [
       "experiments/go-install-001",
       "experiments/npm-install-001"
-    ]
+    ],
+    "result_states": ["PASS", "PARTIAL", "FAIL"]
   },
   "shell_forms": {
     "goose": {"interactive": "goose", "run": "verify with goose --help"},
@@ -84,10 +98,10 @@
     "devin": {"interactive": "provider-managed", "run": "provider-managed"}
   },
   "acceptance": {
-    "PASS": "runtime evidence plus required independent verification",
-    "PARTIAL": "incomplete required coverage",
-    "FAIL": "contract or safety violation",
+    "PASS": "required static/project checks pass; runtime PASS additionally requires disposable-compute evidence and independent verification",
+    "PARTIAL": "project is structurally valid but one or more optional/declarative capabilities are unavailable or unverified",
+    "FAIL": "a required project contract, safety check or validation step failed",
     "NOT_DEPLOYED": "provider/runtime/configuration unavailable or unverified"
   },
-  "manifest_note": "The manifest is an architecture and source-of-truth inventory, not runtime evidence. Host tooling is declared in recipes/host and recipes/tools; bootstrap and preflight implement that inventory. Provider CLI versions and commands must be verified by preflight. Complete disposable-VM execution is required for runtime PASS."
+  "manifest_note": "The manifest is an architecture and source-of-truth inventory, not runtime evidence. Recipes are the configuration source of truth. Host tooling is declared in recipes/host and recipes/tools; bootstrap and preflight implement that inventory. Agent observability is declared in recipes/agent-monitoring and installed by the all-inclusive installer with preflight verification. Complete disposable-VM execution is required for runtime PASS."
 }
