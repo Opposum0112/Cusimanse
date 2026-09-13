@@ -14,12 +14,10 @@ echo '== Shell syntax =='
 while IFS= read -r -d '' f; do bash -n "$f"; done < <(find . -path './.git' -prune -o -type f -name '*.sh' -print0)
 
 echo '== Architecture/integration checks =='
-for required in contracts/01-deployment-architecture.md contracts/02-system-requirements.md contracts/03-deployment-runbook.md contracts/04-security-model.md contracts/05-multi-agent-operating-model.md contracts/06-observability-and-evidence.md contracts/07-experiment-framework.md contracts/08-go-install-001.md contracts/09-operations-and-maintenance.md contracts/10-validation-and-acceptance.md contracts/11-harness-reference.md contracts/blackboard-schema.md policies/host-policy.yaml cmd/policyctl/main.go cmd/policyctl/main_test.go recipes/agents/primary-agent.yaml recipes/agents/primary-shell.yaml recipes/agents/adapter-matrix.yaml recipes/agent-selection.yaml recipes/skills/registry.yaml recipes/mcp/registry.yaml recipes/mcp/connectors.yaml recipes/orchestration/langgraph.yaml recipes/orchestration/crewai.yaml recipes/orchestration/taskflow.yaml recipes/session/session-state.yaml recipes/session/learning-workflow.yaml recipes/observability/token-dashboard.yaml docs/architecture/cusimanse-architecture.svg docs/architecture/cusimanse-architecture.mmd docs/README.md docs/research-workflow.md docs/prompts/go-install-001.md docs/prompts/npm-install-001.md; do test -f "$required" || { echo "FAIL: missing $required" >&2; exit 1; }; done
+for required in contracts/01-deployment-architecture.md contracts/02-system-requirements.md contracts/03-deployment-runbook.md contracts/04-security-model.md contracts/05-multi-agent-operating-model.md contracts/06-observability-and-evidence.md contracts/07-experiment-framework.md contracts/08-go-install-001.md contracts/09-operations-and-maintenance.md contracts/10-validation-and-acceptance.md contracts/11-harness-reference.md contracts/blackboard-schema.md policies/host-policy.yaml cmd/policyctl/main.go cmd/policyctl/main_test.go recipes/agents/primary-agent.yaml recipes/agents/primary-shell.yaml recipes/agents/adapter-matrix.yaml recipes/agent-selection.yaml recipes/skills/registry.yaml recipes/mcp/registry.yaml recipes/mcp/connectors.yaml recipes/orchestration/langgraph.yaml recipes/orchestration/crewai.yaml recipes/orchestration/taskflow.yaml recipes/session/session-state.yaml recipes/session/learning-workflow.yaml recipes/observability/token-dashboard.yaml docs/architecture/cusimanse-architecture.svg docs/architecture/cusimanse-architecture.mmd docs/README.md docs/system-requirements.md docs/prompts/go-install-001.md docs/prompts/npm-install-001.md; do test -f "$required" || { echo "FAIL: missing $required" >&2; exit 1; }; done
 test -f crewai/README.md
 test -f docs/images/cusimanse-mascot.svg
 test -f docs/images/cusimanse-logo.svg
-test -f docs/images/cusimanse-architecture.png
-test -f docs/images/cusimanse-workflow.png
 for adapter in antigravity claude-code codex devin enterprise-claude-code enterprise-devin goose grok-build hermes opencode pi prime-intellect; do test -f "recipes/adapters/$adapter.yaml" || { echo "FAIL: missing adapter $adapter" >&2; exit 1; }; done
 grep -q 'owner: project' recipes/mcp/registry.yaml
 grep -q 'owner: project' recipes/skills/registry.yaml
@@ -28,6 +26,8 @@ grep -q 'crew-orchestration' cmd/policyctl/main.go
 if [ -e scripts/bin/labctl ] || [ -d scripts/labctl ]; then echo 'FAIL: retired labctl remains' >&2; exit 1; fi
 for legacy in profiles.yaml state.yaml skills-registry.md 01-deployment-architecture.md 02-system-requirements.md 03-deployment-runbook.md 04-security-model.md 05-multi-agent-operating-model.md 06-observability-and-evidence.md 07-experiment-framework.md 08-go-install-001.md 09-operations-and-maintenance.md 10-validation-and-acceptance.md 11-current-antigravity-reference.md blackboard-schema.md ai-security-lab-architecture.png ai-security-lab-experiment-workflow.png; do if [ -e "$legacy" ]; then echo "FAIL: legacy root file remains: $legacy" >&2; exit 1; fi; done
 if grep -Rni --exclude-dir=.git --exclude='*.sum' 'ai-security-lab' . >/tmp/cusimanse-legacy-refs.txt; then echo 'FAIL: legacy ai-security-lab references remain:' >&2; cat /tmp/cusimanse-legacy-refs.txt >&2; exit 1; fi
+if [ -e docs/research-workflow.md ]; then echo 'FAIL: duplicate research workflow document remains' >&2; exit 1; fi
+if [ -e docs/images/cusimanse-architecture.png ] || [ -e docs/images/cusimanse-workflow.png ]; then echo 'FAIL: duplicate architecture/workflow image remains' >&2; exit 1; fi
 
 echo '== Session contract validation =='
 grep -q 'session_id' recipes/session/session-state.yaml
@@ -37,10 +37,9 @@ grep -q 'audit:' recipes/session/session-state.yaml
 grep -q 'dashboard_refresh_required_at_session_end: true' recipes/session/session-state.yaml
 grep -q 'independent_verification' recipes/session/learning-workflow.yaml
 grep -q 'human_approval_required: true' recipes/session/learning-workflow.yaml
-grep -q 'NORMAL HOST SHELL' docs/research-workflow.md
-grep -q 'PRIMARY AGENT' docs/research-workflow.md
-grep -q 'DISPOSABLE COMPUTE' docs/research-workflow.md
-grep -q 'go-install-001' docs/prompts/go-install-001.md
+grep -q 'when:' recipes/session/learning-workflow.yaml
+grep -q 'where:' recipes/session/learning-workflow.yaml
+grep -q 'NORMAL HOST SHELL' docs/prompts/go-install-001.md
 grep -q 'npm-install-001' docs/prompts/npm-install-001.md
 
 echo '== Go validation =='
