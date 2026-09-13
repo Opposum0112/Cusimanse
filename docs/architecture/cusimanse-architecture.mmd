@@ -1,57 +1,76 @@
 flowchart TD
     H[Human or CI intent] --> C[Markdown research contracts]
     C --> R[YAML recipe graph]
-    R --> A[Selected Agent Adapter]
+    R --> A[Primary Agent Adapter]
 
-    subgraph OP[Modular Pluggable Operator Plane]
-      A --> CR[CrewAI specialist roles<br/>optional]
-      CR --> RP[Role plugins<br/>planner researcher analyst verifier reporter]
-      A --> SP[Skill plugins<br/>SKILL.md scripts eval provenance]
-      A --> MP[MCP plugins<br/>scoped tools]
+    subgraph O[Multiagent Operator Plane]
+      A --> OR[Specialist roles]
+      OR --> PL[Planner]
+      OR --> RS[Researcher]
+      OR --> RA[Runtime Analyst]
+      OR --> FA[Forensics Analyst]
+      OR --> DA[Detection Analyst]
+      OR --> VE[Verifier]
+      OR --> RG[Report Generator]
+      A --> CR[CrewAI optional coordination]
+      A --> SK[Versioned skills]
+      A --> MCP[Scoped MCP tools]
     end
 
-    A --> X[Agent operates and executes]
-    RP -. structured role results .-> X
-    SP -. declared capabilities .-> X
-    MP -. scoped integrations .-> X
-
-    X --> P[Plan / Review / Approval]
-    P --> V[Provision disposable Lima / QEMU VM]
-    V --> I[Start instrumentation]
-    I --> W[Execute approved workload]
-    W --> E[Collect raw evidence + telemetry]
-    E --> B[Blackboard / durable case store]
-
-    subgraph BB[Blackboard]
-      B --> AR[Artifacts + provenance]
-      B --> AU[Run + audit records]
-      B --> FN[Findings + evidence analysis]
-      B --> VR[Verification results]
-      B --> RR[Research report + technical details]
+    R --> GW[Model / Harness Gateway Plane]
+    subgraph G[Gateway Plane]
+      GW --> LT[LiteLLM<br/>model routing + fallback + telemetry]
+      GW --> OM[OmniRoute<br/>provider routing + fallback]
     end
 
-    VR --> L[Self-learning loop]
-    RR --> L
-    L --> SC[Candidate skill / recipe improvement]
-    SC --> RE[Replay on distinct artifact]
-    RE --> IV[Independent verification]
-    IV --> HA[Human approval]
-    HA --> VS[Validated versioned skill]
-    VS --> SP
+    A --> X[Agent execution]
+    PL --> X
+    RS --> X
+    RA --> X
+    FA --> X
+    DA --> X
+    X --> RV[Review / Approval]
+    RV --> VM[Disposable Lima / QEMU VM]
 
-    B --> PR[Preserve + hash evidence]
-    PR --> D[Destroy disposable VM]
+    subgraph EX[Controlled Execution Plane]
+      VM --> IN[Instrumentation selected by workload recipe]
+      IN --> WK[Approved workload]
+      WK --> COL[Telemetry + raw evidence collection]
+    end
 
-    PC[policyctl<br/>outside agent control plane] -. policy signal / audit .-> P
-    SEC[VM/OS security boundary<br/>mounts credentials privilege network] --- V
+    COL --> BB[Blackboard / durable case store]
+    subgraph B[Evidence and Analysis Plane]
+      BB --> ART[Immutable raw artifacts + hashes + provenance]
+      BB --> AUD[Run + audit records]
+      BB --> TEL[Telemetry]
+      BB --> AN[Evidence analysis]
+      BB --> FIND[Findings]
+      AN --> RG
+      FIND --> RG
+      VE --> IV[Independent verification]
+      RG --> RR[Research Report<br/>key platform output]
+      IV --> RR
+    end
 
-    classDef declarative fill:#eef6ff,stroke:#3b82f6
-    classDef pluggable fill:#fff7e6,stroke:#f59e0b
-    classDef data fill:#f5f3ff,stroke:#8b5cf6
-    classDef security fill:#ecfdf5,stroke:#16a34a
+    RR --> PR[Preserve case]
+    PR --> DEST[Destroy disposable VM]
+    RR --> LEARN[Evidence-bounded learning]
+    LEARN --> CAND[Candidate skill / recipe improvement]
+    CAND --> REPLAY[Replay on distinct evidence]
+    REPLAY --> IV
+
+    PC[policyctl<br/>outside agent control plane] -. policy / audit signal .-> RV
+    SEC[VM/OS security boundary<br/>mounts credentials privilege network] --- VM
+
+    classDef declarative fill:#eef6ff,stroke:#2563eb,stroke-width:2px
+    classDef agent fill:#fff7ed,stroke:#ea580c,stroke-width:2px
+    classDef gateway fill:#f0fdf4,stroke:#16a34a,stroke-width:2px
+    classDef evidence fill:#f5f3ff,stroke:#7c3aed,stroke-width:2px
+    classDef security fill:#ecfdf5,stroke:#15803d,stroke-width:2px
     class C,R declarative
-    class A,CR,RP,SP,MP pluggable
-    class B,AR,AU,FN,VR,RR data
-    class V,SEC security
+    class A,OR,PL,RS,RA,FA,DA,VE,RG,CR,SK,MCP,X agent
+    class GW,LT,OM gateway
+    class BB,ART,AUD,TEL,AN,FIND,RR,IV evidence
+    class VM,SEC security
 
-    %% Invariant: no agent, role, skill, MCP server or orchestrator is the sandbox.
+    %% Invariant: the project is multiagentic, but no model, agent, role, skill, MCP server, gateway or orchestrator is the sandbox.
