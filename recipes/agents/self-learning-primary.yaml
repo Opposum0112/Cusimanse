@@ -5,6 +5,9 @@ mode: terminal-first
 supported_adapters:
   - prime-agent
   - hermes
+  - goose
+selected_adapter: null
+installation_status: NOT_DEPLOYED
 learning:
   retrieve_before_create: true
   create_candidate_after_evidence: true
