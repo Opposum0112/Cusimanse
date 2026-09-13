@@ -13,31 +13,31 @@ import (
 func main() {
 	root, err := findRoot()
 	if err != nil { fmt.Fprintln(os.Stderr, err); os.Exit(1) }
+	if runtime.GOOS == "windows" {
+		fmt.Println("Cusimanse on Windows uses WSL2 for the Linux Lima/QEMU execution path.")
+		fmt.Println("Open WSL2, cd to the repository there, and run: ./scripts/cusimanse-host.sh")
+		return
+	}
 	r := bufio.NewReader(os.Stdin)
 	fmt.Println("Cusimanse interactive host preparation")
 	fmt.Printf("Host: %s/%s\n", runtime.GOOS, runtime.GOARCH)
-	fmt.Println("This front door runs the repository's vetted bootstrap and preflight controls.")
+	fmt.Println("One front door prepares all selected planes and finishes with a host preflight.")
+	fmt.Println("Profiles: 1 baseline, 2 research/control/learning, 3 observability, 4 complete workstation, 5 check/repair")
+	fmt.Print("Installation profile [4]: ")
+	profile, _ := r.ReadString('\n'); profile = strings.TrimSpace(profile); if profile == "" { profile = "4" }
+	if profile < "1" || profile > "5" { fmt.Fprintln(os.Stderr, "invalid profile: choose 1-5"); os.Exit(1) }
+	run(root, "scripts/prerequisites.sh", []string{"CUSIMANSE_PROFILE=" + profile})
 	fmt.Println()
-
-	if ask(r, "Run comprehensive prerequisite installation? [Y/n]: ", true) {
-		run(root, "scripts/prerequisites.sh", nil)
+	fmt.Println("Running comprehensive host preflight...")
+	run(root, "scripts/agent-preflight.sh", nil)
+	policyctl := filepath.Join(root, "policyctl")
+	if _, err := os.Stat(policyctl); err != nil {
+		fmt.Println("Building policyctl for host-side policy validation...")
+		cmd := exec.Command("go", "build", "-o", policyctl, "./cmd/policyctl"); cmd.Dir = root; cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+		if err := cmd.Run(); err != nil { fmt.Fprintf(os.Stderr, "policyctl build failed: %v\n", err); os.Exit(1) }
 	}
-	if ask(r, "Install the extended research/control/learning profile? [y/N]: ", false) {
-		run(root, "scripts/prerequisites.sh", []string{"CUSIMANSE_INSTALL_PRODUCTION_PROFILE=1"})
-	}
-	if ask(r, "Install/verify agent observability and governance components? [Y/n]: ", true) {
-		run(root, "scripts/prerequisites.sh", []string{"CUSIMANSE_INSTALL_OBSERVABILITY=1"})
-	}
-	if ask(r, "Install a primary agent (Prime Agent, Hermes or Goose)? [Y/n]: ", true) {
-		fmt.Println("Agent installation is performed by the prerequisite bootstrap when supported.")
-	}
-	if ask(r, "Run full host preflight and capability checks now? [Y/n]: ", true) {
-		run(root, "scripts/agent-preflight.sh", nil)
-	}
-	if ask(r, "Run policy validation now? [Y/n]: ", true) {
-		run(root, "policyctl", []string{"validate"})
-	}
-	fmt.Println("\nHost preparation complete. Select one primary agent and start the research workflow from its shell.")
+	run(root, "policyctl", []string{"validate"})
+	fmt.Println("\nCusimanse host preparation complete.")
 }
 
 func findRoot() (string, error) {
@@ -50,20 +50,12 @@ func findRoot() (string, error) {
 	return "", fmt.Errorf("cannot locate Cusimanse repository root; run from the repository or set CUSIMANSE_ROOT")
 }
 
-func ask(r *bufio.Reader, prompt string, defaultYes bool) bool {
-	fmt.Print(prompt); v, _ := r.ReadString('\n'); v = strings.ToLower(strings.TrimSpace(v))
-	if v == "" { return defaultYes }; return v == "y" || v == "yes"
-}
-
 func run(root, path string, settings []string) {
 	full := filepath.Join(root, path)
 	var cmd *exec.Cmd
-	if path == "policyctl" { cmd = exec.Command(filepath.Join(root, "policyctl"), settings...) } else { cmd = exec.Command("bash", full) }
-	cmd.Dir = root
-	cmd.Env = os.Environ()
-	for _, s := range settings {
-		if strings.Contains(s, "=") { cmd.Env = append(cmd.Env, s) }
-	}
+	if path == "policyctl" { cmd = exec.Command(full, settings...) } else { cmd = exec.Command("bash", full) }
+	cmd.Dir = root; cmd.Env = os.Environ()
+	for _, s := range settings { if strings.Contains(s, "=") { cmd.Env = append(cmd.Env, s) } }
 	cmd.Stdout, cmd.Stderr, cmd.Stdin = os.Stdout, os.Stderr, os.Stdin
 	if err := cmd.Run(); err != nil { fmt.Fprintf(os.Stderr, "Cusimanse setup command failed: %v\n", err); os.Exit(1) }
 }
