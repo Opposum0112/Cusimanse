@@ -19,7 +19,7 @@ go build -o "$ROOT/policyctl" ./cmd/policyctl
 mkdir -p "$HOME/.local/bin"
 ln -sf "$ROOT/scripts/token-dashboard.sh" "$HOME/.local/bin/cusimanse-token-dashboard"
 chmod +x "$ROOT/scripts/token-dashboard.sh"
-./scripts/token-dashboard.sh --help >/dev/null 2>&1 || true
+bash -n "$ROOT/scripts/token-dashboard.sh"
 printf '\nInstall PASS (host tools + policyctl + governance/token tooling).\n'
 echo 'Session token dashboard command: cusimanse-token-dashboard'
 echo 'Dashboard is localhost-only by default and reads the session usage ledger configured at installation time.'
