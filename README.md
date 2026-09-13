@@ -6,26 +6,42 @@ Cusimanse prepares a researcher host, selects one primary terminal agent, runs w
 
 ## Architecture
 
-```mermaid
-flowchart TB
- H["RESEARCHER / HOST\nGo front door + preflight"] --> P["POLICY\npolicyctl"]
- H --> A["PRIMARY AGENT\nPrime Agent · Hermes · Goose"]
- A --> C["CONTROL\nYAML · Taskflow · LangGraph · MCP"]
- C --> V["EXECUTION BOUNDARY\nLima + QEMU + disposable VM"]
- C --> O["OBSERVABILITY / GOVERNANCE\nOpenTelemetry · Phoenix · Numbat · Aegis"]
- V --> W["UNTRUSTED WORKLOAD"]
- V --> E["EVIDENCE / CASE\nartifacts · telemetry · audit · hashes"]
- O --> E
- E --> L["LEARNING\nCandidate → replay → verification → approval"]
- L --> A
- P -. independent host constraint .-> V
-```
-
 ![Cusimanse architecture](docs/architecture/cusimanse-architecture.svg)
 
-## One frontdoor deployment
+```text
+Researcher
+   │
+   ▼
+Go front door / preflight
+   ├── Host + VM
+   ├── Primary Agent
+   ├── Control + Learning
+   └── Observability + Governance
+              │
+              ▼
+       Primary agent shell
+              │
+              ▼
+   YAML / Taskflow / LangGraph
+              │
+              ▼
+       Lima + QEMU VM
+              │
+              ▼
+        Workload + evidence
+              │
+              ▼
+ Verification → Learning → Preservation
 
-The supported researcher interface is a single Go front door. It installs and verifies the host/VM, primary-agent, control/learning, and observability/governance planes interactively and then runs the comprehensive preflight. Installation is performed plane by plane so the researcher can accept or skip each capability group.
+policyctl ───────► independent host-side policy
+OTEL/Phoenix/Numbat/Aegis ─► observability/governance
+```
+
+## Researcher quick start
+
+There is one recommended installation path and one short research path.
+
+### 1. Prepare everything
 
 From the repository root:
 
@@ -33,20 +49,18 @@ From the repository root:
 ./scripts/cusimanse-host.sh
 ```
 
-The front door presents:
+The Go front door interactively handles the planes in order:
 
-1. **Host + VM plane** — Git, Bash, Python, Ruby, Go, QEMU and Lima.
-2. **Primary Agent plane** — choose Prime Agent, Hermes, Goose, or no primary adapter; supported adapters are installed and the selected adapter is recorded in the recipe.
-3. **Control + Learning plane** — research utilities, YAML tooling, LangGraph-related tooling and the skill-learning stack.
-4. **Observability + Governance plane** — OpenTelemetry, Phoenix, **Numbat** and **Aegis**, with OS-aware installation fallbacks.
-5. **Comprehensive preflight** — validates the resulting host and selected capabilities.
-6. **Policy validation** — optionally runs the independent host-side `policyctl validate` check.
+1. **Host + VM** — Git, Bash, Python, Ruby, Go, QEMU and Lima.
+2. **Primary Agent** — choose exactly one operator: Prime Agent, Hermes or Goose.
+3. **Control + Learning** — YAML tooling, LangGraph-related tooling and research/learning utilities.
+4. **Observability + Governance** — OpenTelemetry, Phoenix, Numbat and Aegis.
+5. **Preflight** — comprehensive host and capability check.
+6. **Policy** — optional independent `policyctl validate`.
 
-Installation and preflight may update local YAML recipes when a value is not defined. Deployment state is recorded only from locally verifiable capability checks; otherwise the recipe remains `NOT_DEPLOYED`.
+Installation uses the native package path where supported and an appropriate upstream/release/source fallback when the native path is unavailable. Windows uses WSL2. Locally verified configuration can update undefined YAML recipe fields; unavailable capabilities remain `NOT_DEPLOYED`.
 
-### Manual installation options
-
-The Go front door is the supported interface. The underlying commands remain available for operators who need individual plane control:
+If the front door is unavailable, the manual per-plane alternatives are:
 
 ```bash
 bash ./scripts/prerequisites.sh
@@ -55,90 +69,194 @@ bash ./scripts/agent-preflight.sh
 ./policyctl validate
 ```
 
-The manual commands do not replace the front-door workflow; they provide explicit per-plane operation and automation hooks.
+### 2. Select and start one adapter
 
-## OS support and fallback strategy
+The adapter is the **operator**, not the security boundary.
 
-| Host | Preparation | Fallback |
+| Adapter | Start | Verify CLI |
 |---|---|---|
-| Ubuntu/Debian | `apt` | supported package fallback where available |
-| Fedora/RHEL-family | `dnf` | supported package fallback where available |
-| Arch-family | `pacman` | supported package fallback where available |
-| openSUSE/SUSE | `zypper` | supported package fallback where available |
-| Alpine | `apk` | supported package fallback where available |
-| macOS | Homebrew | official release/source fallback where supported |
-| Windows | WSL2 | Linux installation path inside WSL2 |
+| Prime Agent | `prime-agent` | `prime-agent --help` |
+| Hermes | `hermes` | `hermes --help` |
+| Goose | `goose` | `goose --help` |
 
-Lima always attempts the native package path first and uses its official release archive when the native package is unavailable. Numbat uses Go installation first and an official release asset fallback. Aegis uses its upstream installer first and a source/Docker fallback on supported Linux/macOS hosts. Unsupported combinations are reported as `NOT_DEPLOYED`, never silently treated as installed.
-
-Third-party installers are not security boundaries. Verify release provenance according to the research environment's supply-chain requirements before enabling them on sensitive hosts.
-
-## Primary agent
-
-Cusimanse uses exactly one selected primary operator shell per case. The agent operates the research workflow; it is not the VM security boundary.
-
-Supported adapters:
-
-```text
-prime-agent
-hermes
-goose
-```
-
-Example after installation:
+Set the selected adapter explicitly when using manual operation:
 
 ```bash
 export CUSIMANSE_PRIMARY_ADAPTER=prime-agent
+prime-agent --help
 prime-agent
 ```
 
-The selected adapter is written to `recipes/agents/self-learning-primary.yaml` by the configuration step when the adapter is locally available.
+For another adapter, use the same workflow:
+
+```bash
+export CUSIMANSE_PRIMARY_ADAPTER=hermes
+hermes --help
+hermes
+```
+
+or:
+
+```bash
+export CUSIMANSE_PRIMARY_ADAPTER=goose
+goose --help
+goose
+```
+
+Only use command-line modes actually shown by that installed agent's `--help` output.
+
+### 3. Give the agent the standard Cusimanse task
+
+Paste this into the selected agent:
+
+```text
+Act as the primary operator for one Cusimanse security-research case.
+
+Read the applicable recipes under recipes/agents, recipes/campaigns,
+recipes/workflows, recipes/orchestration and recipes/learning.
+
+Follow:
+Discover → Validate → Retrieve → Plan → Review → Approve →
+Provision VM → Instrument → Execute → Collect → Analyze →
+Verify → Learn → Promote → Preserve → Destroy
+
+Rules:
+- Run untrusted workloads only inside the disposable Lima/QEMU VM.
+- Do not invoke or modify policyctl; it is host-side and outside the agent control plane.
+- Do not expose host credentials to workloads or learned skills.
+- Retrieval never grants execution authority.
+- Preserve raw evidence, telemetry, audit records and hashes before VM destruction.
+- New learned procedures remain CANDIDATE until replay, independent verification,
+  provenance, capability and human-approval gates pass.
+- If a capability is unavailable, report NOT_DEPLOYED.
+- Never claim PASS without runtime evidence.
+
+At completion report: case ID, campaign, state, tools used, VM state,
+evidence paths, verification result, skill state and failed gates.
+```
+
+### 4. Run the reference integration test
+
+Use the existing Go reference experiment:
+
+```text
+Run experiments/go-install-001 as a Cusimanse integration test.
+Use the configured campaign/workflow and execute the workload inside a disposable
+Lima/QEMU VM. Collect instrumentation, raw evidence and audit records; independently
+verify the result; preserve evidence and hashes; then destroy the VM.
+Do not bypass policy controls or modify policyctl.
+Report PASS, PARTIAL, FAIL or NOT_DEPLOYED strictly from evidence.
+```
+
+After the agent finishes, inspect the preserved output from the normal researcher shell:
+
+```bash
+find evidence blackboard runs experiments/go-install-001 -type f -print 2>/dev/null
+```
+
+A real runtime PASS requires actual VM execution and preserved evidence. Static CI success alone is not a sandbox-runtime test.
+
+### 5. Run adapter equivalence testing
+
+Repeat the **same campaign, task prompt and evidence requirements** with another adapter:
+
+```bash
+export CUSIMANSE_PRIMARY_ADAPTER=hermes
+hermes
+```
+
+Then repeat with Prime Agent or Goose. The purpose is to verify that the operator can change while the Cusimanse research contract, evidence requirements, policy separation and VM security boundary remain unchanged.
+
+### 6. Test learning and promotion
+
+After a completed case, ask the agent:
+
+```text
+Create one reusable research procedure from this case as a CANDIDATE SKILL.
+Include SKILL.md, deterministic helpers where appropriate, references, evaluation
+cases, capability/risk metadata and provenance. Do not promote it and do not alter
+original evidence.
+```
+
+Then retrieve and replay the candidate against a **distinct artifact**, independently verify the result, and obtain human approval before promotion. The promotion path is:
+
+```text
+CANDIDATE → replay → distinct artifact → independent verification
+→ provenance/capability checks → human approval → VALIDATED → retrieval index
+```
+
+## Command interfaces
+
+| Plane | Command/interface | Researcher use |
+|---|---|---|
+| Front door | `./scripts/cusimanse-host.sh` | Recommended interactive host preparation |
+| Front door | `go run ./cmd/cusimanse-host` | Direct Go front door |
+| Host | `bash ./scripts/prerequisites.sh` | Manual dependency installation/repair |
+| Host | `bash ./scripts/agent-preflight.sh` | Manual comprehensive preflight |
+| Agent | `prime-agent`, `hermes`, `goose` | Primary terminal operator |
+| Policy | `./policyctl validate` | Validate active host policy |
+| Policy | `./policyctl show` | Display active policy |
+| Policy | `./policyctl check --action <action>` | Evaluate and audit a policy-controlled action |
+| Policy | `./policyctl --help` | Display policy interface |
+| Recipes | `find recipes -name '*.yaml' -print` | Discover research contracts |
+| Recipes | `yq '.' <recipe>` | Inspect a recipe |
+| VM | `limactl list` | List VMs |
+| VM | `limactl shell <vm>` | Enter a VM for controlled work |
+| VM | `limactl stop <vm>` | Stop a VM |
+| VM | `limactl delete <vm>` | Destroy a VM after evidence preservation |
+| Evidence | `find evidence blackboard runs -type f -print` | Locate preserved case output |
+| Evidence | `sha256sum <file>` | Check artifact integrity |
+| Skills | `find .agents/skills -name SKILL.md -print` | Discover skills |
+| Validation | `bash ./scripts/tests/validate-project.sh` | Repository validation |
+| Validation | `bash ./scripts/tests/architecture-refactor.sh` | Architecture contract validation |
+| Validation | `go test ./...` | Go tests |
+
+## Policy commands
+
+`policyctl` is deliberately **outside the agent control plane**. The agent must not redefine, weaken or bypass it.
+
+| Command | Use |
+|---|---|
+| `./policyctl validate` | Validate policy syntax and required policy values before execution or CI acceptance. |
+| `./policyctl show` | Review the currently loaded policy. |
+| `./policyctl check --action credentials` | Evaluate host credential access policy and record the decision. |
+| `./policyctl check --action mounts` | Evaluate unrestricted host-mount policy. |
+| `./policyctl check --action host-root` | Evaluate privileged host-filesystem access policy. |
+| `./policyctl check --action sudo` | Evaluate sudo/privileged execution policy. |
+| `./policyctl check --action vm` | Evaluate disposable-VM policy. |
+| `./policyctl check --action network` | Evaluate localhost-service/network policy. |
+| `./policyctl check --action git-write` | Evaluate repository write policy. |
+
+Policy decisions are host-side controls; the primary agent does not own this interface.
 
 ## Observability and governance
 
-Numbat provides local agent observability, detection and forensic records. Its CLI includes agent discovery, scanning, timeline reconstruction, OTLP/HTTP collection, live hooks, rules and case verification. Cusimanse keeps Numbat on the observability plane; it does not replace the VM execution boundary. citeturn0search10
+The observability plane contains OpenTelemetry, Phoenix, Numbat and Aegis. The same front door installs and checks the plane, while `bash ./scripts/install-observability.sh` remains available for manual operation.
 
-Aegis is an independent runtime policy/audit integration for AI agents. Cusimanse treats it as governance/observability, not as the workload isolation boundary. The selected integration must be independently verified before being considered deployed. citeturn0search12
+Numbat and Aegis are observability/governance components, **not workload-isolation boundaries**. Lima/QEMU and host/OS controls remain the security boundary.
 
-The observability installer is:
-
-```bash
-bash ./scripts/install-observability.sh
-```
-
-The integration recipes are:
+Integration recipes:
 
 ```text
 recipes/observability/numbat.yaml
 recipes/observability/aegis.yaml
 ```
 
-Numbat's default OTLP/HTTP receiver is loopback-oriented; keep observability endpoints private unless an authenticated and explicitly controlled network path is required. citeturn0search10
+## OS support and fallback
 
-## Policy control
+| Host | Primary path | Fallback |
+|---|---|---|
+| Ubuntu/Debian | `apt` | supported upstream/release fallback |
+| Fedora/RHEL-family | `dnf` | supported upstream/release fallback |
+| Arch-family | `pacman` | supported upstream/release fallback |
+| openSUSE/SUSE | `zypper` | supported upstream/release fallback |
+| Alpine | `apk` | supported upstream/release fallback |
+| macOS | Homebrew | supported upstream/release/source fallback |
+| Windows | WSL2 | Linux path inside WSL2 |
 
-`policyctl` is **outside the agent control plane**. It is the independent host-side policy and validation layer.
+For supported operating systems, the installer attempts the native path first and falls back when unavailable. A capability is only reported as deployed after local verification.
 
-| Command | Use |
-|---|---|
-| `./policyctl validate` | Validate the active host policy and required policy invariants before research execution. |
-| `./policyctl --help` | Show all available policy-control commands and options. |
-
-The primary agent cannot redefine `policyctl` as part of its own control flow. VM/OS isolation, mounts, privileges, credentials, network controls and approval gates remain the security boundary controls.
-
-## Control, workflow and learning
-
-Recipes describe experiment and campaign semantics; the selected agent operates them. LangGraph provides stateful execution, while the durable evidence/case layer remains independent.
-
-```bash
-find recipes -name '*.yaml' -print
-yq '.' recipes/agents/self-learning-primary.yaml
-bash ./scripts/tests/validate-project.sh
-bash ./scripts/tests/architecture-refactor.sh
-go test ./...
-```
-
-Lifecycle:
+## Research lifecycle
 
 ```text
 Discover → Validate → Retrieve → Plan → Review → Approve
@@ -146,45 +264,20 @@ Discover → Validate → Retrieve → Plan → Review → Approve
 → Verify → Learn → Promote → Preserve → Destroy
 ```
 
-A learned procedure remains **CANDIDATE** until replay on distinct evidence, independent verification, provenance and human approval gates pass.
-
-## Execution boundary
-
-Untrusted workload commands execute inside disposable Lima/QEMU VMs through the selected agent workflow. The normal researcher shell and primary-agent shell are distinct contexts.
-
-```bash
-limactl list
-limactl shell <vm>
-limactl stop <vm>
-limactl delete <vm>
-```
-
-Preserve evidence before VM destruction.
-
-## Evidence and integrity
-
-```bash
-find evidence blackboard runs -type f -print 2>/dev/null
-sha256sum <file>
-find .agents/skills -name SKILL.md -print
-git diff -- .agents/skills/
-```
-
-Evidence, telemetry, audit records and hashes provide the basis for independent verification and later skill promotion.
+Recipes specify research semantics. The selected primary agent operates them. LangGraph provides stateful execution. Evidence/case storage remains independent. Retrieval does not grant execution authority.
 
 ## Validation
 
-The standard engineering validation set is:
+Normal repository validation:
 
 ```bash
 ./policyctl validate
 bash ./scripts/agent-preflight.sh
 bash ./scripts/tests/validate-project.sh
-bash ./scripts/tests/architecture-refactor.sh
 go test ./...
 ```
 
-A `PASS` is a result of the corresponding engineering/capability check. It is not a certification of sandbox resistance. Runtime security claims require actual experiment evidence and independent verification.
+Reference runtime validation uses `experiments/go-install-001` and the adapter-equivalence workflow above.
 
 ## System requirements
 
