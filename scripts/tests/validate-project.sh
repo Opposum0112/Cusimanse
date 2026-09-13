@@ -3,18 +3,15 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$ROOT"
 
-fail(){ echo "FAIL: $*" >&2; exit 1; }
-pass(){ echo "PASS: $*"; }
-
-# Project result semantics: PASS is complete static validation; PARTIAL means
-# the project is structurally valid but a declared optional capability is absent;
-# FAIL means a required project contract is broken.
 project_status=PASS
+fail(){ project_status=FAIL; echo "FAIL: $*" >&2; exit 1; }
+pass(){ echo "PASS: $*"; }
 mark_partial(){ project_status=PARTIAL; echo "PARTIAL: $*"; }
+trap 'echo "PROJECT STATUS: $project_status"' EXIT
 
 for f in scripts/prerequisites.sh scripts/agent-preflight.sh scripts/install.sh scripts/goose-env.sh scripts/cusimanse-host.sh; do test -x "$f" || fail "required script is not executable: $f"; done
 while IFS= read -r -d '' f; do test -x "$f" || fail "shell script is not executable: $f"; done < <(find scripts -type f -name '*.sh' -print0)
-bash ./scripts/tests/validate-recipes.sh
+bash ./scripts/tests/validate-recipes.sh || fail 'recipe validation failed'
 while IFS= read -r -d '' f; do bash -n "$f" || fail "shell syntax: $f"; done < <(find . -path './.git' -prune -o -type f -name '*.sh' -print0)
 
 for required in contracts/01-deployment-architecture.md contracts/02-system-requirements.md contracts/03-deployment-runbook.md contracts/04-security-model.md contracts/05-multi-agent-operating-model.md contracts/06-observability-and-evidence.md contracts/07-experiment-framework.md contracts/08-go-install-001.md contracts/09-operations-and-maintenance.md contracts/10-validation-and-acceptance.md contracts/11-harness-reference.md contracts/12-npm-install-001.md contracts/blackboard-schema.md policies/host-policy.yaml cmd/policyctl/main.go cmd/policyctl/main_test.go recipes/agents/primary-agent.yaml recipes/agents/primary-shell.yaml recipes/agents/adapter-matrix.yaml recipes/agent-selection.yaml recipes/skills/registry.yaml recipes/mcp/registry.yaml recipes/mcp/connectors.yaml recipes/orchestration/langgraph.yaml recipes/orchestration/crewai.yaml recipes/orchestration/taskflow.yaml recipes/session/session-state.yaml recipes/session/learning-workflow.yaml recipes/observability/token-dashboard.yaml recipes/observability/agent-observability.yaml recipes/host/research-host.yaml recipes/tools/security-research.yaml manifest/PACKAGE-MANIFEST.json docs/architecture/cusimanse-architecture.svg docs/architecture/cusimanse-architecture.mmd docs/README.md docs/system-requirements.md docs/prompts/go-install-001.md docs/prompts/npm-install-001.md; do test -f "$required" || fail "missing $required"; done
@@ -56,11 +53,9 @@ go build ./cmd/policyctl || fail 'policyctl build failed'
 ./policyctl check --action host-root --audit-file /tmp/cusimanse-policy-audit.jsonl >/dev/null || fail 'host-root policy check failed'
 ./policyctl check --action crew-orchestration --audit-file /tmp/cusimanse-policy-audit.jsonl >/dev/null || fail 'crew policy check failed'
 
-# Optional observability providers are installed by the all-inclusive installer;
-# preflight records unavailable optional backends as PARTIAL rather than FAIL.
+# Optional observability providers are installed by the all-inclusive installer.
+# Their absence changes project completeness to PARTIAL, not FAIL.
 for tool in numbat aegis; do command -v "$tool" >/dev/null 2>&1 || mark_partial "$tool is NOT_DEPLOYED"; done
 python3 -c 'import importlib.util; raise SystemExit(0 if importlib.util.find_spec("phoenix") and importlib.util.find_spec("opentelemetry") else 1)' || mark_partial 'Phoenix/OpenTelemetry is NOT_DEPLOYED'
 
-pass "project integration validation"
-echo "PROJECT STATUS: $project_status"
-[ "$project_status" = PASS ] || [ "$project_status" = PARTIAL ]
+pass 'project integration validation'
