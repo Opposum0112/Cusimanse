@@ -2,28 +2,23 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ADAPTER="${CUSIMANSE_PRIMARY_ADAPTER:-}"
-OBS_STATUS="${CUSIMANSE_OBSERVABILITY_STATUS:-}"
-AGENT_STATUS="${CUSIMANSE_AGENT_STATUS:-}"
-python3 - "$ROOT" "$ADAPTER" "$OBS_STATUS" "$AGENT_STATUS" <<'PY'
+python3 - "$ROOT" "$ADAPTER" <<'PY'
 from pathlib import Path
-import sys
-root, adapter, obs, agent = map(str, sys.argv[1:])
-# Deliberately performs narrow key replacement only; recipes remain reviewable YAML.
-def patch(path, replacements):
+import re,sys,shutil
+root,adapter=sys.argv[1:]
+def patch(path,replacements):
     p=Path(path)
     if not p.exists(): return
     s=p.read_text()
     for key,val in replacements.items():
-        import re
-        pattern=rf'(?m)^{re.escape(key)}:\s*.*$'
-        if re.search(pattern,s): s=re.sub(pattern,f'{key}: {val}',s,count=1)
-        else: s += f'\n{key}: {val}\n'
+        pat=rf'(?m)^{re.escape(key)}:\s*.*$'
+        line=f'{key}: {val}'
+        s=re.sub(pat,line,s,count=1) if re.search(pat,s) else s+f'\n{line}\n'
     p.write_text(s)
-if adapter:
-    patch(Path(root)/'recipes/agents/self-learning-primary.yaml', {'selected_adapter': adapter})
-if obs:
-    for name in ('numbat','aegis'):
-        patch(Path(root)/f'recipes/observability/{name}.yaml', {'status': obs})
-if agent:
-    patch(Path(root)/'recipes/agents/self-learning-primary.yaml', {'installation_status': agent})
+if adapter and adapter != 'none':
+    installed=bool(shutil.which(adapter))
+    patch(Path(root)/'recipes/agents/self-learning-primary.yaml', {'selected_adapter':adapter,'installation_status':'DEPLOYED' if installed else 'NOT_DEPLOYED'})
+for name in ('numbat','aegis'):
+    installed=bool(shutil.which(name))
+    patch(Path(root)/f'recipes/observability/{name}.yaml', {'status':'DEPLOYED' if installed else 'NOT_DEPLOYED'})
 PY
