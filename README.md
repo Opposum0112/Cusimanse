@@ -10,49 +10,212 @@ Cusimanse is a security research platform, not a production malware sandbox or a
 
 ## Architecture
 
-Cusimanse separates the **host policy plane**, **agent/operator plane**, **agent observability & governance plane**, **execution boundary**, **evidence plane**, and **learning plane**.
+Cusimanse separates the **host policy plane**, **agent/operator plane**, **control plane**, **agent observability & governance plane**, **execution boundary**, **evidence plane**, and **learning plane**.
 
 ![Cusimanse architecture planes](docs/architecture/cusimanse-architecture.svg)
 
 ```mermaid
 flowchart TB
-    H["NORMAL HOST SHELL\nResearcher / installer"]
-    P["HOST POLICY PLANE\npolicyctl\noutside agent control plane"]
-    A["AGENT / OPERATOR PLANE\nOne selected primary terminal agent"]
-    C["CUSIMANSE CONTROL LOGIC\nYAML · Taskflow · LangGraph · scoped MCP"]
-    O["AGENT OBSERVABILITY & GOVERNANCE\nOpenTelemetry · Phoenix · Numbat · Aegis"]
+    H["HOST / RESEARCHER PLANE\nprerequisites · preflight · Go host setup"]
+    P["HOST POLICY PLANE\npolicyctl validate\noutside agent control plane"]
+    A["AGENT / OPERATOR PLANE\nPrime Agent · Hermes · Goose"]
+    C["CONTROL PLANE\nYAML · Taskflow · LangGraph · scoped MCP"]
+    O["OBSERVABILITY / GOVERNANCE PLANE\nOpenTelemetry · Phoenix · Numbat · Aegis"]
     V["EXECUTION SECURITY BOUNDARY\nLima + QEMU + disposable VM/OS"]
     W["UNTRUSTED WORKLOAD\nexperiment under test"]
-    E["EVIDENCE / CASE PLANE\nartifacts · telemetry · audit · provenance"]
-    L["LEARNING PLANE\nCANDIDATE → replay → verification → approval → VALIDATED"]
+    E["EVIDENCE / CASE PLANE\nartifacts · telemetry · audit · hashes"]
+    L["LEARNING PLANE\nskill discovery → review → replay → verification → promotion"]
 
-    H -->|bootstrap / select / inspect| A
-    H -->|host policy / validation| P
+    H -->|bootstrap / preflight / select adapter| A
+    H -->|host validation| P
     A --> C
     C -->|provision / instrument / execute| V
-    C -->|emit traces / metrics / logs| O
+    C -->|traces / metrics / logs| O
     V --> W
     V -->|collect| E
-    O -->|observability records| E
+    O -->|telemetry / governance records| E
     E --> L
     L -->|validated capability| A
     P -.->|independent host constraint| V
 ```
 
-### Components
+## Plane responsibilities, commands and interfaces
 
-| Plane / component | Responsibility |
-|---|---|
-| **Host shell** | Installation, execute-bit repair, environment setup, preflight and result inspection |
-| **Host policy plane** | `policyctl`; independent host-side policy/configuration controls |
-| **Agent/operator plane** | One selected primary terminal agent drives the research workflow |
-| **Control logic** | YAML contracts, campaigns, Taskflow stages, LangGraph state and scoped MCP |
-| **Observability & governance plane** | OpenTelemetry traces/metrics/logs plus Phoenix, Numbat and Aegis integrations when verified adapters are deployed |
-| **VM execution boundary** | Lima/QEMU/VM/OS isolation, mounts, credentials, privilege and network controls |
-| **Evidence/case plane** | Durable artifacts, telemetry, findings, execution records and provenance |
-| **Learning plane** | Candidate skills, replay, independent verification, approval and validated reuse |
+The following table is the operational map for the architecture. **Commands in the Host and Policy planes are researcher/host-side commands; workload execution belongs inside the disposable VM and is driven by the selected agent.**
 
-**Security boundary:** the VM/OS and its configured resource, filesystem, credential, privilege and network controls. Agents, prompts, skills, MCP, observability systems, LangGraph, Taskflow and vector stores are not isolation mechanisms.
+| Plane | Responsibility | Primary commands / interfaces | Execution context |
+|---|---|---|---|
+| **Host / Researcher** | Bootstrap dependencies, repair execute bits, configure environment, run preflight and select the agent | `./scripts/prerequisites.sh`, `./scripts/agent-preflight.sh`, `go run ./cmd/cusimanse-host`, `git status` | Normal host shell |
+| **Policy** | Independent policy and configuration validation; remains outside agent control | `./policyctl validate`, `./policyctl --help` | Normal host shell; never delegated to agent |
+| **Agent / Operator** | Operate one research case and direct the experiment lifecycle | `prime-agent`, `hermes`, `goose`, `export CUSIMANSE_PRIMARY_ADAPTER=...` | Selected primary agent shell |
+| **Control** | Define campaign semantics, sequence taskflow stages, maintain state and use scoped tools/data transforms | YAML recipes, Taskflow workflow, LangGraph orchestration, `yq`, `jq`, scoped MCP | Agent-driven control workflow |
+| **Observability / Governance** | Capture agent/tool/runtime traces, metrics and logs and provide visibility/governance | OpenTelemetry SDK/exporters, `phoenix`, `numbat`, `aegis` | Host/observability services; not an isolation boundary |
+| **Execution** | Create, inspect, operate, stop and destroy disposable VM execution environments | `limactl list`, `limactl shell <vm>`, `limactl stop <vm>`, `limactl delete <vm>`; Lima/QEMU | Disposable VM/OS; workload stays here |
+| **Evidence / Case** | Preserve artifacts, telemetry, audit records, provenance and integrity hashes | `find evidence blackboard runs -type f -print`, `sha256sum <file>` | Host evidence store after collection |
+| **Learning** | Discover reusable skills, review candidates, replay, independently verify and promote validated procedures | `find skills -name SKILL.md`, `git diff -- skills/`, review `recipes/learning/skill-promotion.yaml` | Agent workflow + human approval gate |
+
+### Command/interface quick reference
+
+#### 1. Host / Researcher plane
+
+```bash
+# Install and configure baseline host dependencies
+./scripts/prerequisites.sh
+
+# Check the host and selected adapter prerequisites
+./scripts/agent-preflight.sh
+
+# Interactive Go host setup
+# Choose mandatory setup, optional research components, or observability setup
+go run ./cmd/cusimanse-host
+
+# Inspect repository state
+git status --short --branch
+```
+
+For the extended research and observability profile:
+
+```bash
+CUSIMANSE_INSTALL_PRODUCTION_PROFILE=1 ./scripts/prerequisites.sh
+CUSIMANSE_INSTALL_OBSERVABILITY=1 ./scripts/prerequisites.sh
+```
+
+#### 2. Policy plane
+
+```bash
+# Validate host-side policy/configuration
+./policyctl validate
+
+# Inspect policyctl capabilities
+./policyctl --help
+```
+
+`policyctl` is intentionally **outside the agent control plane**. The primary agent must not invoke it, modify it, or use an agent prompt to bypass it.
+
+#### 3. Agent / Operator plane
+
+Choose exactly one primary terminal agent for a case:
+
+```bash
+# Prime Agent
+export CUSIMANSE_PRIMARY_ADAPTER=prime-agent
+prime-agent --help
+prime-agent
+
+# Hermes
+export CUSIMANSE_PRIMARY_ADAPTER=hermes
+hermes --help
+hermes
+
+# Goose
+export CUSIMANSE_PRIMARY_ADAPTER=goose
+goose --help
+goose
+```
+
+The selected agent reads the Cusimanse contracts and drives the case. Host setup and policy validation remain outside the agent prompt boundary.
+
+#### 4. Control plane
+
+The control plane is declarative/stateful rather than a single executable:
+
+```bash
+# Inspect YAML contracts/campaigns
+find recipes -name '*.yaml' -print
+
+# Validate/transform YAML and JSON data
+ yq '.' recipes/agents/self-learning-primary.yaml
+ jq '.' < <(printf '%s\n' '{}')
+
+# Validate the project contracts and integration structure
+bash ./scripts/tests/validate-project.sh
+
+# Architecture-refactor validation
+bash ./scripts/tests/architecture-refactor.sh
+```
+
+The principal interfaces are:
+
+- **YAML** — agent, campaign, workflow, orchestration and promotion contracts.
+- **Taskflow** — ordered research stages and gates.
+- **LangGraph** — stateful execution/case orchestration.
+- **Scoped MCP** — controlled tool/data access; retrieval does not grant execution authority.
+
+#### 5. Observability / Governance plane
+
+OpenTelemetry is the tracing foundation. Phoenix, Numbat and Aegis are integrations for agent/runtime observability and governance when their adapters/installers are verified and deployed.
+
+```bash
+# Check OpenTelemetry/Phoenix tooling available on the host
+python3 -c 'import importlib.util; print("opentelemetry:", bool(importlib.util.find_spec("opentelemetry"))); print("phoenix:", bool(importlib.util.find_spec("phoenix")))'
+
+# Check optional governance/observability CLIs when installed
+phoenix --help
+numbat --help
+aegis --help
+```
+
+If an optional adapter or binary is unavailable, Cusimanse records that capability as **NOT_DEPLOYED** rather than treating its presence in a recipe as proof of installation.
+
+#### 6. Execution plane
+
+Lima/QEMU provides the disposable VM/OS execution boundary:
+
+```bash
+# Inspect disposable VMs
+limactl list
+
+# Enter a selected VM
+limactl shell <vm>
+
+# Stop the VM after evidence collection
+limactl stop <vm>
+
+# Destroy it only after evidence has been preserved
+limactl delete <vm>
+```
+
+**Untrusted workload commands execute inside the VM**, through the agent-driven workflow. They are not run directly from the normal researcher host shell.
+
+#### 7. Evidence / Case plane
+
+```bash
+# Inspect preserved experiment artifacts and case state
+find evidence blackboard runs -type f -print 2>/dev/null
+find experiments/go-install-001 -maxdepth 4 -type f -print 2>/dev/null
+
+# Verify an artifact hash
+sha256sum <file>
+```
+
+Evidence includes raw artifacts, telemetry, audit records, reductions, findings, verification results and provenance. Evidence must be preserved before VM destruction.
+
+#### 8. Learning plane
+
+```bash
+# Discover skill packages
+find skills -name SKILL.md -print
+
+# Review changes to skill content before promotion
+git diff -- skills/
+
+# Inspect promotion gates and provenance requirements
+cat recipes/learning/skill-promotion.yaml
+```
+
+The learning lifecycle is:
+
+```text
+Evidence
+  → CANDIDATE skill
+  → replay on distinct artifact
+  → independent verification
+  → human approval
+  → VALIDATED skill
+  → indexed retrieval
+```
+
+Retrieval ranking, LLM confidence, MCP availability or successful execution alone never promotes a skill.
 
 ## System requirements
 
@@ -68,7 +231,7 @@ See [`docs/system-requirements.md`](docs/system-requirements.md) for host config
 
 ## Researcher testing
 
-### 1. Host shell — prepare
+### Prepare the host
 
 ```bash
 git clone https://github.com/Opposum0112/Cusimanse.git
@@ -81,45 +244,9 @@ git checkout architecture-refactor
 bash ./scripts/tests/validate-project.sh
 ```
 
-The host installer repairs and verifies required script execute bits and configures `PATH`, `GOPATH` and `GOBIN`.
+### Run a reference case from the agent shell
 
-For the complete research profile and observability foundation:
-
-```bash
-CUSIMANSE_INSTALL_PRODUCTION_PROFILE=1 ./scripts/prerequisites.sh
-CUSIMANSE_INSTALL_OBSERVABILITY=1 ./scripts/prerequisites.sh
-bash ./scripts/tests/production-validation.sh
-```
-
-A Go host setup entrypoint is also available:
-
-```bash
-go run ./cmd/cusimanse-host
-```
-
-It interactively selects mandatory setup, the full optional research profile, or observability setup while reusing the trusted prerequisite script.
-
-### 2. Agent shell — operate
-
-Start exactly one primary terminal agent from the host shell. The agent shell is the operator boundary: it reads contracts, drives the case, provisions the VM, directs workload execution into the VM, collects evidence, analyzes and verifies results, and handles learning.
-
-```bash
-export CUSIMANSE_PRIMARY_ADAPTER=prime-agent
-prime-agent --help
-prime-agent
-```
-
-Or:
-
-```bash
-export CUSIMANSE_PRIMARY_ADAPTER=hermes
-hermes --help
-hermes
-```
-
-**Prompt boundary:** host setup and `policyctl` remain outside the agent prompt. Never ask the agent to invoke `policyctl`. Workload commands execute inside the disposable VM through the agent-driven workflow, not on the host.
-
-### 3. Agent shell — run a reference test
+Start exactly one primary agent and use the following prompt:
 
 ```text
 Run experiments/go-install-001 using the Cusimanse research workflow.
@@ -135,50 +262,17 @@ Return PASS, PARTIAL, FAIL or NOT_DEPLOYED according to preserved evidence.
 PASS requires actual runtime evidence.
 ```
 
-### 4. Host shell — inspect
+### Inspect the result from the host shell
 
 ```bash
 find evidence blackboard experiments/go-install-001 -maxdepth 4 -type f -print 2>/dev/null
 find runs -maxdepth 4 -type f -print 2>/dev/null
 ./policyctl validate
 bash ./scripts/tests/validate-project.sh
-bash ./scripts/tests/production-validation.sh
+bash ./scripts/tests/architecture-refactor.sh
 ```
 
 `PASS` requires actual runtime evidence. Static validation is not runtime PASS.
-
-## Self-learning
-
-```text
-Evidence → CANDIDATE skill → replay on distinct artifact
-        → independent verification → human approval
-        → VALIDATED skill → indexed retrieval
-```
-
-A successful LLM interaction does not become trusted knowledge. Skills retain provenance, capability metadata and evaluation history.
-
-## Repository structure
-
-```text
-Cusimanse/
-├── .agents/                 # agent instructions, skills and MCP configuration
-├── recipes/                 # campaigns, agents, workflows, orchestration, tools, MCP
-├── skills/validated/        # versioned validated capabilities
-├── tools/                   # project tool integrations
-├── experiments/             # reference experiments
-├── scripts/                 # host/bootstrap/test scripts
-├── cmd/cusimanse-host/      # Go host configuration entrypoint
-├── cmd/policyctl/           # host-side policy utility
-└── docs/                    # architecture and operational documentation
-```
-
-## Validation
-
-```bash
-bash ./scripts/tests/production-validation.sh
-```
-
-Validation checks architecture contracts, script execute bits, shell/YAML structure, Go validation, host environment configuration, observability requirements, reference-experiment compatibility, policyctl separation, VM-boundary documentation and skill-promotion requirements.
 
 ## Security invariants
 
