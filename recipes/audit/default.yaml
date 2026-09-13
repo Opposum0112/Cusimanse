@@ -1,11 +1,11 @@
-version: "1.0.0"
-title: AI Security Lab audit layer
-description: Produce a tamper-evident audit record for agent decisions and capability use.
+version: "1.1.0"
+title: Cusimanse audit layer
+description: Produce a tamper-evident audit record for agent decisions and capability use for the current research session.
 instructions: |
-  Maintain an append-only audit record for the current project run.
+  Maintain an append-only audit record for the current research session.
 
   Record at minimum:
-    timestamp, run_id, section, experiment, agent_role, skill, mcp_server,
+    timestamp, session_id, run_id, section, experiment, agent_role, skill, mcp_server,
     tool, action, arguments_digest, policy_decision, approval_state,
     result_state, evidence_refs and error.
 
@@ -13,11 +13,17 @@ instructions: |
   rather than storing it. Distinguish requested, approved, executed and
   observed actions. A plan is not evidence of execution.
 
-  Store audit events under evidence/audit/ and include a manifest hash in the
-  final report. If the audit layer is unavailable, report PARTIAL or
-  NOT_DEPLOYED rather than fabricating events.
+  Store audit events under the session artifact root at evidence/audit/ and
+  include a manifest hash in the final report. If the audit layer is unavailable,
+  report PARTIAL or NOT_DEPLOYED rather than fabricating events.
+
+  The final session state must reference the audit manifest and artifact index.
 parameters:
+  - key: session_id
+    input_type: string
+    requirement: required
+    description: Stable identifier for the current research session.
   - key: run_id
     input_type: string
     requirement: required
-    description: Stable identifier for the current project run.
+    description: Compatibility identifier for the runtime execution.
