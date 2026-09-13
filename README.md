@@ -23,6 +23,8 @@ Research intent
       ↓
 Markdown contract + YAML recipe graph
       ↓
+Research session YAML + selected profiles
+      ↓
 Selected primary agent adapter
       ↓
 plan → review → approval
@@ -31,34 +33,23 @@ disposable compute (Lima/QEMU + VM/OS controls)
       ↓
 instrument → execute → collect
       ↓
-blackboard + evidence + telemetry
+blackboard + evidence + telemetry + audit
       ↓
 reduce → forensics → independent verification
       ↓
-research report → preserve → destroy
+research report → preserve → dashboard finalize → destroy
 ```
 
-Agents, prompts, skills, MCP, CrewAI and `policyctl` are coordination/governance layers, **not containment boundaries**. Enforcement depends on the compute/VM and host controls.
+Agents, prompts, skills, MCP, CrewAI, LangGraph, Taskflow and `policyctl` are coordination/governance layers, **not containment boundaries**. Enforcement depends on the compute/VM and host controls.
 
 ## Repository structure
 
 ```text
 Cusimanse/
 ├── contracts/                 # research contracts and reference Markdown
-│   ├── 01-deployment-architecture.md
-│   ├── 02-system-requirements.md
-│   ├── 03-deployment-runbook.md
-│   ├── 04-security-model.md
-│   ├── 05-multi-agent-operating-model.md
-│   ├── 06-observability-and-evidence.md
-│   ├── 07-experiment-framework.md
-│   ├── 08-go-install-001.md
-│   ├── 09-operations-and-maintenance.md
-│   ├── 10-validation-and-acceptance.md
-│   ├── 11-harness-reference.md
-│   └── blackboard-schema.md
-├── recipes/                  # declarative composition and registries
-├── experiments/              # runnable reference experiments and outputs
+├── recipes/                  # declarative composition, profiles and registries
+│   └── session/               # session-state and learning workflow contracts
+├── experiments/               # runnable reference experiments and outputs
 ├── .agents/                  # agent roles, skills and MCP client metadata
 ├── skills/                   # reviewed/promoted project skills
 ├── packages/                 # small research packages such as labprobe
@@ -74,43 +65,60 @@ Cusimanse/
 
 `contracts/` is the canonical home for the reference Markdown. `recipes/` is the canonical home for executable configuration. `scripts/` does not become a second experiment controller.
 
-## Quick start
+## End-to-end research workflow
 
-### 1. Host preparation
+The complete researcher → host → primary-agent → evidence → learning workflow is specified in [`docs/research-workflow.md`](docs/research-workflow.md). The durable session contract is [`recipes/session/session-state.yaml`](recipes/session/session-state.yaml), and the evidence-bounded learning contract is [`recipes/session/learning-workflow.yaml`](recipes/session/learning-workflow.yaml).
+
+### 1. Create the experiment
+
+Create the Markdown contract under `contracts/`, then compose the YAML experiment recipe under `recipes/experiments/`. The recipe selects the workload, host profile, compute profile, tools, instrumentation, primary agent, specialist roles, skills, MCP, orchestration, policy, routing, reporting and observability. Start a new `runs/<session-id>/session.yaml` from the session contract and snapshot all selected profile references and input digests.
+
+### 2. Prepare the host with the normal shell
 
 ```bash
 ./scripts/cusimanse-host.sh
-```
-
-The front door prepares the supported host and policy tooling. It does not silently start a research workload.
-
-### 2. Validate the repository
-
-```bash
-./scripts/tests/production-validation.sh
-```
-
-### 3. Select and preflight an agent adapter
-
-```bash
 ./scripts/prerequisites.sh
 ./scripts/agent-preflight.sh
 ./policyctl validate
+./scripts/tests/validate-project.sh
 ```
 
-The selected primary agent shell is the runtime operator. You do **not** manually type every lifecycle stage as separate shell commands; the agent follows the declared contract after it is started and given the research task, subject to human approval gates.
+The host profile declares the host tool recipe. Host scripts prepare and validate; they do not own the research lifecycle. Instrumentation for the target workload belongs inside disposable compute.
 
-### 4. Reference experiment
+### 3. Select exactly one primary agent adapter
 
-The reference experiment is `go-install-001`:
+Use `recipes/agents/adapter-matrix.yaml` and record the selected adapter/version in session state. Native examples:
 
 ```bash
-goose run --recipe recipes/goose/project.yaml \
-  --params experiment=go-install-001 \
-  --params section=project
+goose
+opencode
+opencode run '<PROMPT>'
+grok -p '<PROMPT>'
+agy -p '<PROMPT>'
+pi -p '<PROMPT>'
+hermes
+prime-agent -p '<PROMPT>'
+codex
+claude '<PROMPT>'
 ```
 
-The same semantic contract can be mapped to other adapters through `recipes/adapters/` and `recipes/agents/adapter-matrix.yaml`. Adapter availability must be evidenced; documented candidates are not automatically runtime-ready.
+Verify provider-specific CLI syntax with `<adapter> --help`. CLI availability is not runtime acceptance.
+
+### 4. Start the agent and provide the experiment prompt
+
+The primary agent is the operator. The researcher does **not** type every lifecycle stage as separate shell commands. Give the selected agent the shared experiment prompt from the canonical runbook/workflow, including the session ID, experiment ID and contract/profile references. The agent then performs discover → validate → preflight → plan → review → approval → provision → instrument → execute → collect → analysis → verification → report → preserve → dashboard finalization → destroy.
+
+### 5. Store evidence and report by session
+
+Each session has a durable artifact root at `runs/<session-id>/`, containing `session.yaml`, audit events/manifests, raw evidence and index, telemetry, provenance, blackboard records, analysis, independent verification, research report, preservation manifest, token usage and a dashboard snapshot. Raw evidence is hashed and preserved before compute destruction.
+
+### 6. Finalize every session
+
+At session end, finalize audit/provenance, token accounting and the dashboard snapshot; mark the session `COMPLETE`, `PARTIAL` or `FAILED`; then destroy disposable compute only after preservation requirements are satisfied. Historical aggregate metrics may remain, but the active session dashboard must not retain a prior run as active.
+
+### 7. Evidence-bounded learning
+
+Learning follows retrieve → taskflow decomposition → execute → evaluate → refine → replay → independent verification → human approval → promote → rollback when necessary. Taskflow, LangGraph and CrewAI may provide declared task decomposition/stateful execution/specialist delegation. They cannot bypass the primary agent, policy, approvals, evidence integrity or compute boundary. Learned skills cannot autonomously grant privilege or mutate base contracts.
 
 ## Contracts and recipes
 
@@ -133,10 +141,9 @@ Recipes define **how the case is composed**:
 | Specialist orchestration | `recipes/orchestration/` |
 | Model/harness routing | `recipes/routing/` |
 | Observability | `recipes/observability/` |
+| Session state + learning | `recipes/session/` |
 | Audit/reporting | `recipes/audit/`, `recipes/reporting/` |
 | Validation | `recipes/tests/`, `scripts/tests/` |
-
-Keep technical schema names such as `vm_profile` where they are part of an established recipe interface. In human-facing documentation, use **compute** when referring to the broader execution resource rather than the specific Lima/QEMU VM boundary.
 
 ## Fully multiagentic workflow
 
@@ -151,7 +158,7 @@ The platform separates specialist responsibilities while keeping one selected pr
 - **Verifier** — independent challenge and replay
 - **Report generator** — reproducible research report
 
-CrewAI is an optional role-orchestration layer. It does not replace the primary adapter or the compute/VM security boundary.
+CrewAI is an optional role-orchestration layer. LangGraph and Taskflow are optional stateful/taskflow layers. None replaces the primary adapter or the compute/VM security boundary.
 
 ## Skills, MCP and learning
 
@@ -160,7 +167,7 @@ Skills are declarative and versioned. MCP is a scoped capability/plugin layer. N
 A candidate learned skill follows:
 
 ```text
-retrieve → execute → evaluate → refine → replay
+retrieve → taskflow → execute → evaluate → refine → replay
 → independent verification → human approval → validated skill
 ```
 
@@ -237,6 +244,7 @@ Configuration alone never establishes `PASS`.
 
 ## Documentation
 
+- [`docs/research-workflow.md`](docs/research-workflow.md) — canonical end-to-end research session workflow
 - [`contracts/`](contracts/) — canonical research contracts and reference Markdown
 - [`docs/architecture/`](docs/architecture/) — canonical architecture source and rendered diagram
 - [`docs/agent-shell-runbook.md`](docs/agent-shell-runbook.md) — adapter/operator runbook
@@ -244,6 +252,7 @@ Configuration alone never establishes `PASS`.
 - [`docs/runtime-architecture.md`](docs/runtime-architecture.md) — runtime architecture
 - [`docs/system-requirements.md`](docs/system-requirements.md) — system requirements overview
 - [`docs/integration-status.md`](docs/integration-status.md) — integration status
+- [`recipes/session/`](recipes/session/) — session state and learning contracts
 - [`recipes/README.md`](recipes/README.md) — recipe architecture
 - [`scripts/README.md`](scripts/README.md) — script boundaries
 - [`SECURITY.md`](SECURITY.md) — security model and reporting
