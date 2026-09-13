@@ -19,62 +19,119 @@ export GOPATH="${GOPATH:-$HOME/go}"; export GOBIN="${GOBIN:-$GOPATH/bin}"
 mkdir -p "$GOBIN"; export PATH="$LOCAL_BIN:$GOBIN:$PATH"
 log "Cusimanse host prerequisite bootstrap: ${OS}/${DISTRO}/${ARCH}"
 
+linux_pkg_manager(){
+  if have apt-get; then printf 'apt';
+  elif have dnf; then printf 'dnf';
+  elif have pacman; then printf 'pacman';
+  elif have zypper; then printf 'zypper';
+  elif have apk; then printf 'apk';
+  else printf 'none'; fi
+}
+
 install_linux_packages(){
-  local packages=(git bash curl python3 ruby golang)
-  case "$DISTRO" in
-    ubuntu|debian|linuxmint|pop) packages+=(qemu-system-x86 qemu-utils) ;;
-    fedora|rhel|rocky|almalinux) packages+=(qemu-system-x86-core qemu-img) ;;
-    arch|manjaro) packages+=(qemu-desktop) ;;
-    opensuse*|sles) packages+=(qemu) ;;
-    *) fail "unsupported Linux distribution '$DISTRO'" ;;
+  local manager="$(linux_pkg_manager)"
+  local packages=(git bash curl python3 ruby)
+  case "$manager" in
+    apt) packages+=(golang qemu-system-x86 qemu-utils);;
+    dnf) packages+=(golang qemu-system-x86-core qemu-img);;
+    pacman) packages+=(go qemu-desktop);;
+    zypper) packages+=(go qemu);;
+    apk) packages+=(go qemu-system-x86_64 qemu-img);;
+    none) fail "no supported Linux package manager detected; install Git, Bash, curl, Python 3, Ruby, Go and QEMU manually";;
   esac
-  if ! have sudo && [ "$(id -u)" -ne 0 ]; then fail "sudo is required to install missing packages"; fi
-  case "$DISTRO" in
-    ubuntu|debian|linuxmint|pop) ${SUDO:-} apt-get update; ${SUDO:-} DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}" ;;
-    fedora|rhel|rocky|almalinux) ${SUDO:-} dnf install -y "${packages[@]}" ;;
-    arch|manjaro) ${SUDO:-} pacman -Sy --needed --noconfirm "${packages[@]}" ;;
-    opensuse*|sles) ${SUDO:-} zypper --non-interactive install "${packages[@]}" ;;
+  if [ "$(id -u)" -ne 0 ] && ! have sudo; then fail "sudo is required to install missing Linux packages"; fi
+  local SUDO=""; [ "$(id -u)" -ne 0 ] && SUDO="sudo"
+  case "$manager" in
+    apt) $SUDO apt-get update; $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}";;
+    dnf) $SUDO dnf install -y "${packages[@]}";;
+    pacman) $SUDO pacman -Sy --needed --noconfirm "${packages[@]}";;
+    zypper) $SUDO zypper --non-interactive install "${packages[@]}";;
+    apk) $SUDO apk add --no-cache "${packages[@]}";;
   esac
 }
+
 if [ "$(id -u)" -ne 0 ] && have sudo; then SUDO="sudo"; else SUDO=""; fi
 
 if [ "$OS" = "Darwin" ]; then
-  have brew || fail "Homebrew is required on macOS"; brew install git python3 ruby go qemu lima
+  have brew || fail "Homebrew is required on macOS"
+  brew install git python3 ruby go qemu || true
 elif [ "$OS" = "Linux" ]; then
-  missing=0; for tool in git bash curl python3 ruby go qemu-system-x86_64; do have "$tool" || missing=1; done
+  missing=0
+  for tool in git bash curl python3 ruby go qemu-system-x86_64; do have "$tool" || missing=1; done
   [ "$missing" -eq 0 ] || install_linux_packages
-else fail "unsupported host OS '$OS'"; fi
+else
+  fail "unsupported host OS '$OS'"
+fi
+
+install_lima_release(){
+  have curl || fail "curl is required for Lima binary installation"
+  mkdir -p "$LOCAL_BIN"
+  local version os_name arch_name asset tmp
+  version="$(curl -fsSL https://api.github.com/repos/lima-vm/lima/releases/latest | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag_name"])')" \
+    || fail "unable to determine latest Lima release"
+  os_name="$(printf '%s' "$OS" | tr '[:upper:]' '[:lower:]')"
+  case "$ARCH" in
+    x86_64|amd64) arch_name="x86_64";;
+    aarch64|arm64) arch_name="arm64";;
+    *) fail "unsupported host architecture for automatic Lima install: $ARCH";;
+  esac
+  asset="lima-${version#v}-${os_name}-${arch_name}.tar.gz"
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "$tmp"' RETURN
+  log "Installing Lima from official release archive: $asset"
+  curl -fL --retry 3 "https://github.com/lima-vm/lima/releases/download/${version}/${asset}" -o "$tmp/lima.tar.gz" \
+    || fail "unable to download official Lima release $version"
+  tar -xzf "$tmp/lima.tar.gz" -C "$tmp"
+  [ -x "$tmp/bin/limactl" ] || fail "official Lima archive did not contain bin/limactl"
+  cp "$tmp/bin/limactl" "$LOCAL_BIN/limactl"
+  chmod +x "$LOCAL_BIN/limactl"
+  if [ -x "$tmp/bin/lima" ]; then cp "$tmp/bin/lima" "$LOCAL_BIN/lima"; chmod +x "$LOCAL_BIN/lima"; fi
+  if [ -d "$tmp/share/lima" ]; then
+    mkdir -p "$LOCAL_BIN/../share/lima"
+    cp -a "$tmp/share/lima/." "$LOCAL_BIN/../share/lima/"
+  fi
+}
 
 if ! have limactl; then
-  if [ "$OS" = "Darwin" ]; then brew install lima
-  else
-    case "$DISTRO" in
-      ubuntu|debian|linuxmint|pop) ${SUDO:-} apt-get update && ${SUDO:-} DEBIAN_FRONTEND=noninteractive apt-get install -y lima ;;
-      fedora|rhel|rocky|almalinux) ${SUDO:-} dnf install -y lima ;;
-      arch|manjaro) ${SUDO:-} pacman -Sy --needed --noconfirm lima ;;
-      opensuse*|sles) ${SUDO:-} zypper --non-interactive install lima ;;
-      *) fail "no supported automated Lima package path" ;;
+  log "Lima not found; attempting native package-manager installation"
+  lima_installed=0
+  if [ "$OS" = "Darwin" ] && have brew; then brew install lima && lima_installed=1 || true
+  elif [ "$OS" = "Linux" ]; then
+    manager="$(linux_pkg_manager)"
+    if [ "$(id -u)" -ne 0 ] && ! have sudo; then SUDO=""; else SUDO="$( [ "$(id -u)" -ne 0 ] && printf sudo )"; fi
+    case "$manager" in
+      apt) $SUDO apt-get update && $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y lima && lima_installed=1 || true;;
+      dnf) $SUDO dnf install -y lima && lima_installed=1 || true;;
+      pacman) $SUDO pacman -Sy --needed --noconfirm lima && lima_installed=1 || true;;
+      zypper) $SUDO zypper --non-interactive install lima && lima_installed=1 || true;;
+      apk) $SUDO apk add --no-cache lima && lima_installed=1 || true;;
     esac
   fi
+  if [ "$lima_installed" -eq 0 ] || ! have limactl; then
+    log "Native Lima package unavailable; using the official Lima release archive"
+    install_lima_release
+    hash -r
+  fi
 fi
+
 have goose || curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash
 
 install_optional_tools(){
   log "Installing optional security-research tools"
   if [ "$OS" = "Darwin" ]; then brew install jq yq ripgrep sqlite3 binutils libmagic yara || true; return; fi
-  case "$DISTRO" in
-    ubuntu|debian|linuxmint|pop) ${SUDO:-} apt-get update && ${SUDO:-} DEBIAN_FRONTEND=noninteractive apt-get install -y jq yq ripgrep sqlite3 file binutils strace lsof tcpdump tshark yara ;;
-    fedora|rhel|rocky|almalinux) ${SUDO:-} dnf install -y jq yq ripgrep sqlite3 file binutils strace lsof tcpdump wireshark-cli yara ;;
-    arch|manjaro) ${SUDO:-} pacman -Sy --needed --noconfirm jq yq ripgrep sqlite sqlite-tools file binutils strace lsof tcpdump wireshark-cli yara ;;
-    opensuse*|sles) ${SUDO:-} zypper --non-interactive install jq yq ripgrep sqlite3 file binutils strace lsof tcpdump wireshark-cli yara ;;
-    *) fail "unsupported Linux distribution '$DISTRO'" ;;
+  case "$(linux_pkg_manager)" in
+    apt) $SUDO apt-get update && $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y jq yq ripgrep sqlite3 file binutils strace lsof tcpdump tshark yara;;
+    dnf) $SUDO dnf install -y jq yq ripgrep sqlite3 file binutils strace lsof tcpdump wireshark-cli yara;;
+    pacman) $SUDO pacman -Sy --needed --noconfirm jq yq ripgrep sqlite sqlite-tools file binutils strace lsof tcpdump wireshark-cli yara;;
+    zypper) $SUDO zypper --non-interactive install jq yq ripgrep sqlite3 file binutils strace lsof tcpdump wireshark-cli yara;;
+    apk) $SUDO apk add --no-cache jq yq ripgrep sqlite file binutils strace lsof tcpdump wireshark-cli yara;;
+    *) fail "unsupported Linux package manager for optional tools";;
   esac
 }
 
 install_observability(){
   log "Installing mandatory OpenTelemetry/Phoenix foundation"
   python3 -m pip install --user opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp arize-phoenix || fail "OpenTelemetry/Phoenix installation failed"
-  # Numbat/Aegis package names vary by release; fail closed rather than installing an unverified package.
   for tool in numbat aegis; do
     if have "$tool"; then log "$tool: PASS"; else log "$tool: NOT_DEPLOYED (verified installer/adapter required)"; fi
   done
