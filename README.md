@@ -26,6 +26,8 @@ The single front door is interactive, stagewise and capability-oriented:
 
 It progresses through **Foundation → Primary Agent → Control/Learning → Observability/Governance → Validation**, recording detected OS/distro/package manager, plane status and discovered Lima VM state in `recipes/host-state.yaml`.
 
+The observability/governance stage installs or checks token-optimization capabilities and writes installation-time environment configuration to `~/.config/cusimanse/token-optimization.env`. Missing upstream tools remain `NOT_DEPLOYED`; declarative skills remain available as fallback guidance.
+
 Manual/fallback surfaces remain available:
 
 ```bash
@@ -33,8 +35,6 @@ bash ./scripts/prerequisites.sh
 bash ./scripts/agent-preflight.sh
 ./policyctl validate
 ```
-
-If an optional package, agent, or integration is unavailable, Cusimanse reports `NOT_DEPLOYED` rather than silently substituting another capability.
 
 ### 2. Select one primary agent
 
@@ -63,7 +63,31 @@ Never claim PASS without runtime evidence and independent verification.
 If a capability is unavailable, report NOT_DEPLOYED.
 ```
 
-### 4. Inspect evidence and research output
+### 4. Session token usage
+
+Every agent/model/tool session should emit token accounting when available. After installation, use the same local command from any normal shell:
+
+```bash
+cusimanse-token-dashboard
+```
+
+It validates/initializes the session usage ledger and starts the localhost-only web dashboard. The underlying interface is `policyctl token-dashboard`. Token accounting is observability only and never authorizes an operation or weakens policy.
+
+## Operator surfaces
+
+Cusimanse intentionally separates **human shell**, **agent/operator shell**, and **agent prompt**:
+
+| Surface | Used by | Purpose | Security authority |
+|---|---|---|---|
+| Normal shell | Human/operator | Install, inspect, validate, operate Lima, inspect evidence and launch agents | Host-side controls; policy must still be respected |
+| Agent/operator shell | Selected primary agent adapter | Execute approved case actions and workload operations through the adapter | Adapter is lifecycle operator, not the VM/OS security boundary |
+| Agent prompt | Human → agent | Declare research intent, constraints, hypotheses and requested work | Never treated as a security control |
+| `policyctl` | Host governance | Validate policy and expose policy/observability decisions | Policy signal; actual isolation is VM/OS |
+| `cusimanse-token-dashboard` | Human/agent observability | Inspect session token usage | No execution authority |
+
+**Rule:** a prompt requests work; the agent shell performs approved work; the normal host shell manages the environment; Lima/QEMU and VM/OS controls enforce isolation.
+
+## Inspect evidence and research output
 
 ```bash
 find evidence blackboard runs experiments/go-install-001 -type f -print 2>/dev/null
@@ -100,6 +124,10 @@ bash ./scripts/agent-preflight.sh
 ./policyctl validate
 ./policyctl show
 ./policyctl check --action <action>
+
+# Session observability
+cusimanse-token-dashboard
+./policyctl token-dashboard
 
 # VM
 limactl list
@@ -147,6 +175,7 @@ Static CI success does not prove sandbox resistance. Runtime acceptance requires
 | Agent selection | `recipes/agent-selection.yaml` |
 | CrewAI role plane | `recipes/orchestration/crewai.yaml` |
 | Role/skill plugin contract | `recipes/orchestration/role-skill-plugin.yaml` |
+| Token usage recipe | `recipes/agent-monitoring/token-usage.yaml` |
 | Skills registry | `recipes/skills/registry.yaml` |
 | MCP registry | `recipes/mcp/registry.yaml` |
 | Campaigns / experiments | `recipes/campaigns/`, `recipes/experiments/` |
