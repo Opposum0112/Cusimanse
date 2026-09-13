@@ -1,27 +1,21 @@
 # Cusimanse documentation
 
-The repository keeps **research contracts** separate from focused supporting documentation.
+Keep documentation small and canonical:
 
-## Canonical contract set
+- `architecture/` — canonical architecture diagram and Mermaid source.
+- `system-requirements.md` — detailed host/runtime requirements.
+- `agent-shell-runbook.md` — adapter/operator details.
+- `production-architecture.md` — deployment and security-boundary model.
+- `runtime-architecture.md` — execution model.
+- `integration-status.md` — validation status.
+- `WORKLOADS.md` — workload catalog and guidance.
+- `prompts/` — only experiment-specific prompts that cannot be represented by a recipe.
 
-See [`../contracts/`](../contracts/) for the numbered research/reference Markdown set covering architecture, requirements, runbook, security model, multiagent operation, observability/evidence, experiment framework, reference experiment, operations, validation and harness guidance.
+Research semantics belong in `contracts/`; executable composition belongs in `recipes/`. Avoid creating duplicate workflow/runbook documents in `docs/` when the same information belongs in a contract or recipe.
 
-## Architecture
+## Architecture source of truth
 
-- `architecture/cusimanse-architecture.svg` — canonical architecture rendering
-- `architecture/cusimanse-architecture.mmd` — Mermaid source
-- `images/cusimanse-architecture.png` — architecture reference image
-- `images/cusimanse-workflow.png` — experiment workflow image
-- `images/cusimanse-mascot.svg` — project mascot
-- `images/cusimanse-logo.svg` — project logo asset derived from the canonical mascot artwork
+- `architecture/cusimanse-architecture.svg` — canonical rendered architecture.
+- `architecture/cusimanse-architecture.mmd` — canonical Mermaid source. It explicitly shows the researcher → contract → recipe → session → host shell → primary agent → multiagent orchestration → disposable VM → evidence → report → optional learning → dashboard/session finalization flow.
 
-## Supporting guides
-
-- `agent-shell-runbook.md` — provider adapter and operator-shell procedure
-- `production-architecture.md` — deployment architecture and security boundaries
-- `runtime-architecture.md` — runtime execution model
-- `system-requirements.md` — concise requirements overview
-- `integration-status.md` — integration/acceptance status
-- `WORKLOADS.md` — supported workload guidance
-
-The `contracts/` directory is the source of truth for reference research semantics; this directory contains supporting navigation and implementation guidance.
+The SVG is the README architecture image; the Mermaid file is the editable architecture source.
