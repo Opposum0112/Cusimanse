@@ -17,13 +17,12 @@ It is **not** an invitation to test other people's systems.
 5. Evidence is hashed and preserved before a VM is deleted.
 6. Secrets never go into Git.
 
-See [AGENTS.md](AGENTS.md) and [04-security-model.md](04-security-model.md).
+See [AGENTS.md](AGENTS.md) and [contracts/04-security-model.md](contracts/04-security-model.md).
 
 ## Reporting a problem in this repository
 
 If you find a credential, unsafe default, or documentation error in this
-project, open a **private** GitHub security advisory on
-[Opposum0112/ai-security-lab](https://github.com/Opposum0112/ai-security-lab)
+project, use GitHub's private security advisory mechanism for this repository
 or contact the repository owner. Do not file a public issue that contains
 secrets.
 
