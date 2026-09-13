@@ -1,75 +1,61 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"runtime"
-	"strings"
+    "bufio"
+    "fmt"
+    "os"
+    "os/exec"
+    "path/filepath"
+    "runtime"
+    "strings"
 )
 
 func main() {
-	root, err := findRoot()
-	if err != nil { fail(err) }
-	if runtime.GOOS == "windows" && !runningInWSL() {
-		fmt.Println("Cusimanse currently uses WSL2 for its Bash + Lima/QEMU execution path.")
-		fmt.Println("Install/open WSL2, clone the repository inside WSL2, and rerun this command there.")
-		os.Exit(2)
-	}
+    root, err := findRoot(); if err != nil { fail(err) }
+    if runtime.GOOS == "windows" && !runningInWSL() { fmt.Println("Cusimanse uses WSL2 for the Linux Lima/QEMU execution path. Clone and run the repository inside WSL2."); os.Exit(2) }
+    r := bufio.NewReader(os.Stdin)
+    fmt.Println("Cusimanse interactive researcher host preparation")
+    fmt.Printf("Host: %s/%s\nRepository: %s\n", runtime.GOOS, runtime.GOARCH, root)
+    fmt.Println("One Go front door installs and checks each plane in order. Manual commands are printed separately at the end.")
 
-	r := bufio.NewReader(os.Stdin)
-	fmt.Println("Cusimanse interactive researcher host preparation")
-	fmt.Printf("Host: %s/%s\n", runtime.GOOS, runtime.GOARCH)
-	fmt.Printf("Repository: %s\n", root)
-	fmt.Println("The bootstrap installs/checks the components for each plane and the flight-check audits the result.")
-	fmt.Println("Profiles: 1 baseline, 2 research/control/learning, 3 observability/governance, 4 complete workstation, 5 check/repair")
-	fmt.Print("Installation profile [4]: ")
-	profile, _ := r.ReadString('\n')
-	profile = strings.TrimSpace(profile)
-	if profile == "" { profile = "4" }
-	if !contains([]string{"1", "2", "3", "4", "5"}, profile) { fail(fmt.Errorf("invalid profile %q: choose 1-5", profile)) }
+    if ask(r, "1. Install/repair Host + VM plane? [Y/n]: ", true) { must(runBash(root, "scripts/prerequisites.sh", map[string]string{"CUSIMANSE_PROFILE":"1"})) }
 
-	if err := runBash(root, "scripts/prerequisites.sh", map[string]string{"CUSIMANSE_PROFILE": profile}); err != nil { fail(err) }
-	fmt.Println("\nRunning comprehensive host flight-check...")
-	if err := runBash(root, "scripts/agent-preflight.sh", nil); err != nil { fail(err) }
+    adapter := chooseAdapter(r)
+    if adapter != "none" && ask(r, "2. Install all supported Primary Agent adapters? [Y/n]: ", true) {
+        must(runBash(root, "scripts/prerequisites.sh", map[string]string{"CUSIMANSE_PROFILE":"1", "CUSIMANSE_INSTALL_AGENTS":"1"}))
+    }
+    if adapter != "none" { must(runBash(root, "scripts/configure-recipes.sh", map[string]string{"CUSIMANSE_PRIMARY_ADAPTER":adapter})) }
 
-	policyctl := filepath.Join(root, "policyctl")
-	if _, err := os.Stat(policyctl); err != nil {
-		fmt.Println("Building policyctl for host-side validation...")
-		cmd := exec.Command("go", "build", "-o", policyctl, "./cmd/policyctl")
-		cmd.Dir, cmd.Stdout, cmd.Stderr = root, os.Stdout, os.Stderr
-		if err := cmd.Run(); err != nil { fail(fmt.Errorf("policyctl build failed: %w", err)) }
-	}
-	if ask(r, "Run host-side policy validation now? [Y/n]: ", true) {
-		if err := runExec(root, policyctl, "validate"); err != nil { fail(err) }
-	}
-	fmt.Println("\nCusimanse researcher host preparation complete.")
+    if ask(r, "3. Install Control + Learning plane? [Y/n]: ", true) { must(runBash(root, "scripts/prerequisites.sh", map[string]string{"CUSIMANSE_PROFILE":"2"})) }
+
+    if ask(r, "4. Install Observability + Governance plane (Numbat + Aegis + OTEL/Phoenix)? [Y/n]: ", true) {
+        must(runBash(root, "scripts/prerequisites.sh", map[string]string{"CUSIMANSE_PROFILE":"3"}))
+        must(runBash(root, "scripts/install-observability.sh", nil))
+        must(runBash(root, "scripts/configure-recipes.sh", map[string]string{"CUSIMANSE_OBSERVABILITY_STATUS":"CONFIGURED"}))
+    }
+
+    fmt.Println("\n5. Running comprehensive Go-driven flight-check...")
+    must(runBash(root, "scripts/agent-preflight.sh", map[string]string{"CUSIMANSE_PRIMARY_ADAPTER":adapter}))
+    buildPolicyctl(root)
+    if ask(r, "Run policy validation now? [Y/n]: ", true) { must(runExec(root, filepath.Join(root, "policyctl"), "validate")) }
+    fmt.Println("\nHost preparation complete. Review recipe changes before committing them to your research branch.")
+    fmt.Println("Manual options (optional):")
+    fmt.Println("  bash ./scripts/prerequisites.sh")
+    fmt.Println("  bash ./scripts/agent-preflight.sh")
+    fmt.Println("  bash ./scripts/install-observability.sh")
+    fmt.Println("  ./policyctl validate")
 }
 
-func findRoot() (string, error) {
-	if v := os.Getenv("CUSIMANSE_ROOT"); v != "" { return filepath.Abs(v) }
-	cwd, err := os.Getwd(); if err != nil { return "", err }
-	for p := cwd; ; p = filepath.Dir(p) {
-		if _, err := os.Stat(filepath.Join(p, "go.mod")); err == nil {
-			if _, err := os.Stat(filepath.Join(p, "cmd", "cusimanse-host", "main.go")); err == nil { return p, nil }
-		}
-		n := filepath.Dir(p); if n == p { break }
-	}
-	return "", fmt.Errorf("cannot locate Cusimanse repository root; run from the checkout or set CUSIMANSE_ROOT")
+func chooseAdapter(r *bufio.Reader) string {
+    fmt.Print("Primary agent [prime-agent/hermes/goose/none] (default prime-agent): ")
+    v, _ := r.ReadString('\n'); v = strings.ToLower(strings.TrimSpace(v)); if v == "" { v = "prime-agent" }
+    switch v { case "prime-agent", "hermes", "goose", "none": return v; default: fail(fmt.Errorf("unsupported primary adapter %q", v)); return "none" }
 }
-
-func runningInWSL() bool { b, err := os.ReadFile("/proc/version"); return err == nil && strings.Contains(strings.ToLower(string(b)), "microsoft") }
-func contains(xs []string, v string) bool { for _, x := range xs { if x == v { return true } }; return false }
-func ask(r *bufio.Reader, prompt string, defaultYes bool) bool { fmt.Print(prompt); v, _ := r.ReadString('\n'); v = strings.ToLower(strings.TrimSpace(v)); if v == "" { return defaultYes }; return v == "y" || v == "yes" }
-
-func runBash(root, relative string, extra map[string]string) error {
-	bash, err := exec.LookPath("bash"); if err != nil { return fmt.Errorf("bash is required: %w", err) }
-	cmd := exec.Command(bash, filepath.Join(root, relative)); cmd.Dir = root; cmd.Env = os.Environ()
-	for k, v := range extra { cmd.Env = append(cmd.Env, k+"="+v) }
-	cmd.Stdout, cmd.Stderr, cmd.Stdin = os.Stdout, os.Stderr, os.Stdin
-	return cmd.Run()
-}
-func runExec(root, program string, args ...string) error { cmd := exec.Command(program, args...); cmd.Dir = root; cmd.Env = os.Environ(); cmd.Stdout, cmd.Stderr, cmd.Stdin = os.Stdout, os.Stderr, os.Stdin; return cmd.Run() }
-func fail(err error) { fmt.Fprintf(os.Stderr, "Cusimanse setup failed: %v\n", err); os.Exit(1) }
+func findRoot() (string,error) { if v:=os.Getenv("CUSIMANSE_ROOT"); v!="" { return filepath.Abs(v) }; cwd,e:=os.Getwd(); if e!=nil{return "",e}; for p:=cwd;;p=filepath.Dir(p){ if _,e:=os.Stat(filepath.Join(p,"go.mod"));e==nil { if _,e:=os.Stat(filepath.Join(p,"cmd","cusimanse-host","main.go"));e==nil{return p,nil} }; n:=filepath.Dir(p);if n==p{break} };return "",fmt.Errorf("cannot locate Cusimanse repository root; run from checkout or set CUSIMANSE_ROOT") }
+func runningInWSL() bool { b,e:=os.ReadFile("/proc/version");return e==nil&&strings.Contains(strings.ToLower(string(b)),"microsoft") }
+func ask(r *bufio.Reader,p string,def bool) bool {fmt.Print(p);v,_:=r.ReadString('\n');v=strings.ToLower(strings.TrimSpace(v));if v==""{return def};return v=="y"||v=="yes"}
+func runBash(root,rel string,env map[string]string) error { bash,e:=exec.LookPath("bash");if e!=nil{return fmt.Errorf("bash is required: %w",e)};cmd:=exec.Command(bash,filepath.Join(root,rel));cmd.Dir=root;cmd.Env=os.Environ();for k,v:=range env{cmd.Env=append(cmd.Env,k+"="+v)};cmd.Stdout,cmd.Stderr,cmd.Stdin=os.Stdout,os.Stderr,os.Stdin;return cmd.Run() }
+func runExec(root,program string,args ...string) error {cmd:=exec.Command(program,args...);cmd.Dir=root;cmd.Env=os.Environ();cmd.Stdout,cmd.Stderr,cmd.Stdin=os.Stdout,os.Stderr,os.Stdin;return cmd.Run()}
+func buildPolicyctl(root string){p:=filepath.Join(root,"policyctl");if _,e:=os.Stat(p);e==nil{return};fmt.Println("Building policyctl...");cmd:=exec.Command("go","build","-o",p,"./cmd/policyctl");cmd.Dir=root;cmd.Stdout,cmd.Stderr=os.Stdout,os.Stderr;if e:=cmd.Run();e!=nil{fail(fmt.Errorf("policyctl build failed: %w",e))}}
+func must(e error){if e!=nil{fail(e)}}
+func fail(e error){fmt.Fprintf(os.Stderr,"Cusimanse setup failed: %v\n",e);os.Exit(1)}
