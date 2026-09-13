@@ -1,4 +1,4 @@
-version: 2
+version: 3
 id: agent-selection
 kind: bootstrap-contract
 selection:
@@ -41,7 +41,15 @@ execution:
   reference_contract: recipes/agents/primary-agent.yaml
   shell_contract: recipes/agents/primary-shell.yaml
 state:
-  path: .cusimanse/primary-agent.yaml
+  bootstrap_path: .cusimanse/primary-agent.yaml
+  session_path: runs/<session-id>/session.yaml
+  session_records:
+    - selected_adapter
+    - adapter_version
+    - interactive_command
+    - run_command
+    - prompt_ref
+    - prompt_digest
   commit: false
   secrets: forbidden
 failure:
