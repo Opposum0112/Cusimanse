@@ -28,7 +28,7 @@ planes:
     capabilities: [opentelemetry, phoenix, numbat, aegis, policyctl]
   validation:
     status: PENDING
-    checks: [preflight, policy, recipe-contract, architecture]
+    checks: [preflight, policy, recipe-contract, architecture, token-dashboard]
 vm:
   provider: lima-qemu
   status: PENDING
@@ -36,6 +36,15 @@ vm:
   architecture: detected-at-runtime
   inventory: pending
   # Inventory is populated from limactl discovery and retains name/status/arch.
+token_usage:
+  command: cusimanse-token-dashboard
+  policy_interface: policyctl token-dashboard
+  dashboard: http://127.0.0.1:8787
+  ledger: reports/token-usage/usage.json
+  environment_file: ~/.config/cusimanse/token-optimization.env
+  tools: [ponytail, numbat, miller]
+  fallback: declarative-skill-guidance
+  authorization: false
 evidence:
   state_file: recipes/host-state.yaml
   last_preflight: pending
