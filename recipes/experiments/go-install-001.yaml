@@ -7,6 +7,8 @@ mcp_registry: recipes/mcp/registry.yaml
 skill_registry: recipes/skills/registry.yaml
 framework_reference: recipes/reference/security-frameworks.yaml
 audit: recipes/audit/default.yaml
+session_state: recipes/session/session-state.yaml
+learning_workflow: recipes/session/learning-workflow.yaml
 workload: recipes/workloads/go-install-001.yaml
 host_profile: recipes/host/research-host.yaml
 vm_profile: recipes/lima/profiles/security-research.yaml
@@ -24,7 +26,7 @@ orchestration: recipes/orchestration/default-agent-chain.yaml
 routing: recipes/routing/default.yaml
 reporting: recipes/reporting/default.yaml
 detection_validation: recipes/detection/detection-validation.yaml
-token_dashboard: recipes/token/default.yaml
+token_dashboard: recipes/observability/token-dashboard.yaml
 roles:
   required: [planner, security-reviewer, executor, runtime-analyst, detection-engineer, forensics, independent-verifier, reporter]
 framework_mappings:
