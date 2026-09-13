@@ -1,152 +1,326 @@
 # Cusimanse research workflow
 
-This is the canonical operator workflow for a research session. The researcher declares the experiment; the host shell prepares the environment; exactly one selected primary agent owns the agent-side lifecycle; specialist agents contribute through declared roles; evidence, audit, session state and reporting remain durable.
+This is the canonical operator workflow for a research session. The key rule is **where each action runs**:
 
-## 1. Create the experiment
+- **Researcher / normal host shell:** repository setup, host installation, profile selection, validation, adapter preflight and starting the primary agent.
+- **Primary agent prompt:** experiment planning, policy requests, approvals, specialist delegation, compute lifecycle, instrumentation orchestration, workload execution request, evidence collection, analysis, verification, reporting and session finalization.
+- **Disposable compute / VM:** the actual target workload and VM-side instrumentation.
+- **Control plane:** YAML contracts/recipes, session state, policyctl, audit, routing, orchestration, blackboard and observability.
 
-1. Write the Markdown research contract under `contracts/` with intent, scope, hypothesis, safety, evidence requirements, acceptance criteria and review requirements.
-2. Write the YAML experiment recipe under `recipes/experiments/` and reference the workload, host profile, compute profile, instrumentation, primary agent, roles, skills, MCP, orchestration, policy, routing, reporting and observability profiles.
-3. Validate the recipe graph and contract before execution.
-4. Create a session from `recipes/session/session-state.yaml` and record immutable experiment/contract/recipe references plus every selected profile.
+The researcher does not manually type the lifecycle stages one by one after the primary agent starts.
 
-The session state is the durable join key for the whole run: `runs/<session-id>/session.yaml`.
+## 1. Create the experiment — researcher + repository
 
-## 2. Prepare and install the host
+**Run from the normal host shell, at the Cusimanse repository root.**
 
-The researcher uses the normal host shell. The front door is:
+1. Write the Markdown research contract under `contracts/`.
+2. Write the YAML experiment recipe under `recipes/experiments/`.
+3. Reference workload, host, compute, tools, instrumentation, primary agent, roles, skills, MCP, orchestration, policy, routing, reporting and observability profiles.
+4. Validate the recipe graph and contract.
+5. Create `runs/<session-id>/session.yaml` from `recipes/session/session-state.yaml`.
+6. Snapshot immutable experiment/contract/recipe references and all selected profiles.
+
+The session YAML is the durable join key for the entire run.
+
+## 2. Install and prepare the research host — normal shell
+
+**Run these commands from the Cusimanse repository root in the research host's normal shell.**
 
 ```bash
+cd <CUSIMANSE_REPO_ROOT>
+git checkout architecture-refactor
 ./scripts/cusimanse-host.sh
-```
-
-Then validate prerequisites and the selected host profile:
-
-```bash
 ./scripts/prerequisites.sh
 ./scripts/agent-preflight.sh
 ./policyctl validate
 ./scripts/tests/validate-project.sh
 ```
 
-The host profile declares the tool recipe, so host tooling is installed/preflighted from configuration rather than becoming an ad-hoc second controller. Example profile: `recipes/host/research-host.yaml`; tool inventory: `recipes/tools/security-research.yaml`.
+The host profile is `recipes/host/research-host.yaml` and its declared tool inventory is `recipes/tools/security-research.yaml`.
 
-Host installation never silently starts the workload. Credentials are not passed to compute by default. Instrumentation for the target workload runs inside the disposable compute/VM boundary.
+Conceptually:
 
-## 3. Select the primary agent adapter
+```text
+researcher
+  │ normal host shell
+  ├─ install/prepare host tools
+  ├─ validate policy
+  ├─ select adapter
+  └─ preflight adapter
+       │
+       ▼
+   primary agent shell
+```
 
-Choose exactly one primary adapter and record it in session state:
+**Do not run the experiment workload directly from this shell.** Host installation and validation are not the experiment execution plane.
 
-| Adapter | Native interactive command | Prompt/run form |
+## 3. Select one primary agent — normal shell
+
+Use `recipes/agents/adapter-matrix.yaml`. Exactly one adapter becomes the session's primary operator.
+
+Examples from the **normal host shell**:
+
+```bash
+# Goose
+command -v goose && goose --help
+
+# OpenCode
+command -v opencode && opencode --help
+
+# Grok Build
+command -v grok && grok --help
+
+# Antigravity
+command -v agy && agy --help
+
+# Pi
+command -v pi && pi --help
+
+# Hermes
+command -v hermes && hermes --help
+
+# Prime Agent
+command -v prime-agent && prime-agent --help
+
+# Codex
+command -v codex && codex --help
+
+# Claude Code
+command -v claude && claude --help
+```
+
+Record the selected adapter and version in `session.yaml`. Do not assume that a documented CLI invocation is runtime accepted until it passes preflight and an end-to-end disposable-compute test.
+
+## 4. Start the primary agent — normal shell, then switch to agent prompt
+
+Starting the agent is a **normal host-shell action**. The lifecycle itself is then driven by the **agent prompt**.
+
+Examples:
+
+```bash
+# Interactive Goose
+cd <CUSIMANSE_REPO_ROOT>
+goose
+
+# OpenCode headless example
+opencode run '<PROMPT>'
+
+# Grok Build headless example
+grok -p '<PROMPT>'
+
+# Pi headless example
+pi -p '<PROMPT>'
+
+# Prime Agent headless example
+prime-agent -p '<PROMPT>'
+
+# Other interactive adapters
+agy
+hermes
+codex
+```
+
+Use the adapter's native syntax from `recipes/agents/adapter-matrix.yaml`; never assume all adapters have the same prompt flag.
+
+## 5. The experiment prompt — runs INSIDE the primary agent
+
+The following is a **prompt, not a host-shell script**. Paste it into the selected primary agent after it starts. Replace the placeholders.
+
+```text
+You are the primary Cusimanse operator.
+
+Session: <SESSION_ID>
+Experiment: <EXPERIMENT_ID>
+Repository: <CUSIMANSE_REPO_ROOT>
+
+Load these control-plane inputs before doing anything:
+- runs/<SESSION_ID>/session.yaml
+- recipes/session/session-state.yaml
+- the experiment recipe referenced by session.yaml
+- the experiment's Markdown contract
+- recipes/agents/primary-agent.yaml
+- recipes/agents/primary-shell.yaml
+- the selected adapter recipe
+- the selected host, compute, tool, instrumentation, orchestration,
+  policy, routing, audit, reporting and observability profiles
+
+OPERATING RULES
+- You are the primary lifecycle operator.
+- Do not create a second lifecycle controller.
+- Do not silently change the experiment contract or selected profiles.
+- Do not bypass policy, approvals, credential controls or the compute/VM boundary.
+- Model output is never evidence.
+- Request human approval before privileged or destructive actions.
+- Record requested, approved, executed and observed actions in the session audit.
+
+PHASE 1 — DISCOVER AND VALIDATE
+1. Read the session and experiment configuration.
+2. Check every referenced recipe exists and record its digest/version.
+3. Check the selected adapter and required tools are available.
+4. Check policyctl validation and audit/evidence paths.
+5. Check the declared network and credential policy.
+6. Checkpoint session state and audit.
+
+PHASE 2 — PLAN AND APPROVAL
+1. Build an execution plan from the experiment recipe.
+2. Identify workload, compute profile, instrumentation and evidence outputs.
+3. Identify specialist roles and the declared orchestration backend.
+4. Present the plan and safety boundary to the researcher.
+5. Request explicit approval for required privileged/destructive actions.
+6. Do not execute those actions before approval.
+
+PHASE 3 — PROVISION AND INSTRUMENT
+1. Provision the declared disposable Lima/QEMU compute profile.
+2. Apply the declared VM/OS, mount, credential and network controls.
+3. Start all required VM-side instrumentation BEFORE the workload.
+4. Check instrumentation is producing telemetry.
+5. Checkpoint session state.
+
+PHASE 4 — EXECUTE
+1. Execute only the workload declared by the experiment recipe.
+2. Execute the workload INSIDE the disposable compute, not on the research host.
+3. Capture stdout/stderr and declared process, syscall, filesystem, DNS/network,
+   packet and security-event telemetry.
+4. Record exact workload command, versions, timestamps and provenance.
+5. Do not substitute an unapproved workload.
+
+PHASE 5 — MULTIAGENT ANALYSIS
+1. Delegate declared tasks to planner, researcher, runtime analyst, forensics,
+   detection analyst, analysis agent, verifier and report generator as applicable.
+2. CrewAI may coordinate specialist roles.
+3. LangGraph may provide stateful graph/checkpoint execution.
+4. Taskflow may decompose and track research tasks.
+5. All specialist outputs must reference their inputs and evidence.
+6. Specialist frameworks do not become security boundaries or lifecycle owners.
+
+PHASE 6 — EVIDENCE AND VERIFICATION
+1. Store raw evidence in the session artifact tree.
+2. Update evidence/index.yaml and blackboard references.
+3. Hash evidence and record provenance.
+4. Reduce evidence deterministically before AI-assisted interpretation.
+5. Independently verify important findings against preserved evidence.
+6. Mark unsupported claims PARTIAL/FAIL rather than inventing evidence.
+
+PHASE 7 — REPORT AND LEARNING
+1. Write the research report with evidence references, versions, failures and
+   observed-vs-inferred distinctions.
+2. If a reusable improvement is discovered, create a learning candidate only.
+3. Evaluate it against the contract.
+4. Refine it, replay it on a distinct/frozen artifact, and independently verify it.
+5. Request human approval before promotion to a validated skill/recipe improvement.
+6. Roll back a promoted improvement if replay or safety evaluation regresses.
+
+PHASE 8 — SESSION FINALIZATION
+1. Stop/close runtime instrumentation cleanly.
+2. Preserve and hash raw evidence BEFORE compute destruction.
+3. Finalize audit and provenance manifests.
+4. Finalize independent verification and research report.
+5. Finalize token usage.
+6. Write the session dashboard snapshot and clear/finalize the active session view.
+7. Update session.yaml with final status, timestamps, artifact references and audit refs.
+8. Only after preservation requirements are satisfied, destroy disposable compute.
+9. Mark the session COMPLETE only when all required artifacts and controls exist;
+   otherwise mark PARTIAL or FAILED with the reason.
+```
+
+## 6. Go experiment: exactly where to run it
+
+### Normal host shell
+
+```bash
+cd <CUSIMANSE_REPO_ROOT>
+./scripts/cusimanse-host.sh
+./scripts/prerequisites.sh
+./scripts/agent-preflight.sh
+./policyctl validate
+```
+
+Start the selected primary adapter from this shell, for example:
+
+```bash
+goose
+```
+
+Then paste the **Go experiment prompt** from `docs/prompts/go-install-001.md` into the agent.
+
+### Primary agent
+
+The agent reads:
+
+```text
+contracts/08-go-install-001.md
+recipes/experiments/go-install-001.yaml
+runs/<SESSION_ID>/session.yaml
+```
+
+It plans, obtains approval, provisions compute and starts instrumentation.
+
+### Disposable compute / VM
+
+The actual approved workload runs **inside the disposable compute**:
+
+```bash
+go install github.com/Opposum0112/ai-security-lab/packages/labprobe@v0.1.0
+```
+
+The source is copied into the VM according to the experiment recipe; networked module resolution is controlled/opt-in according to that recipe. Evidence and telemetry are collected from the VM before destruction.
+
+## 7. npm experiment: exactly where to run it
+
+### Normal host shell
+
+```bash
+cd <CUSIMANSE_REPO_ROOT>
+./scripts/cusimanse-host.sh
+./scripts/prerequisites.sh
+./scripts/agent-preflight.sh
+./policyctl validate
+```
+
+Start the selected primary adapter, for example:
+
+```bash
+goose
+```
+
+Then paste the **npm experiment prompt** from `docs/prompts/npm-install-001.md` into the agent.
+
+### Primary agent
+
+The agent reads:
+
+```text
+recipes/experiments/npm-install-001.yaml
+recipes/workloads/npm-install-001.yaml
+runs/<SESSION_ID>/session.yaml
+```
+
+It plans, obtains approval, provisions compute, starts instrumentation and executes the declared npm workload.
+
+### Disposable compute / VM
+
+The actual npm installation/project bootstrap workload runs **inside the disposable compute** according to `recipes/workloads/npm-install-001.yaml`. Do not run `npm install` directly on the research host when executing this experiment.
+
+## 8. Control-plane map
+
+| Layer | Runs from | Responsibility |
 |---|---|---|
-| Goose | `goose` | `goose run --text '<PROMPT>'` |
-| OpenCode | `opencode` | `opencode run '<PROMPT>'` |
-| Grok Build | `grok` | `grok -p '<PROMPT>'` |
-| Antigravity | `agy` | `agy -p '<PROMPT>'` |
-| Pi | `pi` | `pi -p '<PROMPT>'` |
-| Hermes | `hermes` | TUI-first interactive prompt |
-| Prime Agent | `prime-agent` | `prime-agent -p '<PROMPT>'` |
-| Codex | `codex` | verify version-specific non-interactive syntax |
-| Claude Code | `claude` | `claude '<PROMPT>'` |
-| Devin | provider-managed | provider-managed |
+| Research contract | repository | defines intent/scope/safety/evidence/acceptance |
+| Experiment recipe | repository | composes workload + profiles |
+| Session state | `runs/<session-id>/session.yaml` | durable state and profile snapshot |
+| Host profile | repository | declares host tools/configuration |
+| Normal host shell | research host | install/preflight/validate/start agent |
+| Primary agent prompt | selected agent shell | owns research lifecycle |
+| Specialist agents | selected agent/orchestration | analysis/forensics/detection/verification |
+| policyctl | host control plane | policy decisions/token accounting; not sandbox |
+| Orchestration | primary-agent controlled | Taskflow/LangGraph/CrewAI specialist coordination |
+| Lima/QEMU + VM/OS | disposable compute | actual workload isolation boundary |
+| Instrumentation | disposable compute | workload telemetry/evidence |
+| Blackboard | session artifact plane | durable case/evidence references |
+| Artifact store | `runs/<session-id>/` | raw evidence, audit, provenance, analysis, report, learning |
+| Dashboard | session observability | token/session accounting and final snapshot |
 
-Use `recipes/agents/adapter-matrix.yaml` as the source of truth. A documented adapter is not runtime accepted until host preflight and an end-to-end disposable-compute test succeed.
-
-## 4. Start the agent shell
-
-After the normal host-shell preparation, start the selected primary agent using its native command. Do not manually execute each lifecycle stage as a separate human shell command. The agent is the operator for the research lifecycle.
-
-Give it the experiment prompt below, substituting the actual session and experiment references:
-
-```text
-Operate session <SESSION_ID> for experiment <EXPERIMENT_ID>.
-Load the research contract, experiment recipe, recipes/session/session-state.yaml,
-recipes/agents/primary-agent.yaml, recipes/agents/primary-shell.yaml,
-the selected adapter profile, host/compute/tool profiles, policy, routing,
-observability, audit and reporting profiles.
-
-First checkpoint session state and audit. Validate the complete recipe graph and
-preflight the selected adapter. Report the selected adapter and all profile refs.
-Plan the experiment and request human approval for privileged or destructive actions.
-
-After approval, provision the declared disposable compute, start workload
-instrumentation before execution, execute only the approved workload, collect raw
-evidence and telemetry, hash and index evidence, update the blackboard, and run
-forensics, analysis and independent verification.
-
-Produce the research report and preservation manifest. Preserve evidence before
-compute destruction. Update session.yaml and append audit events for requested,
-approved, executed and observed actions.
-
-At session end, finalize token accounting and refresh the session dashboard. The
-session is COMPLETE only when required artifacts, audit, verification, preservation
-and dashboard state exist. Otherwise use PARTIAL or FAILED and explain why.
-
-Do not bypass policy, approvals, credentials controls or the compute/VM boundary.
-Do not treat model output as evidence. Do not silently change the experiment contract.
-Learning or skill improvements must remain candidates until replay, independent
-verification and human approval are complete.
-```
-
-## 5. Primary-agent lifecycle
-
-```text
-Create session
-  → Validate
-  → Preflight
-  → Plan
-  → Review
-  → Request approval
-  → Provision compute
-  → Start instrumentation
-  → Execute workload
-  → Collect evidence
-  → Reduce evidence
-  → Forensics
-  → Analysis / specialist roles
-  → Independent verification
-  → Research report
-  → Preserve + hash
-  → Refresh token/session dashboard
-  → Destroy compute
-  → Finalize session state + audit
-  → COMPLETE / PARTIAL / FAILED
-```
-
-The primary agent remains lifecycle authority. CrewAI, LangGraph, Taskflow and other orchestration tools can structure specialist work or stateful task execution, but they do not become a security boundary or a second lifecycle controller.
-
-## 6. Specialist and learning flow
-
-Specialist roles operate on declared inputs and write outputs/evidence references to the blackboard. A taskflow can decompose work; LangGraph can provide stateful graph/checkpoint execution; CrewAI can delegate specialist roles. Their outputs remain subject to the primary agent's policy and evidence rules.
-
-Learning is explicitly evidence-bounded:
-
-```text
-retrieve prior cases/skills/evidence
-        ↓
-taskflow decomposition
-        ↓
-execute
-        ↓
-evaluate against contract
-        ↓
-refine candidate skill/recipe
-        ↓
-replay on distinct/frozen artifact
-        ↓
-independent verification
-        ↓
-human approval
-        ↓
-promote reviewed skill
-        ↓
-rollback if regression/safety issue
-```
-
-Base contracts and security boundaries are immutable during learning. No learned skill can grant privilege, change security policy, bypass approval, expose credentials or alter the VM boundary autonomously.
-
-## 7. Artifact store and report
-
-Each session owns one durable artifact tree:
+## 9. Artifact store
 
 ```text
 runs/<session-id>/
@@ -180,25 +354,49 @@ runs/<session-id>/
     └── promotions/
 ```
 
-The report must distinguish observed evidence from inference, cite artifact references, include versions and failed steps, and never claim an unverified security property.
+Raw evidence is ground truth. Preserve and hash it before destroying disposable compute.
 
-## 8. Session completion and dashboard clearing
+## 10. Learning and skill improvement
 
-At the end of **every session**, the primary agent must:
+Learning is evidence-bounded and cannot silently modify the base experiment:
 
-1. stop/close runtime instrumentation cleanly;
-2. preserve and hash raw evidence before destroying compute;
-3. finalize audit and provenance manifests;
-4. write the independent verification result and research report;
-5. finalize token usage for the session;
-6. refresh/write the session dashboard snapshot;
-7. mark `session.yaml` `COMPLETE`, `PARTIAL` or `FAILED` with timestamps and artifact refs;
-8. only then destroy disposable compute if preservation requirements are satisfied.
+```text
+prior cases / skills
+      ↓
+Taskflow decomposition
+      ↓
+primary-agent execution
+      ↓
+specialist analysis
+      ↓
+evaluate against contract
+      ↓
+refine candidate
+      ↓
+LangGraph checkpoint/replay
+      ↓
+independent verification
+      ↓
+human approval
+      ↓
+promote validated skill/recipe improvement
+      ↓
+rollback on regression
+```
 
-The aggregate dashboard may remain historical, but the active session view must be finalized/cleared so no prior session is presented as currently active.
+A learned skill cannot grant privilege, alter security policy, expose credentials, bypass approval or change the VM security boundary.
 
-## 9. Runtime acceptance
+## 11. Session completion
 
-A session is `PASS` only when the selected primary agent actually owns the lifecycle, policy/approval records exist where required, the compute/VM boundary was exercised, instrumentation preceded execution, evidence was preserved and hashed, independent verification completed, the report and audit exist, and the session state is reproducible from recorded inputs.
+Every session must finish with:
 
-Static configuration or a successful CLI `--help` check is never runtime PASS.
+1. preserved/hash-verified evidence;
+2. finalized audit/provenance;
+3. independent verification;
+4. research report;
+5. finalized token accounting;
+6. dashboard snapshot with no stale active session;
+7. final `session.yaml` state;
+8. compute destruction only after preservation.
+
+Static configuration, adapter `--help`, or a successful host preflight is **not** runtime PASS.
