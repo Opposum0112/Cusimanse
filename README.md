@@ -42,9 +42,9 @@ Cusimanse/
 ├── skills/          # reviewed/promoted skills
 ├── packages/        # research packages
 ├── policies/        # host/action policy
-├── infra/           # optional gateways/observability
 ├── blackboard/      # durable case metadata
 ├── reports/         # generated reports/token history
+├── manifest/        # package/source-of-truth manifest
 ├── docs/            # architecture + focused guides
 ├── scripts/         # bootstrap/preflight/validation helpers
 ├── cmd/             # policyctl and host tooling
@@ -52,6 +52,8 @@ Cusimanse/
 ```
 
 **Documentation rule:** contracts define research semantics, recipes define execution composition, README defines the researcher workflow, and `docs/` contains focused guides plus the canonical architecture. Do not duplicate the end-to-end workflow in another document.
+
+**Configuration rule:** `recipes/` is the source of truth for host tools, VM profiles, agents, orchestration, instrumentation, gateways, observability, policy references and experiments. There is no parallel `infra/` configuration tree.
 
 ## Researcher workflow
 
@@ -262,10 +264,11 @@ Agents, skills, MCP, Taskflow, LangGraph, CrewAI and model/harness gateways are 
 
 ## Documentation
 
+- [`manifest/PACKAGE-MANIFEST.json`](manifest/PACKAGE-MANIFEST.json) — architecture and source-of-truth inventory
 - [`docs/architecture/cusimanse-architecture.svg`](docs/architecture/cusimanse-architecture.svg) — canonical architecture
 - [`docs/architecture/cusimanse-architecture.mmd`](docs/architecture/cusimanse-architecture.mmd) — canonical Mermaid workflow/source
 - [`contracts/`](contracts/) — canonical contracts
-- [`recipes/`](recipes/) — declarative configuration
+- [`recipes/`](recipes/) — declarative configuration and source of truth
 - [`docs/system-requirements.md`](docs/system-requirements.md) — requirements
 - [`docs/agent-shell-runbook.md`](docs/agent-shell-runbook.md) — adapter details
 - [`docs/production-architecture.md`](docs/production-architecture.md) — deployment/security model
