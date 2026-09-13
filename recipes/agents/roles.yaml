@@ -1,4 +1,4 @@
-version: 1
+version: 2
 id: agent-roles
 kind: agents
 roles:
@@ -11,9 +11,17 @@ roles:
     capabilities: [read_repo, read_recipes, policy_check]
     apply: false
   executor:
-    purpose: execute approved recipe operations through Goose tools
-    capabilities: [goose_tools, approved_shell, vm_operations]
+    purpose: execute approved recipe operations through the selected primary operator
+    capabilities: [primary_agent_tools, approved_shell, vm_operations]
     apply: true
+  researcher:
+    purpose: investigate declared research questions through optional role orchestration
+    capabilities: [read_repo, read_recipes, evidence_read, analysis]
+    apply: false
+  runtime-analyst:
+    purpose: analyse runtime telemetry produced by the experiment
+    capabilities: [telemetry_read, evidence_read, analysis]
+    apply: false
   forensics:
     purpose: collect, reduce, analyse and report evidence
     capabilities: [evidence_read, hash, analysis, report]
@@ -22,3 +30,15 @@ roles:
     purpose: independently verify findings
     capabilities: [evidence_read, verification]
     apply: false
+  reporter:
+    purpose: produce reproducible experiment reports
+    capabilities: [evidence_read, verification, report]
+    apply: false
+
+orchestration:
+  primary_operator: selected-primary-agent
+  optional_frameworks:
+    crewai:
+      recipe: recipes/orchestration/crewai.yaml
+      role_based: true
+      cannot_bypass_primary_operator: true

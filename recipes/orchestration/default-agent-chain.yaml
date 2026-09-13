@@ -10,7 +10,7 @@ stages:
     requires_approval: true
   - id: provision
     agent: executor
-    action: install prerequisites and materialize selected profiles
+    action: materialize the approved disposable-VM experiment
   - id: instrument
     agent: executor
     action: start selected collectors before workload
@@ -24,14 +24,19 @@ stages:
     agent: forensics
     action: deterministic reduction then AI-assisted analysis
   - id: verify
-    agent: reviewer
+    agent: independent-reviewer
     action: independently verify findings
   - id: report
-    agent: forensics
+    agent: reporter
     action: write experiment report
   - id: cleanup
     agent: executor
     action: destroy VM after evidence preservation
+optional_role_orchestration:
+  crewai:
+    recipe: recipes/orchestration/crewai.yaml
+    entrypoint: after-plan-before-execution
+    purpose: coordinate specialist research roles without replacing selected primary-agent lifecycle authority
 policy:
   fail_closed: true
   require_explicit_apply: true

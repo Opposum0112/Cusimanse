@@ -1,8 +1,60 @@
-version: 1
+version: 5
 id: skill-registry
 kind: skill-registry
 owner: project
 source: .agents/skills/
+standards:
+  - name: agent-skills-open-format
+    source: https://agentskills.io/specification
+    purpose: portable SKILL.md structure, metadata and progressive disclosure
+    status: reference
+  - name: github-agent-skills
+    source: https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/add-skills
+    purpose: project skill discovery, preview and provenance guidance
+    status: reference
+external_sources:
+  - recipes/reference/security-skill-sources.yaml
+  - recipes/reference/skill-registry-sources.yaml
+external_candidates:
+  openai-security-best-practices:
+    source: openai-skills
+    upstream_path: skills/.curated/security-best-practices
+    purpose: secure-by-default code review
+    status: candidate-review-required
+  openai-security-threat-model:
+    source: openai-skills
+    upstream_path: skills/.curated/security-threat-model
+    purpose: repository-grounded threat modeling
+    status: candidate-review-required
+  openai-security-ownership-map:
+    source: openai-skills
+    upstream_path: skills/.curated/security-ownership-map
+    purpose: sensitive-code ownership and bus-factor analysis
+    status: candidate-review-required
+  anthropic-security-review-community:
+    source: anthropic-skills
+    purpose: community security-review skill candidates
+    status: candidate-review-required
+  sentenz-skills:
+    source: https://github.com/sentenz/skills
+    purpose: modular agent skill registry and SKILL.md conventions
+    status: candidate-review-required
+  pnewsam-skills:
+    source: https://github.com/pnewsam/skills
+    purpose: registry and on-demand skill installation patterns
+    status: candidate-review-required
+  superagent-security-skills:
+    source: https://github.com/superagent-ai/skills
+    purpose: skill security auditing patterns
+    status: candidate-review-required
+  hashicorp-agent-skills:
+    source: https://github.com/hashicorp/agent-skills
+    purpose: governed skill catalog and lifecycle metadata
+    status: candidate-review-required
+  agent-mag-skills:
+    source: https://github.com/Agent-mag/skills
+    purpose: agent skill registry patterns
+    status: candidate-review-required
 skills:
   evidence-reduction:
     path: .agents/skills/evidence-reduction.md
@@ -16,8 +68,91 @@ skills:
     path: .agents/skills/experiment-run.md
     purpose: execute the selected experiment lifecycle
     trust: repository-reviewed
+  security-research:
+    path: .agents/skills/security-research.md
+    purpose: catalog and coordinate security research skills
+    trust: repository-reviewed
+  workload-triage:
+    path: .agents/skills/security-research-triage.md
+    purpose: initial workload classification and research planning
+    trust: repository-reviewed
+  static-analysis:
+    path: .agents/skills/static-analysis.md
+    purpose: deterministic non-executing workload inspection
+    trust: repository-reviewed
+  dynamic-analysis:
+    path: .agents/skills/dynamic-analysis.md
+    purpose: runtime behavior analysis inside disposable VMs
+    trust: repository-reviewed
+  network-analysis:
+    path: .agents/skills/network-analysis.md
+    purpose: DNS, socket, flow and packet analysis
+    trust: repository-reviewed
+  malware-analysis:
+    path: .agents/skills/malware-analysis.md
+    purpose: suspicious workload behavior analysis
+    trust: repository-reviewed
+  reverse-engineering:
+    path: .agents/skills/reverse-engineering.md
+    purpose: executable structure and behavior analysis
+    trust: repository-reviewed
+  threat-intelligence:
+    path: .agents/skills/threat-intelligence.md
+    purpose: attributable indicator and behavior enrichment
+    trust: repository-reviewed
+  vulnerability-research:
+    path: .agents/skills/vulnerability-research.md
+    purpose: vulnerability hypothesis and reproduction research
+    trust: repository-reviewed
+  dependency-analysis:
+    path: .agents/skills/dependency-analysis.md
+    purpose: dependency provenance and supply-chain analysis
+    trust: repository-reviewed
+  detection-engineering:
+    path: .agents/skills/detection-engineering.md
+    purpose: evidence-backed YARA, Sigma and network detections
+    trust: repository-reviewed
+  forensics:
+    path: .agents/skills/forensics.md
+    purpose: preservation and correlation of forensic artifacts
+    trust: repository-reviewed
+  ioc-extraction:
+    path: .agents/skills/ioc-extraction.md
+    purpose: deterministic indicator extraction and normalization
+    trust: repository-reviewed
+  attack-mapping:
+    path: .agents/skills/attack-mapping.md
+    purpose: evidence-backed MITRE ATT&CK mapping
+    trust: repository-reviewed
+  independent-verification:
+    path: .agents/skills/independent-verification.md
+    purpose: independent challenge and verification of findings
+    trust: repository-reviewed
+  agent-skills-authoring:
+    path: .agents/skills/agent-skills-authoring/SKILL.md
+    purpose: create and review portable Agent Skills using SKILL.md metadata and progressive disclosure
+    trust: repository-reviewed
+  skill-supply-chain-audit:
+    path: .agents/skills/skill-supply-chain-audit/SKILL.md
+    purpose: inspect provenance, permissions, scripts and behavior before importing external skills
+    trust: repository-reviewed
+  token-optimization:
+    path: .agents/skills/token-optimization/SKILL.md
+    purpose: reduce unnecessary agent context, tool calls and generated work without weakening security controls
+    trust: repository-reviewed
+  ponytail:
+    path: .agents/skills/ponytail/SKILL.md
+    purpose: minimal implementation and anti-overengineering guidance
+    trust: externally-reviewed-reference
 rules:
   - skills are instructions, not security boundaries
   - skills cannot grant privileges
   - selected skills are recorded in audit events
+  - external reference data is enrichment, not evidence
+  - external skills require source review before import
+  - namespace or branding does not establish trust
+  - candidate skills remain NOT_DEPLOYED until reviewed and copied into the repository
   - unknown skills are NOT_DEPLOYED
+  - missing skill capability is NOT_DEPLOYED
+  - SKILL.md files must follow the Agent Skills open format and use precise trigger descriptions
+  - external skills are never auto-executed merely because they are indexed

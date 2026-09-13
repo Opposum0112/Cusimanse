@@ -22,19 +22,23 @@ func testPolicy() Policy {
 		Git: map[string]string{
 			"write": "approval-required",
 		},
+		Orchestration: map[string]string{
+			"crewai": "approval-required",
+		},
 	}
 }
 
 func TestDecisionFor(t *testing.T) {
 	p := testPolicy()
 	cases := map[string]string{
-		"credentials": "deny",
-		"mounts":      "deny",
-		"host-root":   "deny",
-		"sudo":        "approval-required",
-		"vm":          "approval-required",
-		"network":     "allow",
-		"git-write":   "approval-required",
+		"credentials":        "deny",
+		"mounts":             "deny",
+		"host-root":          "deny",
+		"sudo":               "approval-required",
+		"vm":                 "approval-required",
+		"network":            "allow",
+		"git-write":          "approval-required",
+		"crew-orchestration": "approval-required",
 	}
 	for action, want := range cases {
 		got, err := decisionFor(action, p)

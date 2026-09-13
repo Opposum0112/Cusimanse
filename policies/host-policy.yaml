@@ -20,6 +20,8 @@ git:
   read: allow
   write: approval-required
   push: approval-required
+orchestration:
+  crewai: approval-required
 evidence:
   preserve_before_destroy: required
   hashing: required
