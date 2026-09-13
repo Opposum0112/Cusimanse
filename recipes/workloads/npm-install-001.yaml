@@ -20,6 +20,10 @@ workload:
     - cd /tmp/npm-test && npm install lodash@4.17.21 --ignore-scripts
   network_mode: controlled
   package_pins: true
+execution:
+  location: disposable-lima-qemu-vm
+  host_execution: denied
+  instrumentation_before_workload: required
 evidence:
   process: true
   syscall: true
