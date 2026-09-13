@@ -2,6 +2,7 @@ version: 1
 id: npm-install-001
 kind: experiment
 name: npm installation observation
+contract: contracts/12-npm-install-001.md
 prerequisites: recipes/install/project-bootstrap.yaml
 mcp_registry: recipes/mcp/registry.yaml
 skill_registry: recipes/skills/registry.yaml
