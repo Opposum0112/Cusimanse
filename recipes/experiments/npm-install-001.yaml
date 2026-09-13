@@ -6,6 +6,8 @@ prerequisites: recipes/install/project-bootstrap.yaml
 mcp_registry: recipes/mcp/registry.yaml
 skill_registry: recipes/skills/registry.yaml
 audit: recipes/audit/default.yaml
+session_state: recipes/session/session-state.yaml
+learning_workflow: recipes/session/learning-workflow.yaml
 workload: recipes/workloads/npm-install-001.yaml
 host_profile: recipes/host/research-host.yaml
 vm_profile: recipes/lima/profiles/security-research.yaml
@@ -21,7 +23,7 @@ agent_monitoring:
 orchestration: recipes/orchestration/default-agent-chain.yaml
 routing: recipes/routing/default.yaml
 reporting: recipes/reporting/default.yaml
-token_dashboard: recipes/token/default.yaml
+token_dashboard: recipes/observability/token-dashboard.yaml
 approval:
   required: true
 cleanup:
