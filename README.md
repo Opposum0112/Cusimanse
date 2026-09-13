@@ -8,6 +8,14 @@ Cusimanse turns Markdown research contracts and composable YAML recipes into rep
 
 ![Cusimanse mascot](docs/images/cusimanse-mascot.svg)
 
+## AI use and usage disclaimer
+
+Cusimanse is an **AI-assisted security research framework**. AI agents and models may be used to plan experiments, delegate specialist analysis, operate declared workflows, interpret telemetry/evidence, generate reports, and propose reusable skills. Model outputs can be incomplete, incorrect, nondeterministic or unsafe if used outside the declared controls.
+
+AI is a capability layer, **not a security boundary or an authority to expand scope**. Human researchers remain responsible for authorization, scope, approvals, credentials, safety decisions and final interpretation. Cusimanse does not guarantee that an AI agent, model, skill, MCP tool, orchestration framework or generated output is correct or secure.
+
+Use AI providers and agent tools according to their own terms and privacy policies. Do not place secrets, credentials or sensitive research data into model prompts or telemetry unless the deployment explicitly authorizes and protects them. Review generated commands and findings before execution or publication, and use disposable compute for untrusted workloads.
+
 ## System requirements
 
 | Area | Requirement |
@@ -102,7 +110,7 @@ cd <CUSIMANSE_REPO_ROOT>
 ./scripts/tests/validate-project.sh
 ```
 
-The all-inclusive interactive installer handles host prerequisites, selected agent adapters, control/learning tooling, agent observability, token tooling and model gateways. Preflight verifies the resulting host. Host tools are declared by `recipes/host/research-host.yaml` and `recipes/tools/security-research.yaml`. These commands prepare the host; they do not run the experiment workload.
+The all-inclusive installer prepares the selected host/control-plane capabilities declared by the recipes, including prerequisites, selected agent adapters, control/learning tooling, agent observability, token tooling and model gateways. `recipes/tools/security-research.yaml` declares host/VM tool inventories; VM workload tools are installed or selected inside disposable compute according to the workload recipe. `./scripts/agent-preflight.sh` verifies what is actually deployed. These commands prepare the host; they do not run the experiment workload.
 
 ### Step 3 — Select one primary agent
 
@@ -208,17 +216,43 @@ session.yaml
 
 Raw evidence is ground truth. Hash and preserve it before VM destruction. The report references artifacts and distinguishes observation from inference.
 
-### Step 9 — Optional learning
+### Step 9 — Optional learning and skill promotion
 
-Learning happens **after the research result and independent verification**, only if a reusable improvement is identified:
+Learning is a **post-research improvement loop**, not part of the normal workload. It starts only after the research report and independent verification, when the primary agent identifies a reusable improvement candidate.
+
+**Where configuration lives:** `recipes/session/learning-workflow.yaml` declares the lifecycle, gates, artifacts and promotion rules. `recipes/skills/registry.yaml` is the skill registry; `skills/` is the reviewed/promoted library. The base research contracts remain immutable.
+
+**When tools are installed:** Taskflow, LangGraph and CrewAI are optional host/control-plane capabilities. They are installed when selected by the host/control-plane profile and prepared by the all-inclusive `./scripts/install.sh`; they are not installed inside the workload VM unless an experiment explicitly declares such a need. `./scripts/agent-preflight.sh` reports whether the selected capability is actually available.
+
+**How a learning run works:**
 
 ```text
-candidate → Taskflow tasks → primary-agent execution
-→ evaluate → refine → optional LangGraph replay/checkpoints
-→ independent verification → human approval → promote
+research report + verification
+          ↓
+identify reusable improvement
+          ↓
+retrieve prior evidence / reviewed skills
+          ↓
+Taskflow → small replayable tasks
+          ↓
+primary-agent execution
+          ↓
+evaluate → refine candidate
+          ↓
+optional LangGraph state/checkpoints
+          ↓
+replay on preserved/distinct evidence
+          ↓
+independent verification
+          ↓
+HUMAN APPROVAL
+          ↓
+promote validated skill → skills/ + registry
+          ↓
+rollback if regression/safety issue is found
 ```
 
-Learning/control tools are installed through the selected host/control-plane profile. If replay needs execution, it uses disposable compute. Outputs go under `runs/<session-id>/learning/`. No automatic promotion, privilege grant, policy change or base-contract mutation is allowed.
+Candidate artifacts are kept under `runs/<session-id>/learning/` (`candidates/`, `evaluations/`, `replays/`, `verification/`, `promotions/`). A skill is **not** added to the library merely because an AI agent generated it: promotion requires evidence, replay, independent verification, provenance and explicit human approval. Automatic privilege grants, security-policy changes and base-contract mutation are prohibited.
 
 ### Step 10 — Close the session
 
