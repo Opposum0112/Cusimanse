@@ -2,31 +2,36 @@
 
 The `scripts/` directory contains supporting shell utilities and validation helpers. It is **not a project controller**.
 
-Research semantics live in `contracts/`; declarative composition lives in `recipes/`. The selected primary agent is the runtime operator.
+Research semantics live in `contracts/`; declarative composition lives in `recipes/`; session state lives under `runs/<session-id>/`; the selected primary agent is the runtime operator.
 
 The historical Python `labctl` controller was retired during the agent-neutral refactor. Do not recreate or depend on `scripts/bin/labctl` or `scripts/labctl/`.
 
 ## Canonical host install
 
-From the repository root:
+From the repository root, use the normal host shell:
 
 ```bash
 ./scripts/cusimanse-host.sh
 ./scripts/install.sh
-source ./scripts/goose-env.sh
+./scripts/prerequisites.sh
+./scripts/agent-preflight.sh
+./policyctl validate
 bash ./scripts/tests/validate-project.sh
 ```
 
-`install.sh` prepares host prerequisites, builds `./policyctl`, and validates policy. It does **not** launch a research workload or become a competing lifecycle controller.
+The host profile declares the host tool inventory through `recipes/host/research-host.yaml` and `recipes/tools/security-research.yaml`. Host preparation installs/preflights declared prerequisites only. It does **not** launch a research workload or become a competing lifecycle controller.
 
-Then, with Goose already configured (provider and API key stay outside the repo):
+## Select and start the agent
 
-```bash
-goose run --recipe recipes/install/project-bootstrap.yaml
-goose run --recipe recipes/goose/project.yaml --params experiment=go-install-001 --params section=project
-```
+Choose exactly one adapter through `recipes/agent-selection.yaml` and `recipes/agents/adapter-matrix.yaml`. Record the selected adapter and version in the session state.
 
-Use `section=project` for the full reference lifecycle. Contract document numbers are not Goose `section` values.
+Then start the adapter using its native command. The agent receives the experiment/session prompt and owns the lifecycle after host preparation; humans do not type every lifecycle stage as separate commands.
+
+For the exact adapter commands, prompt and end-to-end lifecycle, use [`docs/research-workflow.md`](../docs/research-workflow.md) and [`docs/agent-shell-runbook.md`](../docs/agent-shell-runbook.md).
+
+## Session artifacts
+
+Every research session uses `runs/<session-id>/session.yaml` and records selected profiles, lifecycle checkpoints, approvals, audit, evidence, telemetry, verification, report, preservation, learning and token/dashboard state. Required artifacts must exist before the disposable compute is destroyed.
 
 ## Validation
 
@@ -36,7 +41,7 @@ bash ./scripts/tests/validate-project.sh
 ./scripts/tests/production-validation.sh
 ```
 
-The validators check recipe syntax, shell syntax, retired-controller absence, canonical contracts/assets, naming hygiene, policy files, Go formatting, Go tests, `policyctl` validation and representative integration assertions.
+The validators check recipe syntax, shell syntax, retired-controller absence, canonical contracts/assets, naming hygiene, policy files, session/learning contracts, Go formatting, Go tests, `policyctl` validation and representative integration assertions.
 
 ## Runtime integration
 
@@ -55,4 +60,6 @@ export CUSIMANSE_LIMA_PROFILE=recipes/lima/profiles/security-research.yaml
 - Keep `policyctl` limited to host/security policy decisions and the local token dashboard.
 - Do not add a competing project controller.
 - Never put credentials or sensitive telemetry into source control.
+- Preserve and hash evidence before compute destruction.
+- Finalize token accounting and the active dashboard at every session end.
 - Validation should fail clearly rather than silently downgrade missing capabilities.
