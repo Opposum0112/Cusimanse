@@ -7,7 +7,7 @@ fail() { printf 'PRODUCTION VALIDATION FAIL: %s\n' "$*" >&2; exit 1; }
 pass() { printf 'PRODUCTION VALIDATION PASS: %s\n' "$*"; }
 
 for f in \
-  docs/architecture-refactor.md \
+  docs/production-architecture.md \
   docs/runtime-architecture.md \
   recipes/campaigns/security-research-learning.yaml \
   recipes/workflows/security-research-taskflow.yaml \
@@ -15,12 +15,12 @@ for f in \
   recipes/agents/self-learning-primary.yaml \
   recipes/learning/skill-promotion.yaml \
   recipes/learning/skill-registry.yaml \
-  recipes/mcp/architecture-refactor.yaml \
+  recipes/mcp/production-research.yaml \
   skills/validated/evidence-pe-import-analysis/SKILL.md \
-  tools/architecture-refactor/README.md; do
+  tools/production-research/README.md; do
   [ -f "$f" ] || fail "missing $f"
 done
-pass "architecture files present"
+pass "production architecture files present"
 
 bash -n scripts/prerequisites.sh
 bash -n scripts/tests/production-validation.sh
@@ -41,7 +41,7 @@ files = [
  'recipes/agents/self-learning-primary.yaml',
  'recipes/learning/skill-promotion.yaml',
  'recipes/learning/skill-registry.yaml',
- 'recipes/mcp/architecture-refactor.yaml',
+ 'recipes/mcp/production-research.yaml',
 ]
 for f in files:
     data = yaml.safe_load(pathlib.Path(f).read_text())
@@ -61,12 +61,10 @@ else
 fi
 
 ./scripts/tests/validate-project.sh
-pass "existing project validation"
-
-grep -q 'recipes/goose/project.yaml' README.md || fail 'existing Goose recipe no longer referenced'
-grep -q 'go-install-001' README.md || fail 'existing reference experiment no longer referenced'
-grep -q 'policyctl.*outside\|outside.*policyctl' docs/architecture-refactor.md || fail 'policyctl boundary not documented'
-grep -q 'Lima/QEMU' docs/architecture-refactor.md || fail 'VM boundary not documented'
+[ -f recipes/goose/project.yaml ] || fail 'existing Goose recipe missing'
+[ -f experiments/go-install-001.yaml ] || [ -d experiments/go-install-001 ] || fail 'existing reference experiment missing'
+grep -q 'policyctl.*outside\|outside.*policyctl' docs/production-architecture.md || fail 'policyctl boundary not documented'
+grep -q 'Lima/QEMU' docs/production-architecture.md || fail 'VM boundary not documented'
 grep -q 'require_independent_verification: true' recipes/learning/skill-promotion.yaml || fail 'verification gate missing'
 pass "existing architecture compatibility assertions"
 
