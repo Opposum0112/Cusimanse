@@ -6,6 +6,8 @@ Cusimanse turns Markdown research contracts and composable YAML recipes into rep
 
 **Status:** beta research platform. Static validation is not proof of runtime isolation or production security.
 
+![Cusimanse mascot](docs/images/cusimanse-mascot.svg)
+
 ## System requirements
 
 | Area | Requirement |
@@ -93,14 +95,14 @@ Use the supplied `npm-install-001` as the second test/reference experiment.
 
 ```bash
 cd <CUSIMANSE_REPO_ROOT>
+./scripts/install.sh
 ./scripts/cusimanse-host.sh
-./scripts/prerequisites.sh
 ./scripts/agent-preflight.sh
 ./policyctl validate
 ./scripts/tests/validate-project.sh
 ```
 
-Host tools are declared by `recipes/host/research-host.yaml` and `recipes/tools/security-research.yaml`. These commands prepare the host; they do not run the experiment workload.
+The all-inclusive interactive installer handles host prerequisites, selected agent adapters, control/learning tooling, agent observability, token tooling and model gateways. Preflight verifies the resulting host. Host tools are declared by `recipes/host/research-host.yaml` and `recipes/tools/security-research.yaml`. These commands prepare the host; they do not run the experiment workload.
 
 ### Step 3 — Select one primary agent
 
@@ -148,6 +150,27 @@ Primary agent
 ```
 
 Optional tools are selected through recipes: **Taskflow** decomposes replayable tasks, **LangGraph** provides state/checkpoints, and **CrewAI** delegates specialist roles. They are coordination layers, not security boundaries.
+
+### Agent observability
+
+Agent observability is configured by `recipes/agent-monitoring/observability.yaml` and attached to the adapter registry. The all-inclusive `./scripts/install.sh` installs/checks the observability foundation; `./scripts/agent-preflight.sh` verifies deployed capabilities and reports unavailable optional backends as `PARTIAL` rather than silently claiming coverage.
+
+The stack covers:
+
+- **Numbat** — process tree, shell commands, network connections, file activity and agent-tool activity.
+- **Phoenix + OpenTelemetry** — traces, spans, model/tool calls, errors and approvals.
+- **Aegis** — security/governance observability where deployed.
+- **Token dashboard** — per-session model/token accounting and session-end finalization.
+
+Useful host commands:
+
+```bash
+./scripts/install.sh
+./scripts/agent-preflight.sh
+cusimanse-token-dashboard
+```
+
+Configuration is recipe-driven; provider credentials remain outside Git. Observability is not the security boundary. If an optional backend is unavailable, the session/project may be `PARTIAL`; required workload isolation still depends on Lima/QEMU and VM/OS controls.
 
 ### Step 7 — Execute the workload in disposable compute
 
@@ -201,20 +224,29 @@ Learning/control tools are installed through the selected host/control-plane pro
 
 The primary agent finalizes evidence/hashes, audit, provenance, verification, report, token accounting, dashboard state and `session.yaml`; only then is disposable compute destroyed. Terminal state is `COMPLETE`, `PARTIAL` or `FAILED`.
 
-## Policyctl commands
+## Project validation status
+
+Project validation has three outcomes; the same status is used throughout the validation contract rather than duplicated across multiple documents:
+
+- **PASS** — all required project/static checks pass.
+- **PARTIAL** — required project structure is valid, but optional/declarative capabilities are unavailable or unverified.
+- **FAIL** — a required contract, safety check or validation step fails.
+
+`NOT_DEPLOYED` describes an unavailable provider/capability and can contribute to `PARTIAL`; it is not itself a fourth project result state.
+
+```bash
+./scripts/tests/validate-project.sh
+```
+
+### Policyctl commands
 
 `policyctl` is host-side governance. It is outside the agent control plane and is **not** the sandbox.
 
 ```bash
-# Validate policy configuration
 ./policyctl validate
-
-# Check an action and append an audit event
 ./policyctl check --action credentials --audit-file /tmp/cusimanse-policy-audit.jsonl
 ./policyctl check --action host-root --audit-file /tmp/cusimanse-policy-audit.jsonl
 ./policyctl check --action crew-orchestration --audit-file /tmp/cusimanse-policy-audit.jsonl
-
-# Show/finalize token dashboard state
 ./policyctl token-dashboard
 ```
 
@@ -275,6 +307,8 @@ Agents, skills, MCP, Taskflow, LangGraph, CrewAI and model/harness gateways are 
 - [`docs/runtime-architecture.md`](docs/runtime-architecture.md) — runtime model
 - [`docs/integration-status.md`](docs/integration-status.md) — validation status
 - [`docs/prompts/`](docs/prompts/) — experiment-specific prompts
+- [`docs/images/cusimanse-mascot.svg`](docs/images/cusimanse-mascot.svg) — project mascot
+- [`docs/images/cusimanse-logo.svg`](docs/images/cusimanse-logo.svg) — project logo
 
 ## Responsible use
 
