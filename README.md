@@ -12,7 +12,7 @@ Cusimanse is a security research platform, not a production malware sandbox or a
 
 Cusimanse separates the **host policy plane**, **agent/operator plane**, **execution boundary**, **evidence plane**, and **learning plane**.
 
-![Cusimanse architecture planes](docs/architecture/cusimanse-architecture.png)
+![Cusimanse production architecture planes](docs/architecture/cusimanse-architecture.svg)
 
 ```mermaid
 flowchart TB
@@ -53,9 +53,9 @@ flowchart TB
 
 ## Researcher testing
 
-Use this section as the short path for testing Cusimanse. Detailed engineering notes remain in `docs/`.
+This is the short path for testing Cusimanse. Detailed engineering material remains in `docs/`.
 
-### 1. Host shell — prepare the test environment
+### 1. Host shell — prepare
 
 ```bash
 git clone https://github.com/Opposum0112/Cusimanse.git
@@ -68,18 +68,16 @@ git checkout production-architecture
 bash ./scripts/tests/validate-project.sh
 ```
 
-For the architecture/runtime integration profile:
+Optional research/integration tooling:
 
 ```bash
-CUSIMANSE_INSTALL_ARCH_REFACTOR=1 ./scripts/prerequisites.sh
-bash ./scripts/tests/architecture-refactor.sh
+CUSIMANSE_INSTALL_PRODUCTION_PROFILE=1 ./scripts/prerequisites.sh
+bash ./scripts/tests/production-validation.sh
 ```
 
-The environment variable is retained for compatibility with the existing installer; the architecture itself is now production-oriented and is no longer described as a refactor in the user-facing documentation.
+### 2. Agent shell — operate
 
-### 2. Agent shell — select the primary operator
-
-Start one supported primary agent from the **host shell**, then operate the test through that agent shell.
+Start exactly one primary terminal agent from the host shell:
 
 ```bash
 export CUSIMANSE_PRIMARY_ADAPTER=prime-agent
@@ -95,11 +93,11 @@ hermes --help
 hermes
 ```
 
-The agent shell is the operator boundary: it reads the Cusimanse contracts, plans and drives the case, provisions the disposable VM, executes the workload through the VM, collects evidence, analyzes and verifies results, and performs the learning workflow.
+The **agent shell is the operator boundary**. It reads Cusimanse contracts, plans and drives the case, provisions the VM, directs workload execution into the VM, collects evidence, analyzes and verifies results, and handles learning.
 
-**Prompt boundary:** host setup and `policyctl` stay outside the agent prompt. Do not ask the agent to invoke `policyctl`. Workload commands are directed into the disposable VM; they are not host commands.
+**Prompt boundary:** host setup and `policyctl` remain outside the agent prompt. Never ask the agent to invoke `policyctl`. Workload commands are executed inside the disposable VM through the agent-driven workflow, not on the host.
 
-Paste this into the selected agent:
+Paste into the selected agent:
 
 ```text
 Act as the primary operator for one Cusimanse security-research case.
@@ -123,7 +121,8 @@ Boundaries:
 - Never expose host credentials to the workload or learned skills.
 - Retrieval ranking never grants execution permission.
 - Preserve evidence, telemetry, audit records, verification results and hashes before VM destruction.
-- New learned procedures are CANDIDATE until replay, distinct-artifact testing, independent verification, provenance, capability checks and human approval are complete.
+- New learned procedures are CANDIDATE until replay, distinct-artifact testing,
+  independent verification, provenance, capability checks and human approval complete.
 - If a required capability is unavailable, report NOT_DEPLOYED.
 - Never report PASS without runtime evidence.
 
@@ -131,9 +130,7 @@ At completion report case ID, campaign, state, commands/tools used, VM state,
 evidence paths, verification result, skill state and failed gates.
 ```
 
-### 3. Agent shell — run the reference workload
-
-Ask the same selected agent:
+### 3. Agent shell — run a reference test
 
 ```text
 Run experiments/go-install-001 using the Cusimanse research workflow.
@@ -149,19 +146,19 @@ Return PASS, PARTIAL, FAIL or NOT_DEPLOYED according to preserved evidence.
 PASS requires actual runtime evidence.
 ```
 
-### 4. Host shell — inspect and validate
+### 4. Host shell — inspect
 
-After the agent finishes, return to the normal host shell:
+After the agent finishes:
 
 ```bash
 find evidence blackboard experiments/go-install-001 -maxdepth 4 -type f -print 2>/dev/null
 find runs -maxdepth 4 -type f -print 2>/dev/null
 ./policyctl validate
 bash ./scripts/tests/validate-project.sh
-bash ./scripts/tests/architecture-refactor.sh
+bash ./scripts/tests/production-validation.sh
 ```
 
-`PASS` means runtime behavior was demonstrated with preserved evidence. Static validation alone is never runtime PASS.
+`PASS` requires actual runtime evidence. Static validation is not runtime PASS.
 
 ## Self-learning
 
@@ -178,20 +175,7 @@ A successful LLM interaction does not become trusted knowledge. Skills retain pr
 ```text
 Cusimanse/
 ├── .agents/                 # agent instructions, skills and MCP configuration
-├── recipes/
-│   ├── agents/              # primary-agent contracts
-│   ├── campaigns/           # campaign semantics
-│   ├── experiments/         # experiment definitions
-│   ├── install/             # installation/bootstrap
-│   ├── instrumentation/     # runtime instrumentation
-│   ├── learning/            # learning/promotion
-│   ├── lima/                # VM profiles
-│   ├── mcp/                 # MCP profiles/registries
-│   ├── orchestration/       # execution/state contracts
-│   ├── routing/             # adapter routing
-│   ├── stages/              # reusable stages
-│   ├── tools/               # tool contracts
-│   └── workflows/           # Taskflow-style workflows
+├── recipes/                 # campaigns, agents, workflows, orchestration, tools, MCP
 ├── skills/validated/        # versioned validated capabilities
 ├── tools/                   # project tool integrations
 ├── experiments/             # reference experiments
@@ -203,10 +187,10 @@ Cusimanse/
 ## Validation
 
 ```bash
-bash ./scripts/tests/architecture-refactor.sh
+bash ./scripts/tests/production-validation.sh
 ```
 
-The architecture validation checks contracts, shell/YAML structure, Go validation, compatibility with the reference experiment, policyctl separation, VM-boundary documentation and skill-promotion requirements.
+The validation checks architecture contracts, shell/YAML structure, Go validation, compatibility with the existing reference experiment, policyctl separation, VM-boundary documentation and skill-promotion requirements.
 
 ## Security invariants
 
