@@ -1,0 +1,40 @@
+schema: cusimanse.recipe/integration-test/v1
+name: production-readiness
+plane: validation
+purpose: Verify installation, policy, gateway configuration, disposable-VM execution, instrumentation, evidence preservation, analysis and reporting end to end.
+preflight:
+  - ./scripts/prerequisites.sh
+  - ./policyctl validate
+  - bash ./scripts/tests/validate-project.sh
+  - bash ./scripts/tests/architecture-refactor.sh
+  - go test ./...
+static:
+  - bash -n scripts/*.sh
+  - YAML recipe validation
+  - required gateway recipe present
+  - required analysis/report role present
+runtime:
+  vm_provider: lima
+  workload: npm
+  instrumentation_recipe: recipes/instrumentation/npm-workload.yaml
+  required_sequence:
+    - create_disposable_vm
+    - apply_recipe
+    - start_instrumentation
+    - execute_workload_inside_vm
+    - collect_raw_evidence
+    - hash_artifacts
+    - analyze_evidence
+    - independently_verify
+    - generate_research_report
+    - preserve_case
+    - destroy_disposable_vm
+  forbidden:
+    - execute_untrusted_workload_on_host
+    - treat_dashboard_as_authorization
+    - treat_agent_prompt_as_security_control
+acceptance:
+  static_validation: PASS_REQUIRED
+  runtime_e2e: PASS_REQUIRED_FOR_PRODUCTION
+  evidence_and_report: REQUIRED
+  independent_verification: REQUIRED
