@@ -2,11 +2,15 @@ id: go-install-001
 name: Pinned Go package installation observation
 objective: Observe a pinned in-repo Go install (packages/labprobe) inside a disposable Lima/QEMU VM.
 hypothesis: The install produces correlated process, filesystem, DNS and network evidence that matches Go module behavior.
-document: 08-go-install-001.md
+contract: contracts/08-go-install-001.md
+recipe: recipes/experiments/go-install-001.yaml
 stage: 08
 target:
-  command: "go install github.com/Opposum0112/ai-security-lab/packages/labprobe@v0.1.0"
-vm_profile: security-research
+  boundary: disposable-vm
+  command:
+    - go version
+    - go install ./packages/labprobe
+vm_profile: recipes/lima/profiles/security-research.yaml
 network_policy: controlled
 instrumentation:
   - process
