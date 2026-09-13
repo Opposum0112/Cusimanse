@@ -10,17 +10,20 @@ Markdown research contract
 YAML recipe graph
       ├─ campaign / experiment
       ├─ workload / compute / install
-      ├─ tools / instrumentation
-      ├─ agent / adapter
-      ├─ roles / CrewAI orchestration
+      ├─ host / tools / instrumentation
+      ├─ agent / adapter / prompt
+      ├─ roles / CrewAI / LangGraph / Taskflow
       ├─ skills / MCP
-      └─ audit / reporting
+      ├─ policy / routing / observability
+      └─ session state / audit / reporting
       ↓
 selected primary agent
       ↓
 approved disposable compute
       ↓
 blackboard: runs + audit + evidence + analysis + report
+      ↓
+learning candidate → replay → independent verification → human approval
 ```
 
 ## Recipe families
@@ -43,9 +46,21 @@ blackboard: runs + audit + evidence + analysis + report
 | `routing/` | model/harness routing |
 | `mcp/` | scoped MCP integrations |
 | `skills/` | versioned skill registry |
+| `session/` | durable session state and evidence-bounded learning |
+| `observability/` | per-session observability and dashboard lifecycle |
 | `audit/` | append-only audit configuration |
 | `reporting/` | report generation |
 | `tests/` | deterministic recipe validation |
+
+## Session state
+
+`recipes/session/session-state.yaml` is the canonical state contract. Each run records its session ID, immutable experiment/contract references, selected host/compute/tool/agent/adapter/orchestration/policy/routing/observability/reporting profiles, lifecycle checkpoints, approvals, audit manifest, artifact manifest, verification, learning outputs and token/dashboard state.
+
+The session artifact root is `runs/<session-id>/`. The active dashboard is finalized at session completion while historical aggregate usage remains available.
+
+## Learning and skill improvement
+
+`recipes/session/learning-workflow.yaml` defines the evidence-bounded loop: retrieve → taskflow → execute → evaluate → refine → replay → independent verification → human approval → promote → rollback. Taskflow, LangGraph and CrewAI are optional orchestration implementations; the primary agent remains lifecycle authority and none is a security boundary.
 
 ## Pluggable role/skill contract
 
@@ -68,4 +83,4 @@ Role and skill plugins are capabilities, not security boundaries. Retrieval neve
 goose run --recipe recipes/goose/project.yaml --params experiment=go-install-001 --params section=project
 ```
 
-Other adapters consume the same experiment semantics through their adapter contract. Provider-specific prompts, CLI mappings and tool integration belong in the adapter layer rather than shared campaign semantics.
+Other adapters consume the same experiment semantics through their adapter contract. Provider-specific prompts, CLI mappings and tool integration belong in the adapter layer rather than shared experiment semantics.
