@@ -6,6 +6,7 @@ cd "$ROOT"
 fail(){ printf 'Preflight FAIL: %s\n' "$*" >&2; exit 1; }
 pass(){ printf 'Preflight PASS: %s\n' "$*"; }
 have(){ command -v "$1" >/dev/null 2>&1; }
+have_qemu(){ have qemu-system-x86_64 || have qemu-system-aarch64 || have qemu-system-x86_64-spice || have qemu-system-aarch64-spice; }
 
 # Make all repository shell controls directly executable after checkout.
 for script in scripts/*.sh scripts/tests/*.sh; do
@@ -20,17 +21,18 @@ DISTRO="unknown"
 if [ -r /etc/os-release ]; then . /etc/os-release; DISTRO="${ID:-unknown}"; fi
 printf 'Cusimanse preflight: %s/%s/%s\n' "$OS" "$DISTRO" "$ARCH"
 
-# Preflight is allowed to repair a missing dependency by invoking the
-# distro-neutral prerequisite bootstrap. It then verifies the final state.
-required=(git bash curl python3 ruby go qemu-system-x86_64 limactl)
+required=(git bash curl python3 ruby go limactl)
 missing=()
 for tool in "${required[@]}"; do have "$tool" || missing+=("$tool"); done
+have_qemu || missing+=(qemu)
 if [ "${#missing[@]}" -gt 0 ]; then
   printf 'Missing prerequisites: %s\n' "${missing[*]}"
   bash "$ROOT/scripts/prerequisites.sh"
+  hash -r
 fi
 
 for tool in "${required[@]}"; do have "$tool" || fail "required tool unavailable after bootstrap: $tool"; done
+have_qemu || fail "QEMU system emulator unavailable after bootstrap"
 pass "required host tools"
 
 if [ "$OS" = "Linux" ]; then
@@ -41,7 +43,7 @@ else
   fail "unsupported host OS: $OS"
 fi
 
-if ! limactl --version >/dev/null 2>&1; then fail "limactl is installed but not runnable"; fi
+limactl --version >/dev/null 2>&1 || fail "limactl is installed but not runnable"
 pass "Lima executable"
 
 for script in scripts/*.sh scripts/tests/*.sh; do
