@@ -5,11 +5,13 @@ name: Go installation observation
 prerequisites: recipes/install/project-bootstrap.yaml
 mcp_registry: recipes/mcp/registry.yaml
 skill_registry: recipes/skills/registry.yaml
+framework_reference: recipes/reference/security-frameworks.yaml
 audit: recipes/audit/default.yaml
 workload: recipes/workloads/go-install-001.yaml
 host_profile: recipes/host/research-host.yaml
 vm_profile: recipes/lima/profiles/security-research.yaml
 tools: recipes/tools/security-research.yaml
+instrumentation_reference: recipes/reference/instrumentation-monitoring.yaml
 instrumentation:
   - recipes/instrumentation/syscall.yaml
   - recipes/instrumentation/network.yaml
@@ -21,7 +23,18 @@ agent_monitoring:
 orchestration: recipes/orchestration/default-agent-chain.yaml
 routing: recipes/routing/default.yaml
 reporting: recipes/reporting/default.yaml
+detection_validation: recipes/detection/detection-validation.yaml
 token_dashboard: recipes/token/default.yaml
+roles:
+  required: [planner, security-reviewer, executor, runtime-analyst, detection-engineer, forensics, independent-verifier, reporter]
+framework_mappings:
+  - mitre-attack
+  - mitre-atlas
+  - nist-csf-2
+  - nist-sp-800-115
+  - sigma
+  - yara
+  - suricata
 approval:
   required: true
   reason: disposable VM provisioning and workload execution

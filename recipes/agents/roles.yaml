@@ -10,6 +10,10 @@ roles:
     purpose: review safety, policy and execution plan
     capabilities: [read_repo, read_recipes, policy_check]
     apply: false
+  security-reviewer:
+    purpose: compatibility alias for the safety/review role used by experiment recipes
+    capabilities: [read_repo, read_recipes, policy_check]
+    apply: false
   executor:
     purpose: execute approved recipe operations through the selected primary operator
     capabilities: [primary_agent_tools, approved_shell, vm_operations]
@@ -22,12 +26,24 @@ roles:
     purpose: analyse runtime telemetry produced by the experiment
     capabilities: [telemetry_read, evidence_read, analysis]
     apply: false
+  detection-analyst:
+    purpose: compare observed behavior with declared detection expectations
+    capabilities: [evidence_read, analysis]
+    apply: false
+  detection-engineer:
+    purpose: compatibility alias for evidence-backed detection engineering
+    capabilities: [evidence_read, analysis]
+    apply: false
   forensics:
     purpose: collect, reduce, analyse and report evidence
     capabilities: [evidence_read, hash, analysis, report]
     apply: false
   independent-reviewer:
     purpose: independently verify findings
+    capabilities: [evidence_read, verification]
+    apply: false
+  independent-verifier:
+    purpose: compatibility alias for independent verification
     capabilities: [evidence_read, verification]
     apply: false
   reporter:

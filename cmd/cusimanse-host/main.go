@@ -22,15 +22,15 @@ func main() {
 	r := bufio.NewReader(os.Stdin)
 	fmt.Println("Cusimanse interactive researcher host preparation")
 	fmt.Printf("Host: %s/%s\nRepository: %s\n", runtime.GOOS, runtime.GOARCH, root)
-	fmt.Println("One Go front door installs and checks each plane in order. Manual commands are printed separately at the end.")
+	fmt.Println("One Go front door installs and checks each plane in order. Exactly one primary agent is selected for the case.")
 
 	if ask(r, "1. Install/repair Host + VM plane? [Y/n]: ", true) {
 		must(runBash(root, "scripts/prerequisites.sh", map[string]string{"CUSIMANSE_PROFILE": "1"}))
 	}
 
 	adapter := chooseAdapter(r)
-	if adapter != "none" && ask(r, "2. Install all supported Primary Agent adapters? [Y/n]: ", true) {
-		must(runBash(root, "scripts/prerequisites.sh", map[string]string{"CUSIMANSE_PROFILE": "1", "CUSIMANSE_INSTALL_AGENTS": "1"}))
+	if adapter != "none" && ask(r, "2. Install/check supported Primary Agent adapters? [Y/n]: ", true) {
+		must(runBash(root, "scripts/prerequisites.sh", map[string]string{"CUSIMANSE_PROFILE": "1", "CUSIMANSE_INSTALL_AGENTS": "1", "CUSIMANSE_PRIMARY_ADAPTER": adapter}))
 	}
 	if adapter != "none" {
 		must(runBash(root, "scripts/configure-recipes.sh", map[string]string{"CUSIMANSE_PRIMARY_ADAPTER": adapter}))
@@ -40,7 +40,7 @@ func main() {
 		must(runBash(root, "scripts/prerequisites.sh", map[string]string{"CUSIMANSE_PROFILE": "2"}))
 	}
 
-	if ask(r, "4. Install Observability + Governance plane (Numbat + Aegis + OTEL/Phoenix)? [Y/n]: ", true) {
+	if ask(r, "4. Install Observability + Governance plane (OTEL/Phoenix/Numbat/Aegis)? [Y/n]: ", true) {
 		must(runBash(root, "scripts/prerequisites.sh", map[string]string{"CUSIMANSE_PROFILE": "3"}))
 		must(runBash(root, "scripts/install-observability.sh", nil))
 		must(runBash(root, "scripts/configure-recipes.sh", map[string]string{"CUSIMANSE_OBSERVABILITY_STATUS": "CONFIGURED"}))
@@ -52,8 +52,8 @@ func main() {
 	if ask(r, "Run policy validation now? [Y/n]: ", true) {
 		must(runExec(root, filepath.Join(root, "policyctl"), "validate"))
 	}
-	fmt.Println("\nHost preparation complete. Review recipe changes before committing them to your research branch.")
-	fmt.Println("Manual options (optional):")
+	fmt.Println("\nHost preparation complete. Start the selected primary agent from the researcher shell and run the documented case workflow.")
+	fmt.Println("Manual options:")
 	fmt.Println("  bash ./scripts/prerequisites.sh")
 	fmt.Println("  bash ./scripts/agent-preflight.sh")
 	fmt.Println("  bash ./scripts/install-observability.sh")
@@ -61,14 +61,17 @@ func main() {
 }
 
 func chooseAdapter(r *bufio.Reader) string {
-	fmt.Print("Primary agent [prime-agent/hermes/goose/none] (default prime-agent): ")
+	fmt.Println("Primary agent (exactly one):")
+	fmt.Println("  goose, opencode, grok-build, antigravity, pi, hermes, codex")
+	fmt.Println("  prime-intellect, claude-code, devin, none")
+	fmt.Print("Selection (default prime-intellect): ")
 	v, _ := r.ReadString('\n')
 	v = strings.ToLower(strings.TrimSpace(v))
 	if v == "" {
-		v = "prime-agent"
+		v = "prime-intellect"
 	}
 	switch v {
-	case "prime-agent", "hermes", "goose", "none":
+	case "goose", "opencode", "grok-build", "antigravity", "pi", "hermes", "codex", "prime-intellect", "claude-code", "devin", "none":
 		return v
 	default:
 		fail(fmt.Errorf("unsupported primary adapter %q", v))
