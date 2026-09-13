@@ -1,6 +1,6 @@
 # 🦝 Cusimanse
 
-**Cusimanse is a declarative, fully multiagentic security-research platform for controlled experiments.** Markdown contracts define research intent and safety constraints; YAML recipes define the experiment, agents, roles, skills, instrumentation, VM, gateways and reporting; the installation script is the host front door; `policyctl` is the governance boundary; and Lima/QEMU VMs provide the execution/isolation boundary.
+**Cusimanse is a declarative, fully multiagentic security-research platform for controlled experiments.** Markdown contracts define research intent and safety constraints; YAML recipes define experiments, agents, roles, skills, instrumentation, VMs, gateways and reporting; the installation script is the host front door; `policyctl` is the governance boundary; and Lima/QEMU VMs provide the execution/isolation boundary.
 
 > **Important:** Cusimanse reduces research risk; it is not a security guarantee. VM/OS isolation must be tested and independently assessed.
 
@@ -70,50 +70,28 @@ command -v lima policyctl cusimanse-token-dashboard
 **You do not have to type every lifecycle word as separate shell commands.** The lifecycle is the execution contract that the agent follows. The researcher starts the agent shell and gives it a prompt that asks it to execute these stages in order. Human approval is required at the declared review/approval gate.
 
 ```text
-discover
-  ↓
-validate
-  ↓
-preflight
-  ↓
-plan
-  ↓
-review / human approval
-  ↓
-provision disposable VM
-  ↓
-start VM instrumentation
-  ↓
-run approved workload
-  ↓
-collect evidence + telemetry
-  ↓
-hash / preserve evidence
-  ↓
-analyze evidence
-  ↓
-independent verification
-  ↓
-generate research report
-  ↓
-preserve final outputs
-  ↓
-destroy disposable VM
+discover → validate → preflight → plan → review / human approval
+→ provision disposable VM → start VM instrumentation → run approved workload
+→ collect evidence + telemetry → hash / preserve evidence → analyze evidence
+→ independent verification → generate research report → preserve final outputs
+→ destroy disposable VM
 ```
 
 The agent should report the result of each stage. If a gate fails, the run stops rather than silently skipping it.
 
-## 3. Start the agent/operator shell
+## 3. Agent/operator shell and adapter matrix
 
-The **normal host shell** installs and validates. The **agent/operator shell** is the primary agent CLI that drives the multiagentic research workflow.
+The **normal host shell** installs and validates. The **agent/operator shell** is the selected primary agent CLI that drives the multiagentic research workflow. After bootstrap, the selected primary agent owns the lifecycle; host scripts do not become a second orchestration controller.
 
-For a Goose-based installation:
+The canonical adapter registry is `recipes/agents/adapter-matrix.yaml`. It requires exactly one primary shell and records native interactive/headless invocation, installation status and adapter recipe. The current matrix covers Goose, OpenCode, Grok Build, Antigravity, Pi, Hermes, Prime Agent, Codex, Claude Code and Devin. A matrix entry is **not** proof of deployment: a candidate must pass preflight and a disposable-VM end-to-end test before runtime acceptance.
+
+For the reference Goose setup:
 
 ```bash
 goose
 ```
 
-The exact primary adapter is selected by the agent recipe. Do not run the workload directly from the normal host shell: the approved workload belongs inside the disposable VM.
+For other adapters, use their native commands from `recipes/agents/adapter-matrix.yaml`; do not translate one adapter's invocation into another. See `docs/agent-shell-runbook.md` for adapter-specific smoke tests and the normal-shell versus agent-shell boundary.
 
 ## 4. Run the Go installation experiment
 
@@ -124,7 +102,7 @@ experiments/go-install-001/
 recipes/experiments/go-install-001.yaml
 ```
 
-Give the agent this prompt:
+Give the selected agent this prompt:
 
 ```text
 Run the Cusimanse go-install-001 research case.
@@ -158,32 +136,6 @@ recipes/experiments/npm-install-001.yaml
 
 This experiment observes npm installation **inside the disposable VM**. Its instrumentation recipe selects the VM-side process, filesystem, syscall, DNS/network and other approved telemetry. Instrumentation is not intended to run on the host for the workload.
 
-Agent prompt:
-
-```text
-Run the Cusimanse npm-install-001 supply-chain research case.
-
-Discover the Markdown contract and YAML recipe graph. Validate the configuration and
-preflight the host. Identify all participating agents and roles, the VM profile,
-the npm workload, VM-only instrumentation and evidence requirements. Produce the plan
-and stop for human approval.
-
-After approval, create the disposable Lima/QEMU VM and start the declared
-instrumentation inside that VM before npm executes. Run only the approved npm workload
-inside the VM. Capture package metadata and lock information plus the declared
-stdout/stderr, process creation, filesystem changes, DNS/network activity, syscalls and
-other VM telemetry.
-
-Preserve raw artifacts first and calculate SHA-256 hashes. The analysis agent must
-correlate the evidence and distinguish observation from inference. The independent
-verifier must challenge each material supply-chain finding. The report generator must
-produce a reproducible technical research report with evidence references, timeline,
-findings, verification, provenance, hashes, limitations and reproduction steps.
-
-Do not mount host credentials, do not weaken policy, and destroy the VM only after
-preservation succeeds. Return the run ID and final artifact locations.
-```
-
 The research question is **what happened during installation and what evidence proves it**, not merely whether `npm install` returned success.
 
 ## 6. How the fully multiagentic model works
@@ -205,8 +157,6 @@ Cusimanse is **fully multiagentic**: the primary agent does not perform every re
 
 CrewAI is an **optional multiagent orchestration implementation**, not the security boundary. Use it when you want explicit role/task sequencing, delegation and specialist collaboration.
 
-The pattern is:
-
 ```text
 Primary agent adapter
         ↓
@@ -218,7 +168,7 @@ Detection / Analysis / Verifier / Report Generator
 shared case context + blackboard evidence
 ```
 
-Enable/configure CrewAI through the relevant YAML orchestration recipe rather than hard-coding roles in the workload. CrewAI can coordinate role tasks, but it cannot authorize execution, override `policyctl`, become the VM boundary, or turn model output into evidence. The operator adapter and governance boundary retain those responsibilities.
+Enable/configure CrewAI through `recipes/orchestration/crewai.yaml`. CrewAI can coordinate role tasks, but it cannot authorize execution, override `policyctl`, become the VM boundary, or turn model output into evidence. The selected primary adapter and governance boundary retain those responsibilities.
 
 ## 7. How to create a new experiment
 
@@ -234,23 +184,15 @@ recipes/lima/<profile>.yaml            # disposable VM profile, if needed
 experiments/<case>/                    # case-specific supporting files
 ```
 
-The experiment YAML composes the required recipes for:
+The experiment YAML composes:
 
 ```text
-workload
-→ VM profile
-→ VM-only instrumentation
-→ agent adapter
-→ specialist roles
-→ skills
-→ optional CrewAI orchestration
-→ MCP/tool plugins
-→ model gateway
-→ evidence/analysis/reporting
-→ governance/token accounting
+workload → VM profile → VM-only instrumentation → agent adapter
+→ specialist roles → skills → optional CrewAI → MCP/tool plugins
+→ model gateway → evidence/analysis/reporting → governance/token accounting
 ```
 
-Skills are also declarative: the YAML references the appropriate `SKILL.md`; the skill contains its instructions/scripts/evals/provenance. A candidate learned skill must pass replay/evaluation/independent verification and human approval before promotion.
+Skills are declarative: YAML references the appropriate skill definition, with instructions/scripts/evals/provenance. Candidate learned or imported skills require review, replay/evaluation, independent verification and human approval before promotion. Skills cannot grant privileges and are not security boundaries.
 
 The normal installation front door is:
 
@@ -303,26 +245,14 @@ Then run the repository verifier:
 ./scripts/verify-run.sh <run-directory>
 ```
 
-It verifies the required run structure and SHA-256 provenance. You can also independently check the hash manifest:
+You can independently check the hash manifest:
 
 ```bash
 cd <run-directory>
 sha256sum -c provenance/hashes.sha256
 ```
 
-A completed research run should have:
-
-```text
-workload result
-+ preserved raw evidence
-+ telemetry
-+ valid SHA-256 provenance
-+ evidence-backed analysis
-+ independent verification
-+ research report
-+ VM destroyed after preservation
-= successful research run
-```
+A completed research run should have workload result, preserved raw evidence, telemetry, valid SHA-256 provenance, evidence-backed analysis, independent verification, a research report, and VM destruction only after preservation.
 
 ## 10. See token usage after the experiment
 
@@ -334,13 +264,13 @@ After the experiment, from the **normal host shell**, run:
 cusimanse-token-dashboard
 ```
 
-The dashboard reads the session ledger at:
+The dashboard reads:
 
 ```text
 reports/token-usage/usage.json
 ```
 
-The default dashboard binds to `127.0.0.1:8787`. If you need to specify the location explicitly:
+The default dashboard binds to `127.0.0.1:8787`. Explicit configuration:
 
 ```bash
 CUSIMANSE_TOKEN_DASHBOARD_ADDR=127.0.0.1:8787 \
@@ -348,11 +278,11 @@ CUSIMANSE_TOKEN_USAGE_FILE=reports/token-usage/usage.json \
 cusimanse-token-dashboard
 ```
 
-The ledger records session/agent/model input tokens, output tokens, total tokens, tool calls, cache usage, estimated cost and optimization notes when available. Ponytail, Numbat and Miller are optional optimization/observability capabilities; unavailable upstream tools are reported as `NOT_DEPLOYED` rather than treated as installed.
+The ledger records session/agent/model input tokens, output tokens, total tokens, tool calls, cache usage, estimated cost and optimization notes when available. Ponytail, Numbat and Miller are optional optimization/observability capabilities; unavailable capabilities are reported as `NOT_DEPLOYED` rather than treated as installed.
 
 ## 11. Where instrumentation runs
 
-**Workload instrumentation is VM-only.** The host installs and prepares instrumentation tooling, but the workload observation itself is executed against the workload inside the disposable Lima/QEMU VM.
+**Workload instrumentation is VM-only.** The host installs and prepares instrumentation tooling, but workload observation itself is executed against the workload inside the disposable Lima/QEMU VM.
 
 ```text
 HOST
@@ -368,7 +298,7 @@ LIMA/QEMU VM
   blackboard / evidence store
 ```
 
-The workload instrumentation set is selected declaratively before execution by the instrumentation recipe referenced by the experiment recipe. The agent must not invent additional instrumentation after execution has started.
+The instrumentation set is selected declaratively before execution by the instrumentation recipe referenced by the experiment recipe. The agent must not invent additional instrumentation after execution has started.
 
 ## 12. Integration testing this branch
 
@@ -381,19 +311,19 @@ Run static repository validation first:
 Then perform the real disposable-VM integration test on a host with Lima/QEMU:
 
 ```bash
-export CUSIMANSE_LIMA_PROFILE=recipes/lima/<reviewed-profile>.yaml
+export CUSIMANSE_LIMA_PROFILE=recipes/lima/profiles/security-research.yaml
 ./scripts/tests/runtime-integration.sh
 ```
 
-The runtime test provisions a disposable VM, runs the safe smoke workload, collects evidence, hashes it, optionally exercises npm if available, and destroys the VM on exit. It is intentionally separate from ordinary static CI because GitHub CI may not provide the required Lima/QEMU virtualization environment.
+The runtime smoke test provisions a disposable VM, runs the safe smoke workload, captures VM-side evidence/telemetry, writes a verifier-compatible run structure and hash manifest, and destroys the VM on exit. It does **not** claim to exercise every agent adapter, every optional instrumentation backend, or every observability integration.
 
-After the runtime test, verify the generated run with:
+After the runtime test, verify the generated run:
 
 ```bash
-./scripts/verify-run.sh <run-directory>
+./scripts/verify-run.sh reports/runtime/<run-id>
 ```
 
-**Branch acceptance requires both:** static validation passes **and** a successful Lima/QEMU runtime test on a suitable research host. Do not call the branch production-ready from static CI alone.
+**Branch acceptance requires both:** static validation passes **and** a successful Lima/QEMU runtime test on a suitable research host. Static CI alone is not sufficient to claim runtime acceptance.
 
 ## Key paths
 
@@ -402,8 +332,10 @@ contracts/                         Research intent and safety constraints
 recipes/                           Declarative configuration
 recipes/experiments/               Experiment definitions
 recipes/instrumentation/           VM-only workload instrumentation
+recipes/agents/                    Primary-agent contracts and adapter matrix
 recipes/roles/                     Specialist roles
-recipes/skills/                    Skill references
+recipes/skills/                    Skill references and registry
+recipes/mcp/                       MCP registry and connectors
 recipes/gateways/                  LiteLLM / OmniRoute configuration
 recipes/lima/                      Disposable VM profiles
 experiments/                       Research cases
