@@ -1,42 +1,66 @@
 id: default-agent-chain
 kind: orchestration
+session_state: recipes/session/session-state.yaml
+learning_workflow: recipes/session/learning-workflow.yaml
 stages:
   - id: plan
     agent: planner
     action: read recipe and produce execution plan
+    checkpoint_session: true
   - id: review
     agent: reviewer
-    action: validate policy, VM, instrumentation and workload
+    action: validate policy, compute, instrumentation and workload
     requires_approval: true
+    checkpoint_session: true
   - id: provision
     agent: executor
-    action: materialize the approved disposable-VM experiment
+    action: materialize the approved disposable-compute experiment
+    checkpoint_session: true
   - id: instrument
     agent: executor
     action: start selected collectors before workload
+    checkpoint_session: true
   - id: workload
     agent: executor
-    action: execute workload inside disposable VM
+    action: execute workload inside disposable compute
+    checkpoint_session: true
   - id: collect
     agent: forensics
     action: preserve and hash evidence
+    checkpoint_session: true
   - id: analyse
     agent: forensics
     action: deterministic reduction then AI-assisted analysis
+    checkpoint_session: true
   - id: verify
     agent: independent-reviewer
     action: independently verify findings
+    checkpoint_session: true
   - id: report
     agent: reporter
-    action: write experiment report
+    action: write experiment report and preservation manifest
+    checkpoint_session: true
+  - id: dashboard-finalize
+    agent: reporter
+    action: finalize token accounting and clear the active session dashboard
+    checkpoint_session: true
   - id: cleanup
     agent: executor
-    action: destroy VM after evidence preservation
+    action: destroy compute only after evidence preservation
+    checkpoint_session: true
 optional_role_orchestration:
   crewai:
     recipe: recipes/orchestration/crewai.yaml
     entrypoint: after-plan-before-execution
     purpose: coordinate specialist research roles without replacing selected primary-agent lifecycle authority
+  langgraph:
+    recipe: recipes/orchestration/langgraph.yaml
+    entrypoint: stateful-checkpointing
+    purpose: optional stateful graph execution without replacing primary-agent lifecycle authority
+  taskflow:
+    recipe: recipes/orchestration/taskflow.yaml
+    entrypoint: task-decomposition
+    purpose: optional task decomposition and replayable checkpoints
 policy:
   fail_closed: true
   require_explicit_apply: true
