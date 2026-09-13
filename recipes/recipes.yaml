@@ -1,8 +1,9 @@
 version: 1
-project: ai-security-lab
+project: cusimanse
 model: workload-neutral
-purpose: security instrumentation research for disposable VMs and AI-agent automation
+purpose: security instrumentation research for disposable compute and AI-agent automation
 source_of_truth:
+  contracts: contracts
   stages: recipes/stages
   workloads: recipes/workloads
   lima_profiles: recipes/lima/profiles
@@ -10,12 +11,13 @@ source_of_truth:
   host_profiles: recipes/host
   agent_monitoring: recipes/agent-monitoring
   agents: recipes/agents
+  adapters: recipes/adapters
   orchestration: recipes/orchestration
   gateway: recipes/gateway
   tests: recipes/tests
   installation: recipes/install
 execution:
-  controller: scripts/bin/labctl
+  controller: selected-primary-agent-shell
   shell_automation: scripts
   default_backend: lima-qemu
   evidence_root: evidence
