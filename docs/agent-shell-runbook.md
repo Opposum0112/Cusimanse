@@ -9,7 +9,7 @@ Host scripts are intentionally limited to prerequisite installation, configurati
 ```bash
 git clone <REPOSITORY_URL> Cusimanse
 cd Cusimanse
-git checkout agent-and-adapter
+git checkout architecture-refactor
 ```
 
 ## 1. Bootstrap and select exactly one primary
@@ -34,6 +34,8 @@ CUSIMANSE_PRIMARY_ADAPTER=opencode ./scripts/prerequisites.sh
 
 The selection is recorded at `.cusimanse/primary-agent.yaml`. Provider-managed candidates are not falsely marked available.
 
+The canonical adapter registry is `recipes/agents/adapter-matrix.yaml`. It requires exactly one primary shell and records the native shell/prompt form for each adapter.
+
 ## 2. Validate before starting the agent
 
 ```bash
@@ -54,20 +56,22 @@ The last command is intentionally provider-specific: use it to confirm the CLI s
 
 ## 3. Native primary-shell commands
 
-Do not translate Goose syntax to another agent. Use the selected adapter's native shell.
+Do not translate one adapter's syntax into another. Use the selected adapter's native shell.
 
-| Adapter | Interactive | Headless / run | Notes |
+| Adapter | Interactive | Headless / run | Status |
 |---|---|---|---|
 | Goose | `goose` | `goose run --text '<PROMPT>'` | reference |
-| OpenCode | `opencode` | `opencode run '<PROMPT>'` | native non-interactive mode |
-| Grok Build | `grok` | `grok -p '<PROMPT>'` | native headless mode |
-| Antigravity | `agy` | `agy -p '<PROMPT>'` | verify installed CLI with `agy --help` |
-| Pi | `pi` | `pi -p '<PROMPT>'` | native print mode |
-| Hermes | `hermes` | TUI-first | use the installed Hermes CLI's supported interactive prompt flow |
-| Prime Agent | `prime-agent` | `prime-agent -p '<PROMPT>'` | native print mode |
-| Codex | `codex` | verify installed CLI with `codex --help` | version-specific non-interactive syntax |
+| OpenCode | `opencode` | `opencode run '<PROMPT>'` | candidate |
+| Grok Build | `grok` | `grok -p '<PROMPT>'` | candidate |
+| Antigravity | `agy` | `agy -p '<PROMPT>'` | candidate; verify with `agy --help` |
+| Pi | `pi` | `pi -p '<PROMPT>'` | candidate |
+| Hermes | `hermes` | TUI-first | candidate; use native interactive flow |
+| Prime Agent | `prime-agent` | `prime-agent -p '<PROMPT>'` | candidate |
+| Codex | `codex` | version-specific; verify with `codex --help` | candidate |
+| Claude Code | `claude` | `claude '<PROMPT>'` | enterprise candidate |
+| Devin | provider-managed | provider-managed | enterprise candidate |
 
-Grok's current documentation explicitly supports `grok -p` for headless scripting; OpenCode documents `opencode run`; Prime Agent documents `prime-agent -p`. citeturn1search0turn1search1turn0search1
+The matrix is configuration, not proof of deployment. A CLI must pass host preflight and a disposable-VM end-to-end test before being considered runtime accepted.
 
 ## 4. Give the primary shell the shared contract
 
@@ -76,7 +80,8 @@ Start the selected shell, then provide this operator instruction:
 ```text
 Operate this Cusimanse project from the primary-agent shell.
 Load recipes/agents/primary-agent.yaml and recipes/agents/primary-shell.yaml.
-Load the selected adapter recipe and the project experiment contract.
+Load recipes/agents/adapter-matrix.yaml, the selected adapter recipe, and the project
+experiment contract.
 Follow Discover → Validate → Preflight → Plan → Review → Approve → Provision →
 Instrument → Execute → Collect → Reduce → Forensics → Independent verification →
 Report → Preserve → Destroy.
@@ -90,21 +95,21 @@ Do not claim PASS without runtime evidence and independent verification.
 Before provisioning a VM, ask the primary shell:
 
 ```text
-Load the Cusimanse primary-agent contract and selected adapter recipe.
+Load the Cusimanse primary-agent contract, adapter matrix and selected adapter recipe.
 Report the selected adapter, contract paths, required approval gates, security boundary,
-and expected evidence outputs. Do not modify the host, VM, credentials or repository.
+participating specialist roles, and expected evidence outputs. Do not modify the host,
+VM, credentials or repository.
 ```
 
-Expected result: the agent identifies the selected adapter, YAML contract, approval gates, evidence paths and VM/OS security boundary without privileged or destructive action.
+Expected result: the agent identifies the selected adapter, YAML contract, approval gates, evidence paths, specialist roles and VM/OS security boundary without privileged or destructive action.
 
 ## 6. Reference experiment: go-install-001
 
-The primary shell should load:
+The primary shell should discover the actual case files and referenced recipes rather than assuming paths. The repository's reference case is:
 
 ```text
-experiments/go-install-001/experiment.yaml
-experiments/go-install-001/lima.yaml
-experiments/go-install-001/run.sh
+experiments/go-install-001/
+recipes/experiments/go-install-001.yaml
 ```
 
 Then execute the semantic lifecycle from the primary-agent contract. The primary shell may call declared repository scripts, but no second orchestrator should take ownership of the lifecycle.
@@ -113,9 +118,10 @@ Required outputs:
 
 - runtime audit records;
 - raw evidence and evidence index;
-- findings/report;
+- findings/analysis;
 - independent verification result;
-- preservation/hash manifest before VM destruction.
+- preservation/hash manifest before VM destruction;
+- technical research report.
 
 ## 7. Adapter-specific smoke tests
 
@@ -125,12 +131,6 @@ Required outputs:
 grok --version
 grok inspect
 grok -p 'Load recipes/agents/primary-agent.yaml and perform the non-destructive shell test. Do not modify anything.'
-```
-
-For CI/headless use, prefer structured output where required:
-
-```bash
-grok -p 'Perform the non-destructive Cusimanse shell test.' --output-format json
 ```
 
 ### Antigravity
@@ -156,7 +156,7 @@ hermes --help
 hermes
 ```
 
-Hermes is TUI-first. Use its native interactive prompt flow to load the contract; do not rely on an undocumented one-shot flag. citeturn877file0L2-L2
+Hermes is TUI-first. Use its native interactive prompt flow to load the contract; do not rely on an undocumented one-shot flag.
 
 ### Prime Agent
 
@@ -164,8 +164,6 @@ Hermes is TUI-first. Use its native interactive prompt flow to load the contract
 prime-agent --help
 prime-agent -p 'Load the Cusimanse primary-agent contract. Perform only the non-destructive shell test.'
 ```
-
-Prime Agent's current CLI documents `-p/--print` and supports piped stdin. Its model-generated commands execute with user permissions, so the external VM/OS boundary remains mandatory. citeturn0search1
 
 ### Codex
 
@@ -181,11 +179,11 @@ Use the installed version's documented non-interactive mode after confirming it 
 A run is `PASS` only when all are true:
 
 - the selected primary shell owned the lifecycle;
-- the contract and adapter recipe loaded;
+- the contract, adapter matrix and adapter recipe loaded;
 - preflight passed;
 - approvals were recorded for privileged/destructive actions;
 - VM/OS controls enforced the boundary;
-- instrumentation started before workload execution;
+- instrumentation started before workload execution and ran against the workload inside the VM;
 - raw evidence was collected;
 - important findings were independently verified;
 - evidence was hashed/preserved before destruction;
