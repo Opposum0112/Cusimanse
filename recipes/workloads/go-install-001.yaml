@@ -14,8 +14,16 @@ workload:
   runtime: go
   commands:
     - go version
-    - go install ./packages/labprobe
+    - go install github.com/Opposum0112/ai-security-lab/packages/labprobe@v0.1.0
+  source:
+    mode: copy-approved-source-into-vm
+    path: packages/labprobe
   network_mode: controlled
+  module_proxy: opt-in
+execution:
+  location: disposable-lima-qemu-vm
+  host_execution: denied
+  instrumentation_before_workload: required
 evidence:
   process: true
   syscall: true
