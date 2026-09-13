@@ -8,6 +8,7 @@ operator_model:
   execution_owner: selected-primary-agent-shell
   lifecycle_owner: selected-primary-agent-shell
   host_scripts: bootstrap-validation-preflight-only
+  observability: recipes/agent-monitoring/observability.yaml
 primary_candidates:
   goose:
     status: reference
