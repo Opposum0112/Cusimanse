@@ -4,7 +4,7 @@ backend: phoenix
 otel:
   endpoint: http://127.0.0.1:4317
   protocol: grpc
-  service_name: ai-security-lab-agent
+  service_name: cusimanse-agent
 capture:
   traces: true
   spans: true
