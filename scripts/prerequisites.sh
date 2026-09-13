@@ -2,6 +2,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOCAL_BIN="${HOME}/.local/bin"
+LOCAL_PREFIX="${HOME}/.local"
 log(){ printf '%s\n' "$*"; }
 fail(){ printf 'Prerequisite FAIL: %s\n' "$*" >&2; exit 1; }
 have(){ command -v "$1" >/dev/null 2>&1; }
@@ -66,7 +67,7 @@ fi
 
 install_lima_release(){
   have curl || fail "curl is required for Lima binary installation"
-  mkdir -p "$LOCAL_BIN"
+  mkdir -p "$LOCAL_PREFIX"
   local version os_name arch_name asset tmp
   version="$(curl -fsSL https://api.github.com/repos/lima-vm/lima/releases/latest | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag_name"])')" || fail "unable to determine latest Lima release"
   os_name="$(printf '%s' "$OS" | tr '[:upper:]' '[:lower:]')"
@@ -80,11 +81,11 @@ install_lima_release(){
   trap 'rm -rf "$tmp"' RETURN
   log "Installing Lima from official release archive: $asset"
   curl -fL --retry 3 "https://github.com/lima-vm/lima/releases/download/${version}/${asset}" -o "$tmp/lima.tar.gz" || fail "unable to download official Lima release $version"
-  tar -xzf "$tmp/lima.tar.gz" -C "$tmp"
-  [ -x "$tmp/bin/limactl" ] || fail "official Lima archive did not contain bin/limactl"
-  cp "$tmp/bin/limactl" "$LOCAL_BIN/limactl"; chmod +x "$LOCAL_BIN/limactl"
-  if [ -x "$tmp/bin/lima" ]; then cp "$tmp/bin/lima" "$LOCAL_BIN/lima"; chmod +x "$LOCAL_BIN/lima"; fi
-  if [ -d "$tmp/share/lima" ]; then mkdir -p "$LOCAL_BIN/../share/lima"; cp -a "$tmp/share/lima/." "$LOCAL_BIN/../share/lima/"; fi
+  tar -xzf "$tmp/lima.tar.gz" -C "$LOCAL_PREFIX"
+  [ -x "$LOCAL_BIN/limactl" ] || fail "official Lima archive did not install bin/limactl"
+  [ -d "$LOCAL_PREFIX/share/lima" ] || fail "official Lima archive did not install share/lima"
+  chmod +x "$LOCAL_BIN/limactl"
+  [ -x "$LOCAL_BIN/lima" ] && chmod +x "$LOCAL_BIN/lima" || true
 }
 
 if ! have limactl; then
