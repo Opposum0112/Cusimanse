@@ -1,10 +1,28 @@
 # 🦝 Cusimanse
 
-> **Declarative, fully multiagentic security-research platform for controlled experiments, observable execution, evidence preservation and independent verification.**
+> A composable, modular research-contract and YAML-recipe framework. A selected terminal agent executes, operates and orchestrates authorized experiments on disposable compute, then analyzes artifacts and writes a report. Observability covers the agent operation plane for oversight — it is not the isolation boundary.
 
-Cusimanse turns Markdown research contracts and composable YAML recipes into repeatable, agent-operated research sessions. The selected primary agent owns the lifecycle; Lima/QEMU plus VM/OS controls provide the actual workload isolation boundary.
+Cusimanse turns Markdown research contracts and composable YAML recipes into repeatable, agent-operated research sessions. Contracts define purpose, scope, safety and acceptance. Recipes compose host, VM, tools, instrumentation, agents and reporting. The selected primary agent owns that lifecycle. Lima/QEMU plus VM/OS controls isolate the workload.
 
-**Status:** beta research platform. Static validation is not proof of runtime isolation or production security.
+**Status:** beta research lab. This is not a production product, certified sandbox or malware-detonation platform. Static validation is not proof of runtime isolation.
+
+**What this repository is today**
+
+- A contract + recipe framework for authorized experiments on disposable compute
+- A working host-install, policy-check and static-validation path
+- Goose as the reference operator; other adapters are declared targets until preflighted with evidence
+- Reference experiments (`go-install-001`, `npm-install-001`) as contracts, recipes and prompts
+- Optional observability for the agent operation plane (traces, process/tool activity, token accounting) when those backends are actually deployed
+- Artifact collection, hashing, independent verification and report generation as the acceptance path
+
+**What it is not**
+
+- Not certified isolation or sandbox-escape resistance
+- Not a claim that CI booted a VM or ran a reference experiment (GitHub Actions is lint and contract checks)
+- Not evidence that every named adapter, skill, MCP server or orchestration tool is running
+- Model output is not evidence. `PASS` requires preserved, hashed artifacts under `runs/<id>/`
+
+A stranger-ready test can stop after host install and project validation. That is a valid result.
 
 ![Cusimanse mascot](docs/images/cusimanse-mascot.svg)
 
