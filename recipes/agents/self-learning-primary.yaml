@@ -1,0 +1,31 @@
+id: self-learning-primary
+version: 1.0
+kind: primary-agent-contract
+mode: terminal-first
+supported_adapters:
+  - prime-agent
+  - hermes
+learning:
+  retrieve_before_create: true
+  create_candidate_after_evidence: true
+  refine_on_failure: true
+  require_replay: true
+  require_independent_verification: true
+  require_human_approval: true
+capabilities:
+  - session_state
+  - skills
+  - subagents
+  - mcp
+  - terminal_execution
+boundaries:
+  agent_is_not_security_boundary: true
+  generated_code_is_untrusted: true
+  host_credentials_exposed: false
+  host_root_mounts: false
+  public_mcp_exposure: false
+outputs:
+  - execution_trace
+  - evidence_manifest
+  - skill_candidate
+  - verification_request
