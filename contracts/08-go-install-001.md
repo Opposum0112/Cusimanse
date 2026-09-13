@@ -35,7 +35,8 @@ Then give the primary agent the experiment prompt from `docs/prompts/go-install-
 The prompt causes the primary agent to validate the recipe, request approval, provision the disposable VM and start instrumentation. The actual workload is executed **inside the VM**, not on the host:
 
 ```bash
-go install github.com/Opposum0112/ai-security-lab/packages/labprobe@v0.1.0
+go version
+go install ./packages/labprobe
 ```
 
 The agent then collects evidence, delegates specialist analysis, verifies findings, writes the report, finalizes the session and destroys the VM only after evidence preservation.
