@@ -7,15 +7,15 @@ lab_root() {
   (cd "$here" && while [[ ! -f LICENSE || ! -f AGENTS.md ]]; do
     cd ..
     if [[ "$(pwd)" == "/" ]]; then
-      echo "labctl: repository root not found" >&2
+      echo "cusimanse: repository root not found" >&2
       return 1
     fi
   done
   pwd)
 }
 
-log() { printf '[labctl] %s\n' "$*"; }
-die() { printf '[labctl] ERROR: %s\n' "$*" >&2; exit 1; }
+log() { printf '[cusimanse] %s\n' "$*"; }
+die() { printf '[cusimanse] ERROR: %s\n' "$*" >&2; exit 1; }
 
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || die "missing command: $1"
