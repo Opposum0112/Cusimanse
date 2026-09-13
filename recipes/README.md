@@ -1,15 +1,15 @@
 # Recipe architecture
 
-Cusimanse uses **small, composable YAML recipes**. Markdown contracts define required semantics; recipes configure composition; the selected primary agent adapter operates the case.
+Cusimanse uses **small, composable YAML recipes**. Markdown contracts in `contracts/` define required semantics; recipes configure composition; the selected primary agent adapter operates the case.
 
 ## Composition
 
 ```text
-Markdown contract
+Markdown research contract
       ↓
 YAML recipe graph
       ├─ campaign / experiment
-      ├─ workload / VM / install
+      ├─ workload / compute / install
       ├─ tools / instrumentation
       ├─ agent / adapter
       ├─ roles / CrewAI orchestration
@@ -18,7 +18,7 @@ YAML recipe graph
       ↓
 selected primary agent
       ↓
-approved disposable execution
+approved disposable compute
       ↓
 blackboard: runs + audit + evidence + analysis + report
 ```
@@ -33,7 +33,7 @@ blackboard: runs + audit + evidence + analysis + report
 | `workloads/` | workload definitions |
 | `install/` | installation/prerequisites |
 | `host/` | host profiles |
-| `lima/profiles/` | disposable VM profiles |
+| `lima/profiles/` | disposable Lima/QEMU compute profiles |
 | `tools/` | tool inventory |
 | `instrumentation/` | telemetry profiles |
 | `agent-monitoring/` | agent/trace observation |
@@ -58,7 +58,7 @@ Role and skill plugins are capabilities, not security boundaries. Retrieval neve
 - Keep credentials out of recipes and Git.
 - Keep host mounts and privileged actions explicit and policy-controlled.
 - Never allow a role, skill, MCP server or orchestrator to bypass the VM/OS boundary.
-- Preserve raw evidence before VM destruction.
+- Preserve raw evidence before compute destruction.
 - Treat external skills as `candidate-review-required` until provenance, permissions, scripts, network behavior and capabilities are reviewed.
 - Missing capabilities are `NOT_DEPLOYED`.
 
