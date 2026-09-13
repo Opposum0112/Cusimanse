@@ -1,0 +1,83 @@
+version: 1
+id: learning-workflow
+kind: learning-and-skill-improvement-contract
+purpose: >-
+  Define an explicit, taskflow-driven learning loop that may use LangGraph,
+  CrewAI or other declared orchestration tools while keeping evidence,
+  verification and human approval authoritative.
+
+workflow:
+  - id: retrieve
+    action: retrieve_prior_runs_skills_and_evidence
+    output: learning/inputs.yaml
+  - id: taskflow
+    action: decompose_task_into_replayable_steps
+    output: learning/taskflow.yaml
+  - id: execute
+    action: execute_declared_taskflow_with_selected_primary_agent
+    output: learning/execution.yaml
+  - id: evaluate
+    action: compare_observed_results_to_contract_acceptance
+    output: learning/evaluations/<evaluation-id>.yaml
+  - id: refine
+    action: propose_skill_or_recipe_improvement_without_mutating_base_contract
+    output: learning/candidates/<candidate-id>.yaml
+  - id: replay
+    action: replay_candidate_on_distinct_or_frozen_artifact
+    output: learning/replays/<replay-id>.yaml
+  - id: independent_verification
+    action: independently_challenge_candidate_and_replay_results
+    output: learning/verification/<verification-id>.yaml
+  - id: human_approval
+    action: approve_or_reject_promotion
+    output: learning/promotions/<promotion-id>.yaml
+  - id: promote
+    action: publish_validated_version_to_reviewed_skill_registry
+    output: skills/
+  - id: rollback
+    action: revert_promoted_version_when_regression_or_safety_issue_is_found
+
+orchestration:
+  taskflow:
+    purpose: task_decomposition_and_stateful_execution_plan
+    authority: primary-agent
+  langgraph:
+    purpose: optional_stateful_graph_execution_and_checkpoints
+    authority: primary-agent
+  crewai:
+    purpose: optional_specialist_role_delegation
+    authority: primary-agent
+  other_tools:
+    allowed_when: declared_in_recipe_and_observable
+    security_boundary: false
+
+skill_promotion:
+  candidate_must_include:
+    - source_session
+    - taskflow
+    - input_artifact_digests
+    - evaluation
+    - replay
+    - independent_verification
+    - provenance
+    - rollback_plan
+  human_approval_required: true
+  self_approval: false
+  automatic_privilege_grant: false
+  automatic_security_policy_change: false
+  base_contract_mutation: false
+
+quality_gates:
+  acceptance_regression: deny_promotion
+  evidence_missing: deny_promotion
+  replay_missing: deny_promotion
+  independent_verification_missing: deny_promotion
+  provenance_missing: deny_promotion
+  safety_regression: deny_promotion
+
+session_outputs:
+  candidate_skill: learning/candidates/
+  evaluation: learning/evaluations/
+  replay: learning/replays/
+  verification: learning/verification/
+  promotion_decision: learning/promotions/
