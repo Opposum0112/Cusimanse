@@ -2,138 +2,115 @@
 
 ## Purpose
 
-This document describes the stateful, self-learning security-research architecture while preserving the Cusimanse security boundary and terminal-first primary-agent model.
+Cusimanse is a **declarative, agentic, pluggable security-research platform**. Markdown contracts specify research semantics and acceptance; YAML recipes configure modular components; exactly one selected primary agent adapter operates and executes the case; optional CrewAI roles provide specialist coordination; and the blackboard preserves the complete evidence-led case record.
 
-## Layered model
+## Canonical architecture
+
+The single authoritative visual architecture is `docs/architecture/cusimanse-architecture.svg`; the equivalent Mermaid flow is `docs/architecture/cusimanse-architecture.mmd`.
 
 ```text
-Campaign semantics
-  YAML recipes / Taskflow-style tasks
-          |
-          v
-Stateful execution
-  LangGraph (runtime/checkpoints, not evidence authority)
-          |
-          v
-Primary operator
-  Goose | OpenCode | Grok | Antigravity | Pi | Hermes | Codex | Prime | Claude Code | Devin
-          |
-          v
-Security experiment
-  Cusimanse -> Lima/QEMU -> VM/OS controls
-          |
-          v
-Evidence
-  raw artifacts + telemetry + audit + verification
-          |
-          v
-Durable case/evidence store
-  artifact identity + findings + provenance + execution relations
-          |
-          v
-Voyager-style learning
-  retrieve -> execute -> evaluate -> refine -> verify -> promote
-          |
-          v
-Skill package
-  SKILL.md + scripts + references + eval/
-          |
-          +---------------------> future retrieval
+Markdown contract
+  ↓
+YAML recipe graph
+  ↓
+Selected primary agent adapter
+  ├─ optional specialist roles / CrewAI
+  ├─ versioned skills
+  └─ scoped MCP
+  ↓
+Plan → Review → Approve → Provision → Instrument → Execute
+  ↓
+Collect → Analyze → Verify → Report → Preserve → Destroy
+  ↓
+Blackboard / durable case
+  ├─ run + audit records
+  ├─ raw evidence + telemetry
+  ├─ findings + provenance + verification
+  └─ technical research report
+  ↓
+Self-learning / promotion
+  → candidate → review → replay → independent verify → human approval → validated skill
+  ↺ skill retrieval
 ```
 
-## Responsibilities
+## Responsibility boundaries
 
-| Layer | Responsibility | Security authority |
+| Plane | Responsibility | Authority |
 |---|---|---|
-| YAML recipe | Campaign intent, tasks, roles, gates | No |
-| Taskflow-style semantics | Reusable task sequencing patterns | No |
-| LangGraph | Stateful execution, retries, HITL checkpoints | No |
-| Agent adapter | Terminal operation and research actions | No |
-| Lima/QEMU/VM/OS | Isolation, mounts, credentials, privilege and network enforcement | **Yes** |
-| Evidence store | Durable facts and provenance | Evidence authority |
-| Skill library | Reusable validated capabilities | No |
-| policyctl | Host-side policy/configuration and token observability | Policy signal, not enforcement |
-| MCP | Scoped tool access and enrichment | No |
+| Markdown contracts | Intent, scope, hypotheses, acceptance, safety and evidence requirements | Semantics |
+| YAML recipes | Component composition and configuration | Configuration |
+| Agent adapter | Translate a native agent shell into the common contract | Operator/executor |
+| CrewAI role plane | Optional specialist role coordination | No security authority |
+| Skills | Reusable research procedures and capabilities | No privilege authority |
+| MCP | Scoped tool/integration access | No privilege authority |
+| Blackboard | Durable runs, audit, evidence, findings, provenance, verification and report inputs | Evidence authority |
+| Learning plane | Candidate generation, evaluation, replay and promotion | Human-gated |
+| policyctl | Host-side policy/configuration and observability signal | Outside agent control plane |
+| Lima/QEMU + VM/OS | Isolation, mounts, credentials, privilege and network enforcement | **Security boundary** |
+
+## Agent and campaign self-learning
+
+Agents and campaigns may propose improvements from completed evidence. They do not mutate the immutable base contract at runtime.
+
+```text
+case evidence
+  → candidate skill / recipe improvement
+  → capability + provenance review
+  → evaluation
+  → replay on distinct artifact(s)
+  → independent verification
+  → human approval
+  → versioned validated skill
+  → indexed retrieval
+```
+
+A candidate is never trusted merely because an agent generated it or retrieval ranked it highly. Failed candidates and evaluation evidence remain part of the case record.
+
+## Blackboard and research report
+
+The blackboard is the durable research workspace and evidence index, not merely a message bus. A case should relate:
+
+```text
+Case
+ ├─ Campaign
+ ├─ Execution / Run
+ │   ├─ Audit events
+ │   ├─ Tool traces
+ │   └─ Runtime telemetry
+ ├─ Artifacts
+ │   ├─ raw evidence
+ │   ├─ hashes / manifest
+ │   └─ provenance
+ ├─ Findings
+ │   └─ independent verification
+ ├─ Skill candidates / validation history
+ └─ Research report
+     ├─ hypothesis and method
+     ├─ environment and workload
+     ├─ technical observations
+     ├─ evidence references
+     ├─ analysis and conclusions
+     └─ verification / limitations
+```
+
+The report must reference preserved evidence. Model output alone is never evidence.
+
+## Runtime state versus evidence
+
+A stateful runtime such as LangGraph may checkpoint workflow position, retries and HITL state. It is not the evidence authority. The blackboard/durable case store answers **what happened, what evidence supports it, and why a result or skill is trusted**.
+
+## Pluggable role and skill plane
+
+`recipes/orchestration/role-skill-plugin.yaml` defines a provider-neutral contract. A role can declare the skills, tools and MCP capabilities it needs and returns structured results. The selected primary agent remains the sole case operator/executor.
+
+CrewAI is one optional implementation of this role plane. Replacing it must not change experiment semantics, evidence requirements or the security boundary.
 
 ## Security policy boundary
 
-`policyctl` is a host-side policy/configuration and observability component that operates outside the experiment VM. It can report and configure policy signals, but it does not enforce the VM boundary. Lima/QEMU and the VM/OS controls enforce isolation, mounts, credentials, privilege and network policy. Agents, skills, MCP servers and orchestration layers cannot replace or bypass that boundary.
+`policyctl` is deliberately **outside the agent control plane**. It provides host-side policy/configuration and token-observability signals. It is not the sandbox and does not replace VM enforcement.
 
-## Taskflow position
+Lima/QEMU and VM/OS controls enforce the actual boundary: filesystem/mount controls, credentials, privilege and network restrictions. No agent, role, skill, MCP server, orchestration framework, prompt or retrieval index may bypass or redefine that boundary.
 
-GitHub Security Lab Taskflow is treated as a recipe/taskflow reference, not as the Cusimanse security controller. Its YAML-oriented task sequencing, agent handoffs, reusable prompts and conditional task concepts are useful for campaign recipes. Cusimanse remains responsible for experiment semantics, evidence, approval and the VM boundary.
+## Compatibility
 
-## Learning position
-
-Prime Agent and Hermes are optional self-improving primary-agent adapters. A Voyager-style loop is the learning pattern around them. A successful agent interaction does not automatically become a trusted skill. Promotion requires provenance, replay, independent verification and approval.
-
-## Skill lifecycle
-
-```text
-Artifact / observation
-        |
-        v
-Skill candidate
-        |
-        v
-Static review + capability manifest
-        |
-        v
-Replay on distinct artifact(s)
-        |
-        v
-Independent verification
-        |
-        v
-Human approval
-        |
-        v
-Versioned validated skill
-        |
-        v
-Indexed retrieval
-```
-
-## Evidence relation model
-
-The durable store should represent:
-
-```text
-Artifact -> Finding
-Artifact -> SkillCandidate
-Skill -> Execution -> Artifact
-Execution -> Verification
-Skill -> validated_on / failed_on / derived_from
-```
-
-This is separate from the LangGraph checkpoint store. LangGraph answers “where is the workflow?”; the evidence store answers “what happened and why is this skill trusted?”.
-
-## Primary self-learning adapter contract
-
-Prime Agent and Hermes adapters expose the same logical contract:
-
-1. Load the shared experiment contract.
-2. Load the selected campaign recipe.
-3. Retrieve candidate skills using task/artifact metadata.
-4. Present candidates as capabilities, not authority.
-5. Operate only inside the approved experiment boundary.
-6. Capture tool traces and outputs.
-7. Emit evidence and a skill candidate when a reusable procedure is discovered.
-8. Run evaluation/replay.
-9. Request promotion approval; never self-promote privileged or high-risk skills.
-
-Agent-native memory, skills and subagents remain agent capabilities. Cusimanse provenance and promotion controls remain authoritative for learned skills.
-
-## Security invariants
-
-- The agent is not the sandbox.
-- A prompt, skill, MCP server or vector index is not a security boundary.
-- Generated code is untrusted until reviewed and executed under the experiment boundary.
-- Credentials never enter skill source or MCP arguments.
-- Evidence is preserved and hashed before VM destruction.
-- Missing integrations are `NOT_DEPLOYED`.
-- AI assertions are not evidence.
-
-## Compatibility strategy
-
-The architecture is additive. Existing Goose recipes and `go-install-001` remain the compatibility baseline. New campaign/learning components consume the same experiment contracts and can be disabled without affecting the existing operator path.
+Existing Goose recipes and `experiments/go-install-001` remain the reference compatibility path. Other adapters consume the same contracts through the adapter layer. Optional roles, skills, MCP integrations and learning components can be unavailable without silently changing the experiment semantics; the explicit state is `NOT_DEPLOYED`.
