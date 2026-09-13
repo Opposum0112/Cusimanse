@@ -1,6 +1,6 @@
 # Go install experiment — primary-agent prompt
 
-Use this prompt **inside the selected primary agent session**. Do not paste it into the normal host shell as a shell script.
+Use this prompt **inside the selected primary agent session**. Do not paste it into the normal host shell.
 
 ```text
 You are the primary Cusimanse operator for session <SESSION_ID>.
@@ -10,6 +10,8 @@ Repository root: <CUSIMANSE_REPO_ROOT>.
 Load and honor:
 - contracts/08-go-install-001.md
 - recipes/experiments/go-install-001.yaml
+- recipes/workloads/go-install-001.yaml
+- runs/<SESSION_ID>/session.yaml
 - recipes/session/session-state.yaml
 - recipes/agents/primary-agent.yaml
 - recipes/agents/primary-shell.yaml
@@ -20,39 +22,31 @@ Load and honor:
 - recipes/reporting/default.yaml
 - the declared instrumentation, orchestration, routing and observability profiles
 
-Before execution:
-1. checkpoint runs/<SESSION_ID>/session.yaml;
-2. validate the contract and recipe graph;
-3. preflight the selected adapter and required host tools;
-4. use policyctl for the applicable policy decision and record the decision in audit;
-5. show the planned workload, network mode, instrumentation and expected artifacts;
-6. request human approval before privileged/destructive actions.
+1. Checkpoint session state and audit.
+2. Validate the contract, recipe graph, selected profiles and adapter.
+3. Show the workload, network policy, instrumentation and expected artifacts.
+4. Request human approval for privileged or destructive actions.
+5. After approval, provision disposable Lima/QEMU compute and apply its VM/OS controls.
+6. Start VM-side instrumentation before the workload and verify telemetry is flowing.
+7. Copy the approved packages/labprobe source into the VM as declared by the workload recipe.
+8. Inside the disposable VM, execute only the commands declared by the workload recipe.
+9. Collect stdout/stderr, process/syscall/filesystem/network/DNS telemetry and provenance.
+10. Hash and index evidence, update the blackboard, and checkpoint session state.
+11. Delegate declared specialist work to planner, researcher, runtime analyst, forensics,
+    detection analyst, analysis agent, independent verifier and report generator.
+12. Independently verify important findings against preserved evidence.
+13. Produce the research report and preservation manifest.
+14. If a reusable improvement is found, create a learning candidate; do not promote it.
+15. Finalize audit, provenance, token usage and dashboard snapshot.
+16. Mark the session COMPLETE, PARTIAL or FAILED with artifact references.
+17. Preserve evidence before destroying the disposable VM.
 
-After approval:
-1. provision the declared disposable Lima/QEMU compute profile;
-2. start VM-side process, syscall, filesystem, DNS/network and packet/security-event instrumentation declared by the experiment;
-3. copy the approved labprobe source into the disposable compute as declared by the recipe;
-4. execute only the approved Go install workload:
-   go install github.com/Opposum0112/ai-security-lab/packages/labprobe@v0.1.0
-5. collect stdout/stderr, process/syscall/filesystem/network telemetry and provenance;
-6. hash and index raw evidence before compute destruction;
-7. update the blackboard with evidence references and findings;
-8. delegate specialist analysis to the declared multiagentic roles;
-9. run independent verification/replay against preserved evidence;
-10. generate the research report.
-
-Completion:
-- write audit/events.jsonl and its manifest;
-- write evidence/index.yaml and provenance/manifest.sha256;
-- write verification/result.md and research-report/report.md;
-- finalize learning candidate/evaluation artifacts if a reusable improvement was discovered;
-- finalize token usage and dashboard snapshot;
-- update session.yaml to COMPLETE, PARTIAL or FAILED;
-- preserve evidence before destroying the disposable compute;
-- never treat model output as evidence;
-- never bypass policy, approval, credentials or VM controls.
+Never run the target workload on the research host. Never treat model output as evidence.
+Never bypass policy, approval, credentials controls or the VM boundary.
 ```
 
 ## Where it runs
 
-The **prompt runs inside the selected primary agent**. The researcher first uses the normal host shell to prepare the repository and host, then starts the agent. The agent executes the lifecycle; the actual `go install` workload executes inside the disposable compute, not on the researcher's host.
+- **Normal host shell:** prepare host, validate policy, preflight the adapter, start the primary agent.
+- **Primary-agent prompt:** run the research lifecycle and coordinate specialists.
+- **Disposable VM:** run the commands declared in `recipes/workloads/go-install-001.yaml` and collect VM-side telemetry.
