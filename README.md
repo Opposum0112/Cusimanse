@@ -10,27 +10,30 @@ Cusimanse is a security research platform, not a production malware sandbox or a
 
 ## Architecture
 
-Cusimanse separates the **host policy plane**, **agent/operator plane**, **execution boundary**, **evidence plane**, and **learning plane**.
+Cusimanse separates the **host policy plane**, **agent/operator plane**, **agent observability & governance plane**, **execution boundary**, **evidence plane**, and **learning plane**.
 
-![Cusimanse production architecture planes](docs/architecture/cusimanse-architecture.svg)
+![Cusimanse architecture planes](docs/architecture/cusimanse-architecture.svg)
 
 ```mermaid
 flowchart TB
-    H["NORMAL HOST SHELL\nResearcher / operator"]
+    H["NORMAL HOST SHELL\nResearcher / installer"]
     P["HOST POLICY PLANE\npolicyctl\noutside agent control plane"]
-    A["AGENT / OPERATOR PLANE\nSelected primary adapter"]
-    C["CUSIMANSE CONTROL LOGIC\nYAML contracts · campaigns\nTaskflow · LangGraph · MCP"]
-    V["EXECUTION BOUNDARY\nLima + QEMU + disposable VM\nmounts · credentials · privilege · network"]
+    A["AGENT / OPERATOR PLANE\nOne selected primary terminal agent"]
+    C["CUSIMANSE CONTROL LOGIC\nYAML · Taskflow · LangGraph · scoped MCP"]
+    O["AGENT OBSERVABILITY & GOVERNANCE\nOpenTelemetry · Phoenix · Numbat · Aegis"]
+    V["EXECUTION SECURITY BOUNDARY\nLima + QEMU + disposable VM/OS"]
     W["UNTRUSTED WORKLOAD\nexperiment under test"]
-    E["EVIDENCE / CASE PLANE\nartifacts · telemetry · audit\nverification · provenance"]
-    L["LEARNING PLANE\nSKILL.md candidate\nreplay · verification · approval\n→ validated skill"]
+    E["EVIDENCE / CASE PLANE\nartifacts · telemetry · audit · provenance"]
+    L["LEARNING PLANE\nCANDIDATE → replay → verification → approval → VALIDATED"]
 
-    H -->|bootstrap / select / validate| A
+    H -->|bootstrap / select / inspect| A
     H -->|host policy / validation| P
     A --> C
     C -->|provision / instrument / execute| V
+    C -->|emit traces / metrics / logs| O
     V --> W
     V -->|collect| E
+    O -->|observability records| E
     E --> L
     L -->|validated capability| A
     P -.->|independent host constraint| V
@@ -40,27 +43,37 @@ flowchart TB
 
 | Plane / component | Responsibility |
 |---|---|
-| **Host shell** | Installation, preflight, adapter selection and result inspection |
-| **Host policy plane** | `policyctl`; independent policy/configuration and observability controls |
-| **Agent/operator plane** | One selected primary agent drives the research workflow |
-| **YAML / Taskflow / LangGraph** | Campaign semantics, task sequence and stateful execution |
-| **MCP** | Scoped research tools and data access |
+| **Host shell** | Installation, execute-bit repair, environment setup, preflight and result inspection |
+| **Host policy plane** | `policyctl`; independent host-side policy/configuration controls |
+| **Agent/operator plane** | One selected primary terminal agent drives the research workflow |
+| **Control logic** | YAML contracts, campaigns, Taskflow stages, LangGraph state and scoped MCP |
+| **Observability & governance plane** | OpenTelemetry traces/metrics/logs plus Phoenix, Numbat and Aegis integrations when verified adapters are deployed |
 | **VM execution boundary** | Lima/QEMU/VM/OS isolation, mounts, credentials, privilege and network controls |
 | **Evidence/case plane** | Durable artifacts, telemetry, findings, execution records and provenance |
 | **Learning plane** | Candidate skills, replay, independent verification, approval and validated reuse |
 
-**Security boundary:** the VM/OS and its configured resource, filesystem, credential, privilege and network controls. Agents, prompts, skills, MCP, LangGraph, Taskflow and vector stores are not isolation mechanisms.
+**Security boundary:** the VM/OS and its configured resource, filesystem, credential, privilege and network controls. Agents, prompts, skills, MCP, observability systems, LangGraph, Taskflow and vector stores are not isolation mechanisms.
+
+## System requirements
+
+- Linux or macOS research host
+- 4+ CPU cores recommended; 8 GB RAM minimum, 16 GB+ recommended
+- 20 GB free disk minimum; 50 GB+ recommended for VM images/evidence
+- Lima + QEMU with hardware virtualization where available
+- Git, Bash, curl, Go, Python 3 and Ruby
+- One supported primary terminal agent
+- Network access for installation and permitted research enrichment
+
+See [`docs/system-requirements.md`](docs/system-requirements.md) for host configuration, environment and observability details.
 
 ## Researcher testing
-
-This is the short path for testing Cusimanse. Detailed engineering material remains in `docs/`.
 
 ### 1. Host shell — prepare
 
 ```bash
 git clone https://github.com/Opposum0112/Cusimanse.git
 cd Cusimanse
-git checkout production-architecture
+git checkout architecture-refactor
 
 ./scripts/prerequisites.sh
 ./scripts/agent-preflight.sh
@@ -68,16 +81,27 @@ git checkout production-architecture
 bash ./scripts/tests/validate-project.sh
 ```
 
-Optional research/integration tooling:
+The host installer repairs and verifies required script execute bits and configures `PATH`, `GOPATH` and `GOBIN`.
+
+For the complete research profile and observability foundation:
 
 ```bash
 CUSIMANSE_INSTALL_PRODUCTION_PROFILE=1 ./scripts/prerequisites.sh
+CUSIMANSE_INSTALL_OBSERVABILITY=1 ./scripts/prerequisites.sh
 bash ./scripts/tests/production-validation.sh
 ```
 
+A Go host setup entrypoint is also available:
+
+```bash
+go run ./cmd/cusimanse-host
+```
+
+It interactively selects mandatory setup, the full optional research profile, or observability setup while reusing the trusted prerequisite script.
+
 ### 2. Agent shell — operate
 
-Start exactly one primary terminal agent from the host shell:
+Start exactly one primary terminal agent from the host shell. The agent shell is the operator boundary: it reads contracts, drives the case, provisions the VM, directs workload execution into the VM, collects evidence, analyzes and verifies results, and handles learning.
 
 ```bash
 export CUSIMANSE_PRIMARY_ADAPTER=prime-agent
@@ -93,42 +117,7 @@ hermes --help
 hermes
 ```
 
-The **agent shell is the operator boundary**. It reads Cusimanse contracts, plans and drives the case, provisions the VM, directs workload execution into the VM, collects evidence, analyzes and verifies results, and handles learning.
-
-**Prompt boundary:** host setup and `policyctl` remain outside the agent prompt. Never ask the agent to invoke `policyctl`. Workload commands are executed inside the disposable VM through the agent-driven workflow, not on the host.
-
-Paste into the selected agent:
-
-```text
-Act as the primary operator for one Cusimanse security-research case.
-
-Read:
-  recipes/agents/self-learning-primary.yaml
-  recipes/campaigns/security-research-learning.yaml
-  recipes/workflows/security-research-taskflow.yaml
-  recipes/orchestration/langgraph.yaml
-  recipes/learning/skill-promotion.yaml
-
-Run:
-  Discover → Validate → Retrieve → Plan → Review → Approve →
-  Provision VM → Instrument → Execute → Collect → Analyze →
-  Verify → Learn → Promote → Preserve → Destroy
-
-Boundaries:
-- The disposable Lima/QEMU VM is the execution boundary for the workload.
-- Workload commands execute inside the VM through the agent-driven workflow.
-- Do not invoke policyctl; it is host-side and outside the agent control plane.
-- Never expose host credentials to the workload or learned skills.
-- Retrieval ranking never grants execution permission.
-- Preserve evidence, telemetry, audit records, verification results and hashes before VM destruction.
-- New learned procedures are CANDIDATE until replay, distinct-artifact testing,
-  independent verification, provenance, capability checks and human approval complete.
-- If a required capability is unavailable, report NOT_DEPLOYED.
-- Never report PASS without runtime evidence.
-
-At completion report case ID, campaign, state, commands/tools used, VM state,
-evidence paths, verification result, skill state and failed gates.
-```
+**Prompt boundary:** host setup and `policyctl` remain outside the agent prompt. Never ask the agent to invoke `policyctl`. Workload commands execute inside the disposable VM through the agent-driven workflow, not on the host.
 
 ### 3. Agent shell — run a reference test
 
@@ -147,8 +136,6 @@ PASS requires actual runtime evidence.
 ```
 
 ### 4. Host shell — inspect
-
-After the agent finishes:
 
 ```bash
 find evidence blackboard experiments/go-install-001 -maxdepth 4 -type f -print 2>/dev/null
@@ -180,6 +167,7 @@ Cusimanse/
 ├── tools/                   # project tool integrations
 ├── experiments/             # reference experiments
 ├── scripts/                 # host/bootstrap/test scripts
+├── cmd/cusimanse-host/      # Go host configuration entrypoint
 ├── cmd/policyctl/           # host-side policy utility
 └── docs/                    # architecture and operational documentation
 ```
@@ -190,7 +178,7 @@ Cusimanse/
 bash ./scripts/tests/production-validation.sh
 ```
 
-The validation checks architecture contracts, shell/YAML structure, Go validation, compatibility with the existing reference experiment, policyctl separation, VM-boundary documentation and skill-promotion requirements.
+Validation checks architecture contracts, script execute bits, shell/YAML structure, Go validation, host environment configuration, observability requirements, reference-experiment compatibility, policyctl separation, VM-boundary documentation and skill-promotion requirements.
 
 ## Security invariants
 
@@ -201,6 +189,7 @@ The validation checks architecture contracts, shell/YAML structure, Go validatio
 - Unrestricted host-root mounts are denied.
 - Destructive/privileged actions require approval.
 - Public MCP exposure is denied by default.
+- Observability is for tracing, governance and audit—not isolation.
 - Retrieval does not grant execution authority.
 - Evidence is preserved before VM destruction.
 - Learned capabilities require replay and independent verification before promotion.
