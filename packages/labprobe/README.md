@@ -20,7 +20,7 @@ labprobe
 Only after security review, and only inside the VM:
 
 ```bash
-go install github.com/Opposum0112/ai-security-lab/packages/labprobe@v0.1.0
+go install github.com/Opposum0112/Cusimanse/packages/labprobe@v0.1.0
 ```
 
-Private GitHub repositories need `GOPRIVATE` (or use the local-copy mode).
+Use the local-copy mode for the canonical reference experiment.
