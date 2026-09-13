@@ -5,10 +5,10 @@ LOCAL_BIN="${HOME}/.local/bin"
 log(){ printf '%s\n' "$*"; }
 fail(){ printf 'Prerequisite FAIL: %s\n' "$*" >&2; exit 1; }
 have(){ command -v "$1" >/dev/null 2>&1; }
+have_qemu(){ have qemu-system-x86_64 || have qemu-system-aarch64 || have qemu-system-x86_64-spice || have qemu-system-aarch64-spice; }
 OS="$(uname -s)"; ARCH="$(uname -m)"; DISTRO="unknown"
 if [ -r /etc/os-release ]; then . /etc/os-release; DISTRO="${ID:-unknown}"; fi
 
-# Repository shell programs are executable host controls. Repair and verify bits.
 for script in scripts/*.sh scripts/tests/*.sh; do
   [ -f "$script" ] || continue
   chmod +x "$script"
@@ -57,7 +57,8 @@ if [ "$OS" = "Darwin" ]; then
   brew install git python3 ruby go qemu || true
 elif [ "$OS" = "Linux" ]; then
   missing=0
-  for tool in git bash curl python3 ruby go qemu-system-x86_64; do have "$tool" || missing=1; done
+  for tool in git bash curl python3 ruby go; do have "$tool" || missing=1; done
+  have_qemu || missing=1
   [ "$missing" -eq 0 ] || install_linux_packages
 else
   fail "unsupported host OS '$OS'"
@@ -67,8 +68,7 @@ install_lima_release(){
   have curl || fail "curl is required for Lima binary installation"
   mkdir -p "$LOCAL_BIN"
   local version os_name arch_name asset tmp
-  version="$(curl -fsSL https://api.github.com/repos/lima-vm/lima/releases/latest | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag_name"])')" \
-    || fail "unable to determine latest Lima release"
+  version="$(curl -fsSL https://api.github.com/repos/lima-vm/lima/releases/latest | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag_name"])')" || fail "unable to determine latest Lima release"
   os_name="$(printf '%s' "$OS" | tr '[:upper:]' '[:lower:]')"
   case "$ARCH" in
     x86_64|amd64) arch_name="x86_64";;
@@ -79,17 +79,12 @@ install_lima_release(){
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' RETURN
   log "Installing Lima from official release archive: $asset"
-  curl -fL --retry 3 "https://github.com/lima-vm/lima/releases/download/${version}/${asset}" -o "$tmp/lima.tar.gz" \
-    || fail "unable to download official Lima release $version"
+  curl -fL --retry 3 "https://github.com/lima-vm/lima/releases/download/${version}/${asset}" -o "$tmp/lima.tar.gz" || fail "unable to download official Lima release $version"
   tar -xzf "$tmp/lima.tar.gz" -C "$tmp"
   [ -x "$tmp/bin/limactl" ] || fail "official Lima archive did not contain bin/limactl"
-  cp "$tmp/bin/limactl" "$LOCAL_BIN/limactl"
-  chmod +x "$LOCAL_BIN/limactl"
+  cp "$tmp/bin/limactl" "$LOCAL_BIN/limactl"; chmod +x "$LOCAL_BIN/limactl"
   if [ -x "$tmp/bin/lima" ]; then cp "$tmp/bin/lima" "$LOCAL_BIN/lima"; chmod +x "$LOCAL_BIN/lima"; fi
-  if [ -d "$tmp/share/lima" ]; then
-    mkdir -p "$LOCAL_BIN/../share/lima"
-    cp -a "$tmp/share/lima/." "$LOCAL_BIN/../share/lima/"
-  fi
+  if [ -d "$tmp/share/lima" ]; then mkdir -p "$LOCAL_BIN/../share/lima"; cp -a "$tmp/share/lima/." "$LOCAL_BIN/../share/lima/"; fi
 }
 
 if ! have limactl; then
@@ -150,7 +145,8 @@ for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
   fi
 done
 
-missing=(); for tool in git bash python3 ruby go qemu-system-x86_64 limactl goose; do have "$tool" || missing+=("$tool"); done
+missing=(); for tool in git bash python3 ruby go limactl goose; do have "$tool" || missing+=("$tool"); done
+have_qemu || missing+=(qemu)
 [ "${#missing[@]}" -eq 0 ] || fail "required tools still missing: ${missing[*]}"
 log "Mandatory host prerequisites PASS; script execute bits PASS; PATH/GOPATH/GOBIN configured"
 [ "$OBSERVABILITY" = "1" ] && log "Agent observability foundation configured"
