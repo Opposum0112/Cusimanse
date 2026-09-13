@@ -10,45 +10,34 @@ import (
 )
 
 func main() {
-	fmt.Println("Cusimanse host setup")
+	r := bufio.NewReader(os.Stdin)
+	fmt.Println("Cusimanse host configuration")
 	fmt.Printf("Host: %s/%s\n", runtime.GOOS, runtime.GOARCH)
-	fmt.Println("The installer invokes the existing host prerequisite script so package-manager behavior remains centralized.")
+	fmt.Println("The Go entrypoint is the interactive front door; vetted repository scripts remain the installation implementation.")
 	fmt.Println()
-	fmt.Println("1) Install mandatory host components")
-	fmt.Println("2) Install all optional research, observability and tracing components")
-	fmt.Println("3) Install mandatory agent observability stack")
-	fmt.Println("4) Exit")
-	fmt.Print("Select [1-4]: ")
-
-	choice, _ := bufio.NewReader(os.Stdin).ReadString('\n')
-	choice = strings.TrimSpace(choice)
-	switch choice {
-	case "1":
-		run("./scripts/prerequisites.sh")
-	case "2":
-		runEnv("./scripts/prerequisites.sh", "CUSIMANSE_INSTALL_PRODUCTION_PROFILE=1")
-	case "3":
-		runEnv("./scripts/prerequisites.sh", "CUSIMANSE_INSTALL_OBSERVABILITY=1")
-	case "4":
-		return
-	default:
-		fmt.Fprintln(os.Stderr, "invalid selection")
-		os.Exit(2)
+	if ask(r, "Install mandatory host and VM prerequisites? [Y/n]: ", true) {
+		run("./scripts/prerequisites.sh", nil)
+	} else { return }
+	if ask(r, "Install ALL optional security-research components? [y/N]: ", false) {
+		run("./scripts/prerequisites.sh", []string{"CUSIMANSE_INSTALL_PRODUCTION_PROFILE=1"})
 	}
+	if ask(r, "Install/verify agent observability (OpenTelemetry + Phoenix; Numbat/Aegis only with verified adapters)? [Y/n]: ", true) {
+		run("./scripts/prerequisites.sh", []string{"CUSIMANSE_INSTALL_OBSERVABILITY=1"})
+	}
+	fmt.Println("Host configuration complete. Continue with ./scripts/agent-preflight.sh and policyctl validate in the normal host shell.")
 }
 
-func run(path string) {
+func ask(r *bufio.Reader, prompt string, defaultYes bool) bool {
+	fmt.Print(prompt)
+	v, _ := r.ReadString('\n')
+	v = strings.ToLower(strings.TrimSpace(v))
+	if v == "" { return defaultYes }
+	return v == "y" || v == "yes"
+}
+
+func run(path string, settings []string) {
 	cmd := exec.Command("bash", path)
+	cmd.Env = append(os.Environ(), settings...)
 	cmd.Stdout, cmd.Stderr, cmd.Stdin = os.Stdout, os.Stderr, os.Stdin
 	if err := cmd.Run(); err != nil { os.Exit(1) }
-}
-
-func runEnv(path, setting string) {
-	parts := strings.SplitN(setting, "=", 2)
-	if len(parts) != 2 { os.Exit(2) }
-	env := append(os.Environ(), setting)
-	cmd := exec.Command("bash", path)
-	cmd.Env, cmd.Stdout, cmd.Stderr, cmd.Stdin = env, os.Stdout, os.Stderr, os.Stdin
-	if err := cmd.Run(); err != nil { os.Exit(1) }
-	_ = parts
 }
