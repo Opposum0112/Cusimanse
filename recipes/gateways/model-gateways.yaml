@@ -1,0 +1,28 @@
+schema: cusimanse.recipe/model-gateways/v1
+name: model-gateway-stack
+plane: agent_execution
+purpose: Route model and harness traffic through declared gateways without making gateways security boundaries.
+gateways:
+  - id: litellm
+    enabled: true
+    role: model-routing-and-observability
+    config_path: ~/.config/cusimanse/litellm.yaml
+    environment:
+      OPENAI_BASE_URL: http://127.0.0.1:4000/v1
+  - id: omniroute
+    enabled: true
+    role: provider-routing-and-fallback
+    config_path: ~/.config/cusimanse/omniroute.yaml
+    environment: {}
+policy:
+  secrets_from_environment_only: true
+  localhost_by_default: true
+  authorization_owner: policyctl-and-vm-os-controls
+  gateway_is_security_boundary: false
+installation:
+  install_script: scripts/cusimanse-host.sh
+  stage: observability_governance
+validation:
+  required: true
+  healthcheck: true
+  configuration_only: NOT_DEPLOYED
