@@ -60,9 +60,9 @@ else
   fail "Go is required for integration validation"
 fi
 
-./scripts/tests/validate-project.sh
+bash ./scripts/tests/validate-project.sh
 [ -f recipes/goose/project.yaml ] || fail 'existing Goose recipe missing'
-[ -f experiments/go-install-001.yaml ] || [ -d experiments/go-install-001 ] || fail 'existing reference experiment missing'
+[ -d experiments/go-install-001 ] || fail 'existing reference experiment missing'
 grep -q 'policyctl.*outside\|outside.*policyctl' docs/production-architecture.md || fail 'policyctl boundary not documented'
 grep -q 'Lima/QEMU' docs/production-architecture.md || fail 'VM boundary not documented'
 grep -q 'require_independent_verification: true' recipes/learning/skill-promotion.yaml || fail 'verification gate missing'
