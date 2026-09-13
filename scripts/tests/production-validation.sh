@@ -10,7 +10,7 @@ pass "architecture files and mandatory execute bits"
 for script in scripts/*.sh scripts/tests/*.sh; do [ -f "$script" ] && bash -n "$script" || fail "shell syntax: $script"; done
 command -v python3 >/dev/null || fail "python3 missing"
 command -v go >/dev/null || fail "go missing"
-gofmt -l . | grep -q . && fail "Go formatting differences found" || true
+if [ -n "$(gofmt -l .)" ]; then fail "Go formatting differences found"; fi
 go vet ./...
 pass "shell and Go validation"
 python3 - <<'PY'
@@ -38,4 +38,9 @@ grep -q 'raw_artifacts' recipes/instrumentation/npm-workload.yaml || fail 'instr
 grep -q 'research-report' recipes/roles/analysis-report-generator.yaml || fail 'research report output missing'
 grep -q 'independent_verification_required: true' recipes/roles/analysis-report-generator.yaml || fail 'report verification requirement missing'
 pass "host configuration, observability, evidence, gateways and report assertions"
-printf '%s\n' 'Static production validation PASS'; printf '%s\n' 'Runtime VM execution is intentionally separate; run scripts/tests/runtime-integration.sh on a disposable host/VM environment.'
+printf '%s\n' 'Static production validation PASS'; printf '%s\n' 'IMPORTANT: GitHub hosted CI static PASS is not Lima/QEMU runtime PASS.'
+printf '%s\n' 'For runtime acceptance on a suitable Lima/QEMU-capable research host run:'
+printf '%s\n' '  ./scripts/tests/production-validation.sh'
+printf '%s\n' '  export CUSIMANSE_LIMA_PROFILE=recipes/lima/profiles/security-research.yaml'
+printf '%s\n' '  ./scripts/tests/runtime-integration.sh'
+printf '%s\n' '  ./scripts/verify-run.sh reports/runtime/<run-id>'
