@@ -47,3 +47,6 @@ jobs:
 
       - name: Project validation
         run: bash ./scripts/tests/validate-project.sh
+
+      - name: Production architecture integration validation
+        run: bash ./scripts/tests/production-validation.sh

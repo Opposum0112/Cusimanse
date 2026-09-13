@@ -1,0 +1,16 @@
+id: aegis
+version: 1
+component: governance
+provider: Justin0504/Aegis
+install:
+  method: docker-or-source
+  repository: https://github.com/Justin0504/Aegis
+  fallback: source-build
+runtime:
+  mode: runtime-policy-and-audit
+  integration: host-side-agent-governance
+security:
+  is_boundary: false
+  agent_control_plane_authority: false
+  credentials_from_agent_args: false
+status: NOT_DEPLOYED

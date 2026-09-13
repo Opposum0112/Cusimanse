@@ -1,0 +1,26 @@
+id: skill-promotion
+version: 1.0
+kind: learning-policy
+candidate:
+  required_fields:
+    - name
+    - description
+    - capability_manifest
+    - source_artifacts
+    - execution_ids
+    - outcome
+    - provenance
+validation:
+  minimum_validated_cases: 2
+  minimum_distinct_artifacts: 2
+  require_replay: true
+  require_independent_verification: true
+  max_false_positive_rate: 0.20
+promotion:
+  require_human_approval: true
+  version_on_promotion: true
+  index_after_promotion: true
+failure:
+  retain_candidate: true
+  retain_failure_evidence: true
+  never_auto_install: true

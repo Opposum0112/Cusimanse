@@ -1,0 +1,19 @@
+id: numbat
+version: 1
+component: observability
+provider: perplexityai/numbat
+install:
+  method: go-install
+  package: github.com/perplexityai/numbat/cmd/numbat@latest
+  fallback: official-release
+runtime:
+  bind: 127.0.0.1:4318
+  protocol: otlp-http
+  mode: monitor
+integration:
+  hook_command: "numbat hook install --agent <primary-agent> --emit all"
+security:
+  is_boundary: false
+  bind_loopback_by_default: true
+  credentials_from_agent_args: false
+status: NOT_DEPLOYED
