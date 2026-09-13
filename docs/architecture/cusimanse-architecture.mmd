@@ -1,76 +1,90 @@
 flowchart TD
-    H[Human or CI intent] --> C[Markdown research contracts]
-    C --> R[YAML recipe graph]
-    R --> A[Primary Agent Adapter]
+    H[Researcher intent] --> C[1. Markdown contract]
+    C --> R[2. YAML experiment recipe]
+    R --> S[3. Session YAML + profile snapshot]
+    S --> HS[4. Normal host shell]
+    HS --> P[policyctl + host validation]
+    HS --> A[5. Select and start primary agent adapter]
 
-    subgraph O[Multiagent Operator Plane]
-      A --> OR[Specialist roles]
-      OR --> PL[Planner]
-      OR --> RS[Researcher]
-      OR --> RA[Runtime Analyst]
-      OR --> FA[Forensics Analyst]
-      OR --> DA[Detection Analyst]
-      OR --> VE[Verifier]
-      OR --> RG[Report Generator]
-      A --> CR[CrewAI optional coordination]
-      A --> SK[Versioned skills]
-      A --> MCP[Scoped MCP tools]
+    subgraph CP[Declarative and Control Plane]
+      C
+      R
+      S
+      P
+      AUD[Session audit]
+      BB[Blackboard / durable case state]
+      OBS[Token + session observability]
     end
 
-    R --> GW[Model / Harness Gateway Plane]
-    subgraph G[Gateway Plane]
-      GW --> LT[LiteLLM<br/>model routing + fallback + telemetry]
-      GW --> OM[OmniRoute<br/>provider routing + fallback]
+    subgraph OP[Primary Agent / Multiagent Operator Plane]
+      A --> PLAN[6. Discover / validate / plan]
+      PLAN --> APPROVE[7. Review + human approval]
+      APPROVE --> ORCH[8. Primary-agent orchestration]
+      ORCH --> PL[Planner]
+      ORCH --> RS[Researcher]
+      ORCH --> RA[Runtime Analyst]
+      ORCH --> FA[Forensics Analyst]
+      ORCH --> DA[Detection Analyst]
+      ORCH --> VE[Independent Verifier]
+      ORCH --> RG[Report Generator]
+      ORCH --> TF[Taskflow optional]
+      ORCH --> LG[LangGraph optional]
+      ORCH --> CR[CrewAI optional]
+      ORCH --> SK[Versioned skills]
+      ORCH --> MCP[Scoped MCP tools]
     end
 
-    A --> X[Agent execution]
-    PL --> X
-    RS --> X
-    RA --> X
-    FA --> X
-    DA --> X
-    X --> RV[Review / Approval]
-    RV --> VM[Disposable Lima / QEMU VM]
+    subgraph GP[Model / Harness Gateway Plane]
+      GW[Declared routing] --> LT[LiteLLM]
+      GW --> OM[OmniRoute]
+    end
+    R --> GW
+    A --> GW
+
+    APPROVE --> VM[9. Provision disposable Lima / QEMU]
+    SEC[VM / OS security controls] --- VM
 
     subgraph EX[Controlled Execution Plane]
-      VM --> IN[Instrumentation selected by workload recipe]
-      IN --> WK[Approved workload]
-      WK --> COL[Telemetry + raw evidence collection]
+      VM --> IN[10. Start VM-side instrumentation]
+      IN --> WK[11. Execute approved workload]
+      WK --> COL[12. Collect telemetry + raw evidence]
     end
 
-    COL --> BB[Blackboard / durable case store]
-    subgraph B[Evidence and Analysis Plane]
-      BB --> ART[Immutable raw artifacts + hashes + provenance]
-      BB --> AUD[Run + audit records]
-      BB --> TEL[Telemetry]
-      BB --> AN[Evidence analysis]
-      BB --> FIND[Findings]
-      AN --> RG
-      FIND --> RG
-      VE --> IV[Independent verification]
-      RG --> RR[Research Report<br/>key platform output]
-      IV --> RR
-    end
+    COL --> BB
+    BB --> ART[Evidence + hashes + provenance]
+    BB --> AUD
+    BB --> AN[Evidence analysis]
+    AN --> VE
+    VE --> RR[13. Research report]
+    RG --> RR
 
-    RR --> PR[Preserve case]
-    PR --> DEST[Destroy disposable VM]
-    RR --> LEARN[Evidence-bounded learning]
-    LEARN --> CAND[Candidate skill / recipe improvement]
-    CAND --> REPLAY[Replay on distinct evidence]
-    REPLAY --> IV
+    RR --> LEARN[14. Optional learning]
+    LEARN --> EVAL[Evaluate candidate]
+    EVAL --> REPLAY[Replay on preserved/distinct evidence]
+    REPLAY --> VE
+    VE --> HA[Human approval for promotion]
+    HA --> PROM[Validated skill / recipe improvement]
 
-    PC[policyctl<br/>outside agent control plane] -. policy / audit signal .-> RV
-    SEC[VM/OS security boundary<br/>mounts credentials privilege network] --- VM
+    RR --> PRES[15. Preserve evidence]
+    PRES --> DASH[16. Finalize tokens + dashboard]
+    DASH --> DEST[17. Destroy disposable VM]
+    DEST --> DONE[18. Complete session state]
+
+    S --> AUD
+    DASH --> OBS
+    DONE --> OBS
+
+    PC[policyctl<br/>outside agent control plane] -. policy decision / audit .-> APPROVE
 
     classDef declarative fill:#eef6ff,stroke:#2563eb,stroke-width:2px
     classDef agent fill:#fff7ed,stroke:#ea580c,stroke-width:2px
     classDef gateway fill:#f0fdf4,stroke:#16a34a,stroke-width:2px
     classDef evidence fill:#f5f3ff,stroke:#7c3aed,stroke-width:2px
     classDef security fill:#ecfdf5,stroke:#15803d,stroke-width:2px
-    class C,R declarative
-    class A,OR,PL,RS,RA,FA,DA,VE,RG,CR,SK,MCP,X agent
+    class C,R,S,P,AUD,BB,OBS declarative
+    class A,PLAN,APPROVE,ORCH,PL,RS,RA,FA,DA,VE,RG,TF,LG,CR,SK,MCP agent
     class GW,LT,OM gateway
-    class BB,ART,AUD,TEL,AN,FIND,RR,IV evidence
+    class ART,AN,RR,LEARN,EVAL,REPLAY,HA,PROM evidence
     class VM,SEC security
 
-    %% Invariant: the project is multiagentic, but no model, agent, role, skill, MCP server, gateway or orchestrator is the sandbox.
+    %% Invariant: agents, skills, MCP, gateways and orchestrators coordinate research; Lima/QEMU + VM/OS controls enforce workload isolation.
