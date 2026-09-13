@@ -3,6 +3,16 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$ROOT"
 
+echo '== Repository script contract =='
+test -x scripts/prerequisites.sh
+test -x scripts/agent-preflight.sh
+test -x scripts/install.sh
+test -x scripts/goose-env.sh
+while IFS= read -r -d '' f; do
+  test -x "$f" || { echo "FAIL: shell script is not executable: $f" >&2; exit 1; }
+done < <(find scripts -type f -name '*.sh' -print0)
+echo 'PASS repository shell scripts have execute bits'
+
 echo '== Recipe validation =='
 bash ./scripts/tests/validate-recipes.sh
 
@@ -27,6 +37,7 @@ test -f cmd/policyctl/main_test.go
 test -f recipes/goose/project.yaml
 test -f antigravity/README.md
 test -f grok/README.md
+test -f scripts/agent-preflight.sh
 
 grep -q 'owner: project' recipes/mcp/registry.yaml
 grep -q 'owner: project' recipes/skills/registry.yaml
