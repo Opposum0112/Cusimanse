@@ -1,5 +1,5 @@
 {
-  "manifest_version": 3,
+  "manifest_version": 4,
   "package": "Cusimanse",
   "license": "MIT",
   "spdx": "MIT",
@@ -10,7 +10,9 @@
     "execution_owner": "selected-primary-agent-shell",
     "lifecycle_owner": "selected-primary-agent-shell",
     "security_boundary": "disposable-lima-qemu-vm-and-os-controls",
-    "host_scripts_role": "bootstrap-validation-preflight-only"
+    "host_scripts_role": "bootstrap-validation-preflight-only",
+    "architecture_source": "docs/architecture/cusimanse-architecture.svg",
+    "architecture_mermaid": "docs/architecture/cusimanse-architecture.mmd"
   },
   "primary_agent_contracts": [
     "recipes/agents/primary-agent.yaml",
@@ -34,10 +36,14 @@
   "runtime_documentation": [
     "README.md",
     "contracts/01-deployment-architecture.md",
-    "docs/agent-shell-runbook.md",
-    "docs/agent-and-adapter-strategy.md",
     "contracts/03-deployment-runbook.md",
-    "contracts/10-validation-and-acceptance.md"
+    "contracts/10-validation-and-acceptance.md",
+    "docs/system-requirements.md",
+    "docs/agent-shell-runbook.md"
+  ],
+  "experiment_prompts": [
+    "docs/prompts/go-install-001.md",
+    "docs/prompts/npm-install-001.md"
   ],
   "runtime_validation": {
     "bootstrap": "scripts/prerequisites.sh",
@@ -47,7 +53,7 @@
     "reference_experiment": "experiments/go-install-001"
   },
   "shell_forms": {
-    "goose": {"interactive": "goose", "run": "goose run --text '<PROMPT>'"},
+    "goose": {"interactive": "goose", "run": "verify with goose --help"},
     "opencode": {"interactive": "opencode", "run": "opencode run '<PROMPT>'"},
     "grok-build": {"interactive": "grok", "run": "grok -p '<PROMPT>'"},
     "antigravity": {"interactive": "agy", "run": "verify with agy --help"},
