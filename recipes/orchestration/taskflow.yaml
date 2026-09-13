@@ -1,0 +1,43 @@
+version: 1
+id: taskflow
+kind: taskflow-orchestration-contract
+purpose: Define a provider-neutral task decomposition and checkpoint model for research sessions.
+
+execution:
+  owner: primary-agent
+  state_store: runs/<session-id>/session.yaml
+  blackboard: runs/<session-id>/blackboard/
+  checkpoint_each_task: true
+  retry_requires_policy_check: true
+
+stages:
+  - discover
+  - validate
+  - preflight
+  - plan
+  - review
+  - approval
+  - provision
+  - instrument
+  - execute
+  - collect
+  - reduce
+  - forensics
+  - analysis
+  - independent-verification
+  - report
+  - preserve
+  - dashboard-finalize
+  - destroy
+
+specialist_delegation:
+  allowed: true
+  roles_from: experiment_recipe
+  outputs_to: blackboard
+
+security:
+  is_security_boundary: false
+  bypass_policy: deny
+  bypass_vm_boundary: deny
+  self_approval: deny
+  model_output_is_evidence: false
