@@ -3,14 +3,16 @@
 Pinned Go package installation observation
 
 - **Stage:** `08`
-- **Document:** `08-go-install-001.md`
-- **VM profile:** security-research
+- **Contract:** `contracts/08-go-install-001.md`
+- **Experiment recipe:** `recipes/experiments/go-install-001.yaml`
+- **Workload:** `recipes/workloads/go-install-001.yaml`
+- **VM profile:** `recipes/lima/profiles/security-research.yaml`
 - **Network policy:** `controlled`
 - **Instrumentation:** process, syscall, filesystem, dns, network, packet, security-events
 
 ## Objective
 
-Observe a pinned in-repo Go install (packages/labprobe) inside a disposable Lima/QEMU VM.
+Observe a pinned in-repo Go install (`packages/labprobe`) inside a disposable Lima/QEMU VM.
 
 ## Hypothesis
 
@@ -19,11 +21,11 @@ The install produces correlated process, filesystem, DNS and network evidence th
 ## Target
 
 ```bash
-go install github.com/Opposum0112/ai-security-lab/packages/labprobe@v0.1.0
+go version
+go install ./packages/labprobe
 ```
 
-
-Default mode copies packages/labprobe into the VM and installs from the local path so a private GitHub repo still works. Networked module-proxy mode is opt-in.
+The reference workload uses the local module path so it is self-contained and does not depend on a remote repository. Networked module-proxy behavior is a separate, explicitly declared experiment variant.
 
 ## Success criteria
 
@@ -35,10 +37,10 @@ Default mode copies packages/labprobe into the VM and installs from the local pa
 
 ## Procedure
 
-1. `./scripts/bin/labctl stage run 08`
-2. Review `experiment.yaml` before any `--apply`.
-3. Start capture **before** the target command.
-4. Preserve and hash evidence before deleting a VM.
+1. Validate the contract and experiment/workload recipes.
+2. Start capture **before** the target command.
+3. Execute the declared workload only inside disposable compute.
+4. Preserve and hash evidence before deleting the VM.
 5. Do not mount host credentials.
 
-See `08-go-install-001.md` for the authoritative procedure.
+The contract and recipes are authoritative; this file is only a concise experiment reference.
