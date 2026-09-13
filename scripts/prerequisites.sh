@@ -41,7 +41,7 @@ install_optional_tools() {
   fi
   case "$DISTRO" in
     ubuntu|debian|linuxmint|pop) if have sudo; then sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y jq yq ripgrep sqlite3 file binutils strace lsof tcpdump tshark yara; else apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y jq yq ripgrep sqlite3 file binutils strace lsof tcpdump tshark yara; fi ;;
-    fedora|rhel|rocky|almalinux) if have sudo; then sudo dnf install -y jq yq ripgrep sqlite3 file binutils strace lsof tcpdump wireshark-cli yara; else sudo dnf install -y jq yq ripgrep sqlite3 file binutils strace lsof tcpdump wireshark-cli yara; fi ;;
+    fedora|rhel|rocky|almalinux) if have sudo; then sudo dnf install -y jq yq ripgrep sqlite3 file binutils strace lsof tcpdump wireshark-cli yara; else dnf install -y jq yq ripgrep sqlite3 file binutils strace lsof tcpdump wireshark-cli yara; fi ;;
     arch|manjaro) if have sudo; then sudo pacman -Sy --needed --noconfirm jq yq ripgrep sqlite sqlite-tools file binutils strace lsof tcpdump wireshark-cli yara; else pacman -Sy --needed --noconfirm jq yq ripgrep sqlite sqlite-tools file binutils strace lsof tcpdump wireshark-cli yara; fi ;;
     opensuse*|sles) if have sudo; then sudo zypper --non-interactive install jq yq ripgrep sqlite3 file binutils strace lsof tcpdump wireshark-cli yara; else zypper --non-interactive install jq yq ripgrep sqlite3 file binutils strace lsof tcpdump wireshark-cli yara; fi ;;
     *) fail "unsupported Linux distribution '$DISTRO' for optional tools" ;;
@@ -66,7 +66,7 @@ if ! have limactl; then
       ubuntu|debian|linuxmint|pop) if have sudo; then sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y lima; else apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y lima; fi ;;
       fedora|rhel|rocky|almalinux) if have sudo; then sudo dnf install -y lima; else sudo dnf install -y lima; fi ;;
       arch|manjaro) if have sudo; then sudo pacman -Sy --needed --noconfirm lima; else pacman -Sy --needed --noconfirm lima; fi ;;
-      opensuse*|sles) if have sudo; then sudo zypper --non-interactive install lima; else zypper --non-interactive install lima; fi ;;
+      opensuse*|sles) if have sudo; then sudo zypper --non-interactive install lima; else sudo zypper --non-interactive install lima; fi ;;
       *) fail "Lima is missing and this Linux distribution has no supported automated package path" ;;
     esac
   fi
