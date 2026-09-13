@@ -1,17 +1,16 @@
 id: aegis
 version: 1
-component: observability
-provider: openai/aegis
+component: governance
+provider: Justin0504/Aegis
 install:
-  method: go-install
-  package: github.com/openai/aegis/cmd/aegis@latest
-  fallback: official-release
+  method: docker-or-source
+  repository: https://github.com/Justin0504/Aegis
+  fallback: source-build
 runtime:
-  bind: 127.0.0.1:4317
-  protocol: otlp-grpc
-  mode: governance
+  mode: runtime-policy-and-audit
+  integration: host-side-agent-governance
 security:
   is_boundary: false
-  outbound_default: deny-unless-configured
+  agent_control_plane_authority: false
   credentials_from_agent_args: false
 status: NOT_DEPLOYED
