@@ -1,0 +1,57 @@
+flowchart TD
+    H[Human or CI intent] --> C[Markdown research contracts]
+    C --> R[YAML recipe graph]
+    R --> A[Selected Agent Adapter]
+
+    subgraph OP[Modular Pluggable Operator Plane]
+      A --> CR[CrewAI specialist roles<br/>optional]
+      CR --> RP[Role plugins<br/>planner researcher analyst verifier reporter]
+      A --> SP[Skill plugins<br/>SKILL.md scripts eval provenance]
+      A --> MP[MCP plugins<br/>scoped tools]
+    end
+
+    A --> X[Agent operates and executes]
+    RP -. structured role results .-> X
+    SP -. declared capabilities .-> X
+    MP -. scoped integrations .-> X
+
+    X --> P[Plan / Review / Approval]
+    P --> V[Provision disposable Lima / QEMU VM]
+    V --> I[Start instrumentation]
+    I --> W[Execute approved workload]
+    W --> E[Collect raw evidence + telemetry]
+    E --> B[Blackboard / durable case store]
+
+    subgraph BB[Blackboard]
+      B --> AR[Artifacts + provenance]
+      B --> AU[Run + audit records]
+      B --> FN[Findings + evidence analysis]
+      B --> VR[Verification results]
+      B --> RR[Research report + technical details]
+    end
+
+    VR --> L[Self-learning loop]
+    RR --> L
+    L --> SC[Candidate skill / recipe improvement]
+    SC --> RE[Replay on distinct artifact]
+    RE --> IV[Independent verification]
+    IV --> HA[Human approval]
+    HA --> VS[Validated versioned skill]
+    VS --> SP
+
+    B --> PR[Preserve + hash evidence]
+    PR --> D[Destroy disposable VM]
+
+    PC[policyctl<br/>outside agent control plane] -. policy signal / audit .-> P
+    SEC[VM/OS security boundary<br/>mounts credentials privilege network] --- V
+
+    classDef declarative fill:#eef6ff,stroke:#3b82f6
+    classDef pluggable fill:#fff7e6,stroke:#f59e0b
+    classDef data fill:#f5f3ff,stroke:#8b5cf6
+    classDef security fill:#ecfdf5,stroke:#16a34a
+    class C,R declarative
+    class A,CR,RP,SP,MP pluggable
+    class B,AR,AU,FN,VR,RR data
+    class V,SEC security
+
+    %% Invariant: no agent, role, skill, MCP server or orchestrator is the sandbox.
