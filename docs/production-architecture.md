@@ -55,6 +55,10 @@ Skill package
 | policyctl | Host-side policy/configuration and token observability | Policy signal, not enforcement |
 | MCP | Scoped tool access and enrichment | No |
 
+## Security policy boundary
+
+`policyctl` is a host-side policy/configuration and observability component that operates outside the experiment VM. It can report and configure policy signals, but it does not enforce the VM boundary. Lima/QEMU and the VM/OS controls enforce isolation, mounts, credentials, privilege and network policy. Agents, skills, MCP servers and orchestration layers cannot replace or bypass that boundary.
+
 ## Taskflow position
 
 GitHub Security Lab Taskflow is treated as a recipe/taskflow reference, not as the Cusimanse security controller. Its YAML-oriented task sequencing, agent handoffs, reusable prompts and conditional task concepts are useful for campaign recipes. Cusimanse remains responsible for experiment semantics, evidence, approval and the VM boundary.
