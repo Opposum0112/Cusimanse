@@ -59,19 +59,24 @@ The following table is the operational map for the architecture. **Commands in t
 #### 1. Host / Researcher plane
 
 ```bash
-# Install and configure baseline host dependencies
+# If the checkout has executable bits intact, run directly.
 ./scripts/prerequisites.sh
+
+# Safe first-run fallback: bash can run the bootstrap even if checkout permissions were lost.
+bash ./scripts/prerequisites.sh
 
 # Check the host and selected adapter prerequisites
 ./scripts/agent-preflight.sh
 
 # Interactive Go host setup
-# Choose mandatory setup, optional research components, or observability setup
 go run ./cmd/cusimanse-host
 
-# Inspect repository state
 git status --short --branch
 ```
+
+The repository tracks host `.sh` controls as executable. The bootstrap and preflight also run `chmod +x` over `scripts/*.sh` and `scripts/tests/*.sh`, then verify the execute bits. Project validation fails if a repository script is not executable.
+
+The prerequisite installer identifies the runtime OS, architecture and available package manager (`apt`, `dnf`, `pacman`, `zypper` or `apk`) instead of assuming a particular Linux distribution. For Lima it first tries the native package manager and, when Lima is unavailable there, falls back to the **official Lima release archive** for the detected OS/CPU architecture. This is important for distributions such as openSUSE where a usable Lima package may not be available from the configured repositories. Lima's official documentation also provides this binary-archive installation path. citeturn0search0
 
 For the extended research and observability profile:
 
@@ -83,10 +88,7 @@ CUSIMANSE_INSTALL_OBSERVABILITY=1 ./scripts/prerequisites.sh
 #### 2. Policy plane
 
 ```bash
-# Validate host-side policy/configuration
 ./policyctl validate
-
-# Inspect policyctl capabilities
 ./policyctl --help
 ```
 
@@ -97,59 +99,37 @@ CUSIMANSE_INSTALL_OBSERVABILITY=1 ./scripts/prerequisites.sh
 Choose exactly one primary terminal agent for a case:
 
 ```bash
-# Prime Agent
 export CUSIMANSE_PRIMARY_ADAPTER=prime-agent
 prime-agent --help
 prime-agent
 
-# Hermes
 export CUSIMANSE_PRIMARY_ADAPTER=hermes
 hermes --help
 hermes
 
-# Goose
 export CUSIMANSE_PRIMARY_ADAPTER=goose
 goose --help
 goose
 ```
 
-The selected agent reads the Cusimanse contracts and drives the case. Host setup and policy validation remain outside the agent prompt boundary.
-
 #### 4. Control plane
 
-The control plane is declarative/stateful rather than a single executable:
-
 ```bash
-# Inspect YAML contracts/campaigns
 find recipes -name '*.yaml' -print
-
-# Validate/transform YAML and JSON data
- yq '.' recipes/agents/self-learning-primary.yaml
- jq '.' < <(printf '%s\n' '{}')
-
-# Validate the project contracts and integration structure
+yq '.' recipes/agents/self-learning-primary.yaml
+jq '.' < <(printf '%s\n' '{}')
 bash ./scripts/tests/validate-project.sh
-
-# Architecture-refactor validation
 bash ./scripts/tests/architecture-refactor.sh
 ```
 
-The principal interfaces are:
-
-- **YAML** — agent, campaign, workflow, orchestration and promotion contracts.
-- **Taskflow** — ordered research stages and gates.
-- **LangGraph** — stateful execution/case orchestration.
-- **Scoped MCP** — controlled tool/data access; retrieval does not grant execution authority.
+The principal interfaces are **YAML** contracts, **Taskflow** stages/gates, **LangGraph** stateful orchestration and **scoped MCP** tool/data access.
 
 #### 5. Observability / Governance plane
 
 OpenTelemetry is the tracing foundation. Phoenix, Numbat and Aegis are integrations for agent/runtime observability and governance when their adapters/installers are verified and deployed.
 
 ```bash
-# Check OpenTelemetry/Phoenix tooling available on the host
 python3 -c 'import importlib.util; print("opentelemetry:", bool(importlib.util.find_spec("opentelemetry"))); print("phoenix:", bool(importlib.util.find_spec("phoenix")))'
-
-# Check optional governance/observability CLIs when installed
 phoenix --help
 numbat --help
 aegis --help
@@ -162,16 +142,9 @@ If an optional adapter or binary is unavailable, Cusimanse records that capabili
 Lima/QEMU provides the disposable VM/OS execution boundary:
 
 ```bash
-# Inspect disposable VMs
 limactl list
-
-# Enter a selected VM
 limactl shell <vm>
-
-# Stop the VM after evidence collection
 limactl stop <vm>
-
-# Destroy it only after evidence has been preserved
 limactl delete <vm>
 ```
 
@@ -180,11 +153,8 @@ limactl delete <vm>
 #### 7. Evidence / Case plane
 
 ```bash
-# Inspect preserved experiment artifacts and case state
 find evidence blackboard runs -type f -print 2>/dev/null
 find experiments/go-install-001 -maxdepth 4 -type f -print 2>/dev/null
-
-# Verify an artifact hash
 sha256sum <file>
 ```
 
@@ -193,29 +163,12 @@ Evidence includes raw artifacts, telemetry, audit records, reductions, findings,
 #### 8. Learning plane
 
 ```bash
-# Discover skill packages
 find skills -name SKILL.md -print
-
-# Review changes to skill content before promotion
 git diff -- skills/
-
-# Inspect promotion gates and provenance requirements
 cat recipes/learning/skill-promotion.yaml
 ```
 
-The learning lifecycle is:
-
-```text
-Evidence
-  → CANDIDATE skill
-  → replay on distinct artifact
-  → independent verification
-  → human approval
-  → VALIDATED skill
-  → indexed retrieval
-```
-
-Retrieval ranking, LLM confidence, MCP availability or successful execution alone never promotes a skill.
+Lifecycle: **Evidence → CANDIDATE → replay on distinct artifact → independent verification → human approval → VALIDATED → indexed retrieval**.
 
 ## System requirements
 
@@ -238,7 +191,8 @@ git clone https://github.com/Opposum0112/Cusimanse.git
 cd Cusimanse
 git checkout architecture-refactor
 
-./scripts/prerequisites.sh
+# bash fallback is intentionally valid on a fresh checkout
+bash ./scripts/prerequisites.sh
 ./scripts/agent-preflight.sh
 ./policyctl validate
 bash ./scripts/tests/validate-project.sh
@@ -273,6 +227,15 @@ bash ./scripts/tests/architecture-refactor.sh
 ```
 
 `PASS` requires actual runtime evidence. Static validation is not runtime PASS.
+
+## Validation
+
+```bash
+bash ./scripts/tests/validate-project.sh
+bash ./scripts/tests/production-validation.sh
+```
+
+Validation checks script execute bits, preflight presence, shell/YAML structure, Go validation, host environment configuration, observability requirements, reference-experiment compatibility, policyctl separation, VM-boundary documentation and skill-promotion requirements.
 
 ## Security invariants
 
