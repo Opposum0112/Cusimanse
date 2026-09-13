@@ -1,8 +1,8 @@
-# Cusimanse Architecture Refactor
+# Cusimanse Production Architecture
 
 ## Purpose
 
-This branch introduces a reference architecture for stateful, self-learning security research while preserving the existing Cusimanse security boundary and terminal-first primary-agent model. It does not change `main`.
+This document describes the stateful, self-learning security-research architecture while preserving the Cusimanse security boundary and terminal-first primary-agent model.
 
 ## Layered model
 
@@ -57,7 +57,7 @@ Skill package
 
 ## Taskflow position
 
-GitHub Security Lab Taskflow is treated as a **recipe/taskflow reference**, not as the Cusimanse security controller. Its YAML-oriented task sequencing, agent handoffs, reusable prompts and conditional task concepts are useful for campaign recipes. Cusimanse remains responsible for experiment semantics, evidence, approval and the VM boundary.
+GitHub Security Lab Taskflow is treated as a recipe/taskflow reference, not as the Cusimanse security controller. Its YAML-oriented task sequencing, agent handoffs, reusable prompts and conditional task concepts are useful for campaign recipes. Cusimanse remains responsible for experiment semantics, evidence, approval and the VM boundary.
 
 ## Learning position
 
@@ -92,7 +92,7 @@ Indexed retrieval
 
 ## Evidence relation model
 
-The durable store should be able to represent:
+The durable store should represent:
 
 ```text
 Artifact -> Finding
@@ -102,23 +102,23 @@ Execution -> Verification
 Skill -> validated_on / failed_on / derived_from
 ```
 
-This is deliberately separate from the LangGraph checkpoint store. LangGraph answers “where is the workflow?”; the evidence store answers “what happened and why is this skill trusted?”.
+This is separate from the LangGraph checkpoint store. LangGraph answers “where is the workflow?”; the evidence store answers “what happened and why is this skill trusted?”.
 
 ## Primary self-learning adapter contract
 
-Prime Agent and Hermes adapters should expose the same logical contract:
+Prime Agent and Hermes adapters expose the same logical contract:
 
 1. Load the shared experiment contract.
 2. Load the selected campaign recipe.
 3. Retrieve candidate skills using task/artifact metadata.
-4. Present candidates to the agent as capabilities, not authority.
+4. Present candidates as capabilities, not authority.
 5. Operate only inside the approved experiment boundary.
 6. Capture tool traces and outputs.
 7. Emit evidence and a skill candidate when a reusable procedure is discovered.
-8. Run the evaluation/replay workflow.
+8. Run evaluation/replay.
 9. Request promotion approval; never self-promote privileged or high-risk skills.
 
-The adapter may use agent-native memory, skills or subagents, but the Cusimanse provenance and promotion contract remains authoritative for learned skills.
+Agent-native memory, skills and subagents remain agent capabilities. Cusimanse provenance and promotion controls remain authoritative for learned skills.
 
 ## Security invariants
 
@@ -132,4 +132,4 @@ The adapter may use agent-native memory, skills or subagents, but the Cusimanse 
 
 ## Compatibility strategy
 
-The refactor is additive. Existing Goose recipes and `go-install-001` remain the compatibility baseline. New campaign/learning components must consume the same experiment contracts and may be disabled without affecting the existing operator path.
+The architecture is additive. Existing Goose recipes and `go-install-001` remain the compatibility baseline. New campaign/learning components consume the same experiment contracts and can be disabled without affecting the existing operator path.

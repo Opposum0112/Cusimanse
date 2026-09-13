@@ -1,4 +1,4 @@
-id: architecture-refactor-mcp
+id: production-research-mcp
 version: 1
 kind: mcp-profile
 transport: stdio

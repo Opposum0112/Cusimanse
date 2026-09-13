@@ -33,7 +33,7 @@ install_linux_packages() {
 }
 
 install_optional_tools() {
-  log "Installing optional Architecture Refactor host tools"
+  log "Installing optional production research tools"
   if [ "$OS" = "Darwin" ]; then
     have brew || fail "Homebrew is required for optional macOS tools"
     brew install jq yq ripgrep sqlite3 binutils libmagic yara || true
@@ -64,9 +64,9 @@ if ! have limactl; then
   elif [ "$OS" = "Linux" ]; then
     case "$DISTRO" in
       ubuntu|debian|linuxmint|pop) if have sudo; then sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y lima; else apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y lima; fi ;;
-      fedora|rhel|rocky|almalinux) if have sudo; then sudo dnf install -y lima; else dnf install -y lima; fi ;;
+      fedora|rhel|rocky|almalinux) if have sudo; then sudo dnf install -y lima; else sudo dnf install -y lima; fi ;;
       arch|manjaro) if have sudo; then sudo pacman -Sy --needed --noconfirm lima; else pacman -Sy --needed --noconfirm lima; fi ;;
-      opensuse*|sles) if have sudo; then sudo zypper --non-interactive install lima; else zypper --non-interactive install lima; fi ;;
+      opensuse*|sles) if have sudo; then sudo zypper --non-interactive install lima; else sudo zypper --non-interactive install lima; fi ;;
       *) fail "Lima is missing and this Linux distribution has no supported automated package path" ;;
     esac
   fi
@@ -74,7 +74,8 @@ fi
 
 if ! have goose; then curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | bash; fi
 
-if [ "${CUSIMANSE_INSTALL_ARCH_REFACTOR:-0}" = "1" ]; then
+PRODUCTION_PROFILE="${CUSIMANSE_INSTALL_PRODUCTION_PROFILE:-${CUSIMANSE_INSTALL_ARCH_REFACTOR:-0}}"
+if [ "$PRODUCTION_PROFILE" = "1" ]; then
   install_optional_tools
   if have python3; then
     python3 -m pip install --user --upgrade pip || true
@@ -92,6 +93,6 @@ for tool in git bash python3 ruby go qemu-system-x86_64 limactl goose; do have "
 if [ "${#missing[@]}" -ne 0 ]; then fail "required tools still missing: ${missing[*]}"; fi
 log "OS PASS: ${OS} ${DISTRO} ${ARCH}"
 log "Tools PASS: git bash python3 ruby go qemu-system-x86_64 limactl goose"
-[ "${CUSIMANSE_INSTALL_ARCH_REFACTOR:-0}" = "1" ] && log "Architecture Refactor optional stack attempted"
+[ "$PRODUCTION_PROFILE" = "1" ] && log "Production research tool profile attempted"
 log "Prerequisite PASS"
 log "Shell: source scripts/goose-env.sh before running Goose"

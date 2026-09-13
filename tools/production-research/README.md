@@ -1,4 +1,4 @@
-# Architecture Refactor Tool Stack
+# Production Research Tool Stack
 
 Optional tools grouped by function:
 
@@ -14,6 +14,6 @@ Optional tools grouped by function:
 | Agent adapters | Prime Agent, Hermes (user/provider managed) |
 | Existing runtime | Lima, QEMU, Goose |
 
-The prerequisite script installs the safe/common host utilities automatically only when `CUSIMANSE_INSTALL_ARCH_REFACTOR=1` is set. Heavy language/model tooling and agent provider configuration remain explicit so the host does not unexpectedly download large runtimes or consume credentials.
+The prerequisite script installs safe/common host utilities when `CUSIMANSE_INSTALL_PRODUCTION_PROFILE=1` is set. Heavy language/model tooling and agent provider configuration remain explicit so the host does not unexpectedly download large runtimes or consume credentials.
 
 The tool list is a capability inventory, not a statement that every tool is required for every experiment. Missing optional capability is `NOT_DEPLOYED`.
