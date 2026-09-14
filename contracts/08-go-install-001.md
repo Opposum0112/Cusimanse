@@ -18,9 +18,7 @@ This is the reference example for creating a Cusimanse experiment:
 From the Cusimanse repository root, use the **normal host shell** for preparation and agent startup:
 
 ```bash
-./scripts/cusimanse-host.sh
-./scripts/prerequisites.sh
-./scripts/agent-preflight.sh
+./scripts/preflight.sh
 ./policyctl validate
 ```
 
