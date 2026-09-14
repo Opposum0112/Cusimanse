@@ -10,88 +10,18 @@ import (
 	"strings"
 )
 
-// Skill and Role are declarative agent capabilities. The Go layer owns the
-// update operation and regenerates the YAML consumers from these sources.
-type Skill struct {
-	Name         string   `json:"name"`
-	Version      int      `json:"version"`
-	Description  string   `json:"description"`
-	Capabilities  []string `json:"capabilities"`
-	RequiredTools []string `json:"required_tools"`
-}
+type Skill struct { Name string `json:"name"`; Version int `json:"version"`; Description string `json:"description"`; Capabilities []string `json:"capabilities"`; RequiredTools []string `json:"required_tools"` }
+type Role struct { Name string `json:"name"`; Version int `json:"version"`; Description string `json:"description"`; Skills []string `json:"skills"`; Capabilities []string `json:"capabilities"` }
+type RoleSkillRegistry struct { Version int `json:"version"`; Skills []Skill `json:"skills"`; Roles []Role `json:"roles"` }
 
-type Role struct {
-	Name        string   `json:"name"`
-	Version     int      `json:"version"`
-	Description string   `json:"description"`
-	Skills      []string `json:"skills"`
-	Capabilities []string `json:"capabilities"`
-}
-
-type RoleSkillRegistry struct {
-	Version int      `json:"version"`
-	Skills  []Skill  `json:"skills"`
-	Roles   []Role   `json:"roles"`
-}
-
-func registryPath(root string) string { return filepath.Join(root, "recipes", "agents", "role-skill-registry.json") }
-
-func loadRoleSkillRegistry(root string) (RoleSkillRegistry, error) {
-	var r RoleSkillRegistry
-	b, err := os.ReadFile(registryPath(root))
-	if err != nil { return r, err }
-	if err := json.Unmarshal(b, &r); err != nil { return r, err }
-	return r, validateRoleSkillRegistry(r)
-}
-
-func validateRoleSkillRegistry(r RoleSkillRegistry) error {
-	if r.Version < 1 { return errors.New("role/skill registry version must be >= 1") }
-	seen := map[string]bool{}
-	for _, s := range r.Skills {
-		if s.Name == "" || seen["skill:"+s.Name] { return fmt.Errorf("invalid or duplicate skill: %s", s.Name) }
-		seen["skill:"+s.Name] = true
-	}
-	for _, role := range r.Roles {
-		if role.Name == "" || seen["role:"+role.Name] { return fmt.Errorf("invalid or duplicate role: %s", role.Name) }
-		seen["role:"+role.Name] = true
-		for _, skill := range role.Skills {
-			if !seen["skill:"+skill] { return fmt.Errorf("role %s references unknown skill %s", role.Name, skill) }
-		}
-	}
-	return nil
-}
-
-func upsertSkill(root string, skill Skill) error {
-	r, err := loadRoleSkillRegistry(root); if err != nil { return err }
-	for i := range r.Skills { if r.Skills[i].Name == skill.Name { r.Skills[i] = skill; return writeRoleSkillRegistry(root, r) } }
-	r.Skills = append(r.Skills, skill); return writeRoleSkillRegistry(root, r)
-}
-
-func upsertRole(root string, role Role) error {
-	r, err := loadRoleSkillRegistry(root); if err != nil { return err }
-	if err := validateRoleSkillRegistry(RoleSkillRegistry{Version:r.Version, Skills:r.Skills, Roles:[]Role{role}}); err != nil { return err }
-	for i := range r.Roles { if r.Roles[i].Name == role.Name { r.Roles[i] = role; return writeRoleSkillRegistry(root, r) } }
-	r.Roles = append(r.Roles, role); return writeRoleSkillRegistry(root, r)
-}
-
-func writeRoleSkillRegistry(root string, r RoleSkillRegistry) error {
-	sort.Slice(r.Skills, func(i,j int) bool{return r.Skills[i].Name<r.Skills[j].Name})
-	sort.Slice(r.Roles, func(i,j int) bool{return r.Roles[i].Name<r.Roles[j].Name})
-	b, _ := json.MarshalIndent(r, "", "  "); b = append(b, '\n')
-	return os.WriteFile(registryPath(root), b, 0644)
-}
-
-func renderRoleSkillYaml(root string, r RoleSkillRegistry) (map[string]string, error) {
-	if err := validateRoleSkillRegistry(r); err != nil { return nil, err }
-	files := map[string]string{}
-	for _, s := range r.Skills {
-		files[filepath.Join("recipes", "skills", s.Name+".yaml")] = fmt.Sprintf("version: %d\nname: %s\ndescription: %s\ncapabilities: [%s]\nrequired_tools: [%s]\nmanaged_by: cmd/cusimanse\n", s.Version, s.Name, yamlQuote(s.Description), yamlList(s.Capabilities), yamlList(s.RequiredTools))
-	}
-	for _, role := range r.Roles {
-		files[filepath.Join(".agents", "agents", role.Name+".yaml")] = fmt.Sprintf("version: %d\nname: %s\ndescription: %s\nskills: [%s]\ncapabilities: [%s]\nmanaged_by: cmd/cusimanse\n", role.Version, role.Name, yamlQuote(role.Description), yamlList(role.Skills), yamlList(role.Capabilities))
-	}
-	return files, nil
-}
-
-func yamlList(v []string) string { out:=make([]string,len(v)); for i,s:=range v { out[i]=yamlQuote(s) }; return strings.Join(out, ", ") }
-func yamlQuote(s string) string { return "\""+strings.ReplaceAll(strings.ReplaceAll(s,"\\","\\\\"),"\"","\\\"")+"\"" }
+func registryPath(root string) string { return filepath.Join(root,"recipes","agents","role-skill-registry.json") }
+func loadRoleSkillRegistry(root string)(RoleSkillRegistry,error){var r RoleSkillRegistry;b,err:=os.ReadFile(registryPath(root));if err!=nil{return r,err};if err=json.Unmarshal(b,&r);err!=nil{return r,err};return r,validateRoleSkillRegistry(r)}
+func validateRoleSkillRegistry(r RoleSkillRegistry) error { if r.Version<1{return errors.New("role/skill registry version must be >= 1")}; seen:=map[string]bool{}; for _,s:=range r.Skills{if s.Name==""||seen["skill:"+s.Name]{return fmt.Errorf("invalid or duplicate skill: %s",s.Name)};seen["skill:"+s.Name]=true}; for _,role:=range r.Roles{if role.Name==""||seen["role:"+role.Name]{return fmt.Errorf("invalid or duplicate role: %s",role.Name)};seen["role:"+role.Name]=true;for _,skill:=range role.Skills{if !seen["skill:"+skill]{return fmt.Errorf("role %s references unknown skill %s",role.Name,skill)}}};return nil }
+func writeRoleSkillRegistry(root string,r RoleSkillRegistry) error {sort.Slice(r.Skills,func(i,j int)bool{return r.Skills[i].Name<r.Skills[j].Name});sort.Slice(r.Roles,func(i,j int)bool{return r.Roles[i].Name<r.Roles[j].Name});if err:=validateRoleSkillRegistry(r);err!=nil{return err};b,err:=json.MarshalIndent(r,"","  ");if err!=nil{return err};b=append(b,'\n');return os.WriteFile(registryPath(root),b,0644)}
+func syncRoleSkillConsumers(root string,r RoleSkillRegistry) error { if err:=validateRoleSkillRegistry(r);err!=nil{return err};files:=map[string]string{};for _,s:=range r.Skills{files[filepath.Join("recipes","skills",s.Name+".yaml")]=fmt.Sprintf("version: %d\nname: %s\ndescription: %s\ncapabilities: [%s]\nrequired_tools: [%s]\nmanaged_by: cmd/cusimanse\n",s.Version,s.Name,yamlQuote(s.Description),yamlList(s.Capabilities),yamlList(s.RequiredTools))};for _,role:=range r.Roles{files[filepath.Join(".agents","agents",role.Name+".yaml")]=fmt.Sprintf("version: %d\nname: %s\ndescription: %s\nskills: [%s]\ncapabilities: [%s]\nmanaged_by: cmd/cusimanse\n",role.Version,role.Name,yamlQuote(role.Description),yamlList(role.Skills),yamlList(role.Capabilities))};var roles []Role=append([]Role(nil),r.Roles...);sort.Slice(roles,func(i,j int)bool{return roles[i].Name<roles[j].Name});var sb strings.Builder;sb.WriteString("version: 1\nkind: generated-role-skill-bindings\nsource: recipes/agents/role-skill-registry.json\nmanaged_by: cmd/cusimanse\nroles:\n");for _,role:=range roles{sb.WriteString("  "+yamlQuote(role.Name)+": ["+yamlList(role.Skills)+"]\n")};files[filepath.Join("recipes","agents","role-skill-bindings.yaml")]=sb.String();for p,b:=range files{path:=filepath.Join(root,p);if err:=os.MkdirAll(filepath.Dir(path),0755);err!=nil{return err};if err:=os.WriteFile(path,[]byte(b),0644);err!=nil{return err}};return nil }
+func upsertSkill(root string,skill Skill) error {r,err:=loadRoleSkillRegistry(root);if err!=nil{return err};for i:=range r.Skills{if r.Skills[i].Name==skill.Name{r.Skills[i]=skill;return commitRoleSkillRegistry(root,r)}};r.Skills=append(r.Skills,skill);return commitRoleSkillRegistry(root,r)}
+func upsertRole(root string,role Role) error {r,err:=loadRoleSkillRegistry(root);if err!=nil{return err};for i:=range r.Roles{if r.Roles[i].Name==role.Name{candidate:=r;candidate.Roles=append([]Role(nil),r.Roles...);candidate.Roles[i]=role;if err:=validateRoleSkillRegistry(candidate);err!=nil{return err};r=candidate;return commitRoleSkillRegistry(root,r)}};candidate:=r;candidate.Roles=append(append([]Role(nil),r.Roles...),role);if err:=validateRoleSkillRegistry(candidate);err!=nil{return err};return commitRoleSkillRegistry(root,candidate)}
+func commitRoleSkillRegistry(root string,r RoleSkillRegistry) error {if err:=validateRoleSkillRegistry(r);err!=nil{return err};if err:=writeRoleSkillRegistry(root,r);err!=nil{return err};return syncRoleSkillConsumers(root,r)}
+func renderRoleSkillYaml(root string,r RoleSkillRegistry)(map[string]string,error){if err:=validateRoleSkillRegistry(r);err!=nil{return nil,err};files:=map[string]string{};for _,s:=range r.Skills{files[filepath.Join("recipes","skills",s.Name+".yaml")]=fmt.Sprintf("version: %d\nname: %s\ndescription: %s\ncapabilities: [%s]\nrequired_tools: [%s]\nmanaged_by: cmd/cusimanse\n",s.Version,s.Name,yamlQuote(s.Description),yamlList(s.Capabilities),yamlList(s.RequiredTools))};for _,role:=range r.Roles{files[filepath.Join(".agents","agents",role.Name+".yaml")]=fmt.Sprintf("version: %d\nname: %s\ndescription: %s\nskills: [%s]\ncapabilities: [%s]\nmanaged_by: cmd/cusimanse\n",role.Version,role.Name,yamlQuote(role.Description),yamlList(role.Skills),yamlList(role.Capabilities))};return files,nil}
+func yamlList(v []string)string{out:=make([]string,len(v));for i,s:=range v{out[i]=yamlQuote(s)};return strings.Join(out,", ")}
+func yamlQuote(s string)string{return "\""+strings.ReplaceAll(strings.ReplaceAll(s,"\\","\\\\"),"\"","\\\"")+"\""}
