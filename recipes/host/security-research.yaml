@@ -1,51 +1,26 @@
 kind: host-toolchain
-version: 4
+version: 5
 purpose: >-
-  Declarative inventory for the complete host toolchain. The recipe is the
-  source of truth for mandatory capabilities; scripts/install.sh implements
-  it and scripts/tools.sh exposes the resulting inventory.
-required:
-  commands:
-    - git
-    - bash
-    - curl
-    - python3
-    - ruby
-    - node
-    - npm
-    - go
-    - limactl
-    - qemu-system-x86_64
-    - goose
-    - jq
-    - yq
-    - rg
-    - strace
-    - tcpdump
-    - ss
-    - ip
-    - dig
-    - getent
-    - lsof
-    - find
-    - stat
-    - sha256sum
-    - inotifywait
-    - file
-    - ps
-    - pgrep
-    - litellm
-    - omniroute
-    - numbat
-    - clawmetry
+  Declarative host inventory. Host tools needed to run the experiment are
+  separated from Linux guest instrumentation tools. The installer consumes the
+  platform-specific capability groups and never assumes Linux command names on
+  macOS or native Windows.
+common:
+  commands: [git, bash, curl, python3, node, npm, go, jq, yq, rg, goose]
   python_packages: [phoenix, opentelemetry-api, opentelemetry-sdk, opentelemetry-exporter-otlp]
-  host_observer: [aegis]
-mandatory:
+platforms:
+  linux:
+    commands: [limactl, qemu-system-x86_64, strace, tcpdump, ss, ip, dig, getent, lsof, find, stat, sha256sum, inotifywait, file, ps, pgrep]
+  macos:
+    commands: [limactl, qemu-system-aarch64, qemu-system-x86_64, tcpdump, lsof, find, stat, ps, pgrep]
+    notes: Linux-only collector commands execute inside the Lima guest; x86_64 QEMU is not required on Apple Silicon when the guest architecture is native arm64.
+  windows_wsl2:
+    commands: [limactl, qemu-system-x86_64, strace, tcpdump, ss, ip, dig, getent, lsof, find, stat, sha256sum, inotifywait, file, ps, pgrep]
+    notes: Full reference experiments use WSL2. Native Windows is an agent-only fallback and is not a full experiment host.
+mandatory_services:
   gateways: [litellm, omniroute]
   observability: [numbat, aegis, phoenix, opentelemetry, clawmetry]
   primary_agent: goose
-optional_adapters:
-  recipe: recipes/agents/adapter-installation.yaml
 configuration:
   root: ~/.config/cusimanse/
   gateway: ~/.config/cusimanse/litellm.yaml
@@ -60,14 +35,12 @@ access:
   version_command: ./scripts/tools.sh versions
   config_command: ./scripts/tools.sh config
   secrets_not_printed: true
-platforms:
-  linux: [apt, dnf, pacman, zypper]
-  macos: [homebrew]
-  windows: [native-powershell-shim, wsl2]
-  fallback: report-unsupported-and-stop-before-experiment
+optional_adapters:
+  recipe: recipes/agents/adapter-installation.yaml
 installation:
   entrypoint: ./scripts/install.sh
   windows_entrypoint: ./scripts/install.ps1
   idempotent: true
   configure_from_recipe: true
   fail_if_required_capability_unavailable: true
+  unsupported_platform: report-and-stop-before-experiment
