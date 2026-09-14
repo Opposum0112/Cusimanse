@@ -4,6 +4,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BIN="$HOME/.local/bin"
 CFG="$HOME/.config/cusimanse"
 DATA="$HOME/.local/share/cusimanse"
+VENV="$DATA/venv"
 mkdir -p "$BIN" "$CFG" "$DATA"
 export PATH="$BIN:$HOME/go/bin:$PATH"
 log(){ printf '[cusimanse] %s\n' "$*"; }
@@ -14,8 +15,16 @@ if [ "$OS" = Darwin ]; then
   have brew || fail 'Homebrew is required on macOS'
   brew install git curl python node ruby go jq yq ripgrep qemu lima
 elif [ "$OS" = Linux ]; then
-  if have apt-get; then $SUDO apt-get update; $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y git bash curl python3 python3-pip ruby nodejs npm golang-go jq yq ripgrep qemu-system-x86 qemu-utils lima ca-certificates strace tcpdump iproute2 iputils-ping dnsutils lsof inotify-tools file psmisc procps
-  elif have dnf; then $SUDO dnf install -y git bash curl python3 python3-pip ruby nodejs npm golang jq yq ripgrep qemu-system-x86-core qemu-img lima ca-certificates strace tcpdump iproute iputils bind-utils lsof inotify-tools file psmisc procps
+  if have apt-get; then
+    $SUDO apt-get update
+    $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y git bash curl python3 python3-pip python3-venv ruby jq yq ripgrep qemu-system-x86 qemu-utils lima ca-certificates strace tcpdump iproute2 iputils-ping dnsutils lsof inotify-tools file psmisc procps
+    node_major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
+    if [ "$node_major" -lt 22 ]; then
+      curl -fsSL https://deb.nodesource.com/setup_22.x | $SUDO -E bash -
+      $SUDO apt-get install -y nodejs
+    fi
+    $SUDO apt-get install -y golang-go
+  elif have dnf; then $SUDO dnf install -y git bash curl python3 python3-pip python3-venv ruby nodejs npm golang jq yq ripgrep qemu-system-x86-core qemu-img lima ca-certificates strace tcpdump iproute iputils bind-utils lsof inotify-tools file psmisc procps
   elif have pacman; then $SUDO pacman -Sy --needed --noconfirm git bash curl python python-pip ruby nodejs npm go jq yq ripgrep qemu lima strace tcpdump iproute iputils bind lsof inotify-tools file psmisc procps
   elif have zypper; then $SUDO zypper --non-interactive install git bash curl python3 python3-pip ruby nodejs npm go jq yq ripgrep qemu lima ca-certificates strace tcpdump iproute2 iputils bind-utils lsof inotify-tools file psmisc procps
   else fail 'No supported Linux package manager'; fi
@@ -24,15 +33,16 @@ else fail 'Use Linux, macOS, or WSL2'; fi
 have limactl || fail 'Lima installation failed'
 if ! have goose; then curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | CONFIGURE=false GOOSE_BIN_DIR="$BIN" bash; fi
 have goose || fail 'Goose installation failed'
-node_major="$(node -p 'process.versions.node.split(".")[0]')"
-[ "$node_major" -ge 22 ] || fail 'Node.js 22+ is required by the current mandatory gateway/observer stack'
+node_major="$(node -p 'process.versions.node.split(".")[0]')"; [ "$node_major" -ge 22 ] || fail 'Node.js 22+ is required'
 
-python3 -m pip install --user --upgrade litellm arize-phoenix opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp clawmetry
+python3 -m venv "$VENV"
+"$VENV/bin/pip" install --upgrade pip
+"$VENV/bin/pip" install --upgrade litellm 'arize-phoenix' opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp clawmetry
+ln -sf "$VENV/bin/litellm" "$BIN/litellm"
+ln -sf "$VENV/bin/clawmetry" "$BIN/clawmetry"
 GOBIN="$BIN" go install github.com/perplexityai/numbat/cmd/numbat@latest
 npm install -g omniroute
-have numbat || fail 'Numbat installation failed'
-have omniroute || fail 'OmniRoute installation failed'
-have clawmetry || fail 'ClawMetry installation failed'
+have numbat || fail 'Numbat installation failed'; have omniroute || fail 'OmniRoute installation failed'; have clawmetry || fail 'ClawMetry installation failed'
 
 AEGIS="$DATA/aegis"
 if [ ! -d "$AEGIS/.git" ]; then git clone --depth 1 https://github.com/antropos17/Aegis "$AEGIS"; fi
@@ -45,7 +55,6 @@ npm start
 EOF
 chmod +x "$BIN/cusimanse-aegis"
 
-# Mandatory local routing: Goose -> LiteLLM -> OmniRoute. Provider secrets stay outside Git.
 cat > "$CFG/litellm.yaml" <<'EOF'
 model_list:
   - model_name: auto
@@ -80,11 +89,9 @@ export GOOSE_RECIPE_PATH="$PWD/recipes"
 EOF
 
 for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
-  if [ -f "$rc" ] && ! grep -Fq 'export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"' "$rc"; then
-    printf '\n# Cusimanse\nexport PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"\n' >> "$rc"
-  fi
+  if [ -f "$rc" ] && ! grep -Fq 'export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"' "$rc"; then printf '\n# Cusimanse\nexport PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"\n' >> "$rc"; fi
 done
 
-"$ROOT/preflight.sh"
+"$ROOT/scripts/preflight.sh"
 log 'Host preparation PASS'
 printf '%s\n' 'Next:' '  source ~/.config/cusimanse/goose.env' '  ./scripts/tests/validate.sh' '  goose run --recipe ./recipes/go-install-001/recipe.yaml --interactive'
