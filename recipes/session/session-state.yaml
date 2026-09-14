@@ -1,0 +1,115 @@
+version: 3
+id: research-session-state
+kind: session-state-contract
+purpose: >-
+  Maintain one durable YAML state record for every Cusimanse research session,
+  including immutable experiment identity, selected recipes, lifecycle checkpoints,
+  approvals, evidence, verification, reporting, mandatory host observability,
+  routing and the optional learning workflow.
+
+identity:
+  required: [session_id, experiment_id, contract_ref, recipe_ref]
+  immutable_after_start: [session_id, experiment_id, contract_ref, recipe_ref]
+
+profiles:
+  host_profile: required
+  compute_profile: required
+  tool_profile: required
+  agent_profile: required
+  adapter_profile: required
+  orchestration_profile: required
+  policy_profile: required
+  observability_profile: required
+  routing_profile: required
+  reporting_profile: required
+
+lifecycle:
+  states: [CREATED, VALIDATED, PREFLIGHTED, PLANNED, AWAITING_APPROVAL, APPROVED, PROVISIONED, INSTRUMENTED, EXECUTING, EVIDENCE_COLLECTED, ANALYZING, VERIFYING, REPORTED, PRESERVED, DESTROYED, COMPLETE, PARTIAL, FAILED]
+  current_state: CREATED
+  current_stage: create
+  stage_history_required: true
+  checkpoint_after_each_stage: true
+
+approvals:
+  required_for: [privileged_action, destructive_action, network_policy_change, credential_access, skill_promotion]
+  self_approval: false
+  record_decision_and_actor: true
+
+audit:
+  required: true
+  append_only: true
+  event_path: evidence/audit/events.jsonl
+  manifest_path: evidence/audit/manifest.sha256
+  record_requested_approved_executed_observed: true
+
+artifacts:
+  root: runs/<session-id>/
+  required:
+    state: session.yaml
+    audit: evidence/audit/events.jsonl
+    evidence_index: evidence/index.yaml
+    provenance: provenance/manifest.sha256
+    analysis: analysis/summary.md
+    verification: verification/result.md
+    research_report: research-report/report.md
+    preservation_manifest: preservation/manifest.yaml
+    token_usage: observability/token-usage.yaml
+    dashboard_snapshot: observability/dashboard.yaml
+  raw_evidence_before_destroy: true
+  hashes_before_destroy: true
+  model_output_is_evidence: false
+
+agent:
+  selected_primary_agent: goose-reference
+  operator_authority: primary-agent
+  native_orchestration: true
+  recipe_input: required
+  prompt_handoff: optional
+  other_agent_adapters: allowed_when_validated
+
+orchestration:
+  owner: primary-agent
+  specialist_roles: required
+  mechanism: native-primary-agent-subagents-and-subrecipes
+  competing_orchestration_framework: false
+  specialist_execution_may_be_parallel: true
+  backend_is_security_boundary: false
+
+learning:
+  enabled: opt_in
+  default: disabled
+  enable_by: session.learning.enabled=true
+  prerequisite: research_report_and_independent_verification_complete
+  operator: primary-agent
+  artifacts_root: runs/<session-id>/learning/
+  candidate_library: skills/candidate/
+  promotion_target: skills/validated/
+  helper_install_scope: host-control-plane-only
+  workflow: [retrieve, propose, execute, evaluate, refine, replay, independent_verification, human_approval, promote, rollback]
+  promotion_requires_human_approval: true
+  self_approval: false
+  replay_required: true
+  independent_verification_required: true
+  base_contracts_immutable: true
+  runtime_self_modification: false
+  automatic_privilege_grant: false
+  automatic_security_policy_change: false
+
+observability:
+  mandatory_host_stack: true
+  token_accounting_required: true
+  dashboard_refresh_required_at_session_end: true
+  final_dashboard_status: required
+  missing_mandatory_telemetry: FAIL
+
+routing:
+  mandatory_host_gateway_stack: true
+  local_only_by_default: true
+  security_boundary: false
+
+reproducibility:
+  snapshot_inputs: true
+  record_git_ref: true
+  record_recipe_digests: true
+  record_tool_versions: true
+  record_primary_agent_version: true
