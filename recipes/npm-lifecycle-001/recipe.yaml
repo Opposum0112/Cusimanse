@@ -1,0 +1,27 @@
+version: "1.0.0"
+title: "Cusimanse npm lifecycle behavior research"
+description: "Run a controlled local npm postinstall fixture in disposable Lima compute and independently verify observed process, filesystem and localhost network behavior."
+instructions: |
+  Read contracts/npm-lifecycle-001.md and recipes/experiments/npm-lifecycle-001.yaml.
+  Use recipes/session/session-state.yaml and the declared host, Lima and instrumentation
+  profiles. Create or resume the session, validate authorization, provision disposable
+  Lima compute, start collectors before the workload, execute the local fixture workload
+  inside the VM, collect and hash evidence, delegate analysis and independent verification,
+  produce the research report, preserve evidence and destroy the VM. Never run the workload
+  on the host. This fixture is intentionally local and harmless; do not replace it with
+  real malware or add external network destinations. Never treat model output as evidence.
+prompt: |
+  Execute the controlled Cusimanse npm lifecycle experiment and report observed
+  process, filesystem and localhost network behavior with independent verification.
+sub_recipes:
+  - name: evidence_analysis
+    path: "../subrecipes/evidence-analysis.yaml"
+  - name: verification
+    path: "../subrecipes/verification.yaml"
+  - name: report
+    path: "../subrecipes/report.yaml"
+extensions:
+  - type: builtin
+    name: developer
+    timeout: 300
+    bundled: true
