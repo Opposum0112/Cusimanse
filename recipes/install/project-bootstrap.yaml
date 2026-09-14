@@ -1,5 +1,5 @@
 version: "1.0.0"
-title: AI Security Lab — prerequisite and installation bootstrap
+title: Cusimanse prerequisite and installation bootstrap
 description: Preflight the host and install only prerequisites declared by the active recipes.
 instructions: |
   Inspect the host before changing it. Read recipes/install/install-all.yaml,
