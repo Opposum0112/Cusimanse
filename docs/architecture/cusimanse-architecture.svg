@@ -1,57 +1,55 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1160" viewBox="0 0 1600 1160" role="img" aria-labelledby="title desc">
-<title id="title">Cusimanse Multiagentic Declarative Security Research Platform</title>
-<desc id="desc">A multiagentic platform in which Markdown contracts and YAML recipes drive specialist agents and gateways, controlled workload execution occurs in disposable Lima QEMU VMs, instrumentation produces evidence, and a blackboard feeds independent verification and the final research report.</desc>
-<defs><style>.h{font:700 24px Arial,sans-serif;fill:#f8fafc}.t{font:600 17px Arial,sans-serif;fill:#e2e8f0}.s{font:15px Arial,sans-serif;fill:#94a3b8}.box{fill:#0b1830;stroke:#60a5fa;stroke-width:2}.agent{fill:#172554;stroke:#f59e0b;stroke-width:3}.gateway{fill:#10251c;stroke:#34d399;stroke-width:3}.exec{fill:#102a4f;stroke:#38bdf8;stroke-width:3}.data{fill:#0b1628;stroke:#a78bfa;stroke-width:2}.gov{fill:#171c2e;stroke:#f59e0b;stroke-width:2}.line{fill:none;stroke:#60a5fa;stroke-width:3;marker-end:url(#arrow)}.dash{fill:none;stroke:#94a3b8;stroke-width:2;stroke-dasharray:8 7;marker-end:url(#arrow)}</style><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L10,3 L0,6 Z" fill="#60a5fa"/></marker></defs>
-<rect width="1600" height="1160" rx="28" fill="#07111f"/>
-<text x="800" y="45" text-anchor="middle" class="h" font-size="34">Cusimanse — Multiagentic Declarative Security Research Platform</text>
-<text x="800" y="73" text-anchor="middle" class="s">Markdown specifies • YAML configures • specialist agents collaborate • gateways route models • blackboard preserves evidence • VM/OS enforces isolation</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1100" viewBox="0 0 1600 1100" role="img" aria-labelledby="title desc">
+<title id="title">Cusimanse simplified multi-plane architecture</title>
+<desc id="desc">Research intent becomes a Markdown contract and YAML recipe, then a primary agent orchestrates specialist role recipes. Policyctl remains outside the agent control plane. Model gateways route traffic. Disposable Lima QEMU execution produces evidence for verification and reporting. Optional learning happens after research and requires replay, independent verification and human approval.</desc>
+<defs>
+<style>.bg{fill:#07111f}.plane{fill:#0b1830;stroke:#60a5fa;stroke-width:2}.agent{fill:#172554;stroke:#f59e0b;stroke-width:3}.gw{fill:#10251c;stroke:#34d399;stroke-width:3}.exec{fill:#102a4f;stroke:#38bdf8;stroke-width:3}.data{fill:#17132a;stroke:#a78bfa;stroke-width:2}.gov{fill:#171c2e;stroke:#f59e0b;stroke-width:2}.h{font:700 24px Arial,sans-serif;fill:#f8fafc}.t{font:600 17px Arial,sans-serif;fill:#e2e8f0}.s{font:15px Arial,sans-serif;fill:#94a3b8}.line{fill:none;stroke:#60a5fa;stroke-width:3;marker-end:url(#a)}.dash{fill:none;stroke:#94a3b8;stroke-width:2;stroke-dasharray:8 7;marker-end:url(#a)}</style>
+<marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L10,3 L0,6 Z" fill="#60a5fa"/></marker>
+</defs>
+<rect width="1600" height="1100" rx="28" class="bg"/>
+<text x="800" y="45" text-anchor="middle" class="h" font-size="34">Cusimanse — Simplified Multiagentic Architecture</text>
+<text x="800" y="74" text-anchor="middle" class="s">Contracts define intent • recipes define execution • primary agent orchestrates • VM/OS controls enforce isolation</text>
 
-<rect x="55" y="100" width="1490" height="115" rx="18" class="box"/>
-<text x="800" y="134" text-anchor="middle" class="h">1 · DECLARATIVE CONTRACT &amp; RECIPE PLANE</text>
-<text x="800" y="164" text-anchor="middle" class="t">Markdown: intent • scope • hypotheses • safety • evidence • acceptance • promotion</text>
-<text x="800" y="190" text-anchor="middle" class="t">YAML: campaign • workload • VM • tools • instrumentation • agents • roles • skills • MCP • gateways • audit • reporting</text>
+<rect x="55" y="105" width="1490" height="120" rx="18" class="plane"/>
+<text x="800" y="138" text-anchor="middle" class="h">1 · DECLARATIVE / CONTROL PLANE</text>
+<text x="800" y="168" text-anchor="middle" class="t">Research contract → experiment recipe → session/profile snapshot</text>
+<text x="800" y="195" text-anchor="middle" class="s">Contracts: purpose, scope, safety, evidence, acceptance • Recipes: workload, VM, tools, instrumentation, roles, agents, MCP, routing, audit, reporting</text>
 
-<rect x="55" y="245" width="1490" height="205" rx="18" class="agent"/>
-<text x="800" y="280" text-anchor="middle" class="h">2 · MULTIAGENTIC OPERATOR PLANE</text>
-<rect x="85" y="305" width="250" height="105" rx="12" class="box"/><text x="210" y="338" text-anchor="middle" class="t">Primary Agent Adapter</text><text x="210" y="364" text-anchor="middle" class="s">case lifecycle + execution owner</text><text x="210" y="388" text-anchor="middle" class="s">Goose • OpenCode • Grok • Pi • Hermes • Codex • Prime</text>
-<rect x="365" y="305" width="250" height="105" rx="12" class="box"/><text x="490" y="338" text-anchor="middle" class="t">Specialist Agents</text><text x="490" y="364" text-anchor="middle" class="s">planner • researcher • runtime</text><text x="490" y="388" text-anchor="middle" class="s">forensics • detection • verifier</text>
-<rect x="645" y="305" width="250" height="105" rx="12" class="box"/><text x="770" y="338" text-anchor="middle" class="t">Analysis Agent</text><text x="770" y="364" text-anchor="middle" class="s">evidence correlation</text><text x="770" y="388" text-anchor="middle" class="s">findings + technical analysis</text>
-<rect x="925" y="305" width="250" height="105" rx="12" class="box"/><text x="1050" y="338" text-anchor="middle" class="t">Report Generator Agent</text><text x="1050" y="364" text-anchor="middle" class="s">research report + provenance</text><text x="1050" y="388" text-anchor="middle" class="s">limitations + reproducibility</text>
-<rect x="1205" y="305" width="300" height="105" rx="12" class="box"/><text x="1355" y="338" text-anchor="middle" class="t">Capabilities</text><text x="1355" y="364" text-anchor="middle" class="s">CrewAI optional • skills • scoped MCP</text><text x="1355" y="388" text-anchor="middle" class="s">capabilities ≠ authority / boundary</text>
-<path d="M335 357H365 M615 357H645 M895 357H925 M1175 357H1205" class="line"/>
+<rect x="55" y="255" width="1490" height="210" rx="18" class="agent"/>
+<text x="800" y="288" text-anchor="middle" class="h">2 · MULTIAGENTIC OPERATOR PLANE</text>
+<rect x="90" y="315" width="300" height="105" rx="12" class="plane"/><text x="240" y="348" text-anchor="middle" class="t">Primary Agent Adapter</text><text x="240" y="375" text-anchor="middle" class="s">lifecycle + execution authority</text><text x="240" y="398" text-anchor="middle" class="s">Goose • OpenCode • Grok • Pi • Hermes • Codex • Prime</text>
+<rect x="425" y="315" width="360" height="105" rx="12" class="plane"/><text x="605" y="348" text-anchor="middle" class="t">Specialist Role Recipes</text><text x="605" y="375" text-anchor="middle" class="s">planner • researcher • runtime • forensics</text><text x="605" y="398" text-anchor="middle" class="s">detection • analysis • verifier • reporter</text>
+<rect x="820" y="315" width="300" height="105" rx="12" class="plane"/><text x="970" y="348" text-anchor="middle" class="t">Capabilities</text><text x="970" y="375" text-anchor="middle" class="s">versioned skills • scoped MCP</text><text x="970" y="398" text-anchor="middle" class="s">coordination, not security boundary</text>
+<rect x="1155" y="315" width="355" height="105" rx="12" class="plane"/><text x="1332" y="348" text-anchor="middle" class="t">Native Orchestration</text><text x="1332" y="375" text-anchor="middle" class="s">primary agent delegates roles</text><text x="1332" y="398" text-anchor="middle" class="s">no competing core orchestrator</text>
+<path d="M390 367H425 M785 367H820 M1120 367H1155" class="line"/>
 
-<rect x="55" y="480" width="1490" height="145" rx="18" class="gateway"/>
-<text x="800" y="513" text-anchor="middle" class="h">3 · MODEL / HARNESS GATEWAY PLANE</text>
-<rect x="120" y="535" width="610" height="65" rx="12" class="box"/><text x="425" y="563" text-anchor="middle" class="t">LiteLLM — model routing, fallback and token/trace telemetry</text><text x="425" y="586" text-anchor="middle" class="s">Configured by recipes/routing + installer-generated ~/.config/cusimanse/litellm.yaml</text>
-<rect x="870" y="535" width="610" height="65" rx="12" class="box"/><text x="1175" y="563" text-anchor="middle" class="t">OmniRoute — provider routing and fallback</text><text x="1175" y="586" text-anchor="middle" class="s">Configured by recipes/gateways + ~/.config/cusimanse/omniroute.yaml</text>
+<rect x="55" y="495" width="1490" height="130" rx="18" class="gw"/>
+<text x="800" y="528" text-anchor="middle" class="h">3 · MODEL / ROUTING PLANE — OPTIONAL</text>
+<rect x="150" y="548" width="560" height="55" rx="10" class="plane"/><text x="430" y="582" text-anchor="middle" class="t">LiteLLM — model routing + fallback + telemetry</text>
+<rect x="890" y="548" width="560" height="55" rx="10" class="plane"/><text x="1170" y="582" text-anchor="middle" class="t">OmniRoute — provider routing + fallback</text>
 
-<rect x="55" y="655" width="1490" height="195" rx="18" class="exec"/>
-<text x="800" y="688" text-anchor="middle" class="h">4 · CONTROLLED EXECUTION &amp; INSTRUMENTATION PLANE</text>
-<rect x="85" y="715" width="235" height="90" rx="12" class="box"/><text x="202" y="746" text-anchor="middle" class="t">Plan / Review / Approve</text><text x="202" y="772" text-anchor="middle" class="s">policy signal • audit • gates</text>
-<rect x="345" y="715" width="235" height="90" rx="12" class="box"/><text x="462" y="746" text-anchor="middle" class="t">Provision VM</text><text x="462" y="772" text-anchor="middle" class="s">Lima / QEMU</text>
-<rect x="605" y="715" width="310" height="90" rx="12" class="box"/><text x="760" y="746" text-anchor="middle" class="t">Select Instrumentation</text><text x="760" y="772" text-anchor="middle" class="s">workload YAML chooses tools + telemetry</text>
-<rect x="940" y="715" width="235" height="90" rx="12" class="box"/><text x="1057" y="746" text-anchor="middle" class="t">Execute Workload</text><text x="1057" y="772" text-anchor="middle" class="s">inside disposable VM only</text>
-<rect x="1200" y="715" width="305" height="90" rx="12" class="box"/><text x="1352" y="746" text-anchor="middle" class="t">Collect + Hash Evidence</text><text x="1352" y="772" text-anchor="middle" class="s">raw artifacts • telemetry • provenance</text>
-<path d="M320 760H345 M580 760H605 M915 760H940 M1175 760H1200" class="line"/>
+<rect x="55" y="655" width="1490" height="190" rx="18" class="exec"/>
+<text x="800" y="688" text-anchor="middle" class="h">4 · CONTROLLED EXECUTION PLANE</text>
+<rect x="90" y="715" width="280" height="85" rx="12" class="plane"/><text x="230" y="748" text-anchor="middle" class="t">Policy / Review / Approval</text><text x="230" y="774" text-anchor="middle" class="s">policyctl decision + audit</text>
+<rect x="405" y="715" width="280" height="85" rx="12" class="plane"/><text x="545" y="748" text-anchor="middle" class="t">Disposable Compute</text><text x="545" y="774" text-anchor="middle" class="s">Lima / QEMU + VM / OS</text>
+<rect x="720" y="715" width="350" height="85" rx="12" class="plane"/><text x="895" y="748" text-anchor="middle" class="t">Instrumentation + Workload</text><text x="895" y="774" text-anchor="middle" class="s">approved workload runs inside VM</text>
+<rect x="1105" y="715" width="405" height="85" rx="12" class="plane"/><text x="1307" y="748" text-anchor="middle" class="t">Raw Evidence + Telemetry</text><text x="1307" y="774" text-anchor="middle" class="s">collect → hash → preserve</text>
+<path d="M370 757H405 M685 757H720 M1070 757H1105" class="line"/>
 
-<rect x="55" y="880" width="725" height="175" rx="18" class="data"/>
-<text x="417" y="913" text-anchor="middle" class="h">5 · BLACKBOARD / EVIDENCE &amp; ANALYSIS PLANE</text>
-<text x="417" y="944" text-anchor="middle" class="t">Run records • audit • raw artifacts • telemetry • hashes • provenance</text>
-<text x="417" y="970" text-anchor="middle" class="t">Evidence analysis • findings • verification relations</text>
-<text x="417" y="998" text-anchor="middle" class="s">Raw evidence is immutable; model output is not evidence.</text>
-<text x="417" y="1024" text-anchor="middle" class="s">Analysis consumes preserved evidence; it does not silently rewrite it.</text>
+<rect x="55" y="875" width="725" height="165" rx="18" class="data"/>
+<text x="417" y="908" text-anchor="middle" class="h">5 · EVIDENCE / BLACKBOARD PLANE</text>
+<text x="417" y="939" text-anchor="middle" class="t">Run records • audit • artifacts • telemetry • hashes • provenance</text>
+<text x="417" y="967" text-anchor="middle" class="s">Analysis consumes preserved evidence; model output is not evidence.</text>
+<text x="417" y="995" text-anchor="middle" class="s">Independent verification can challenge findings without rewriting raw evidence.</text>
 
-<rect x="815" y="880" width="730" height="175" rx="18" class="plane"/>
-<text x="1180" y="913" text-anchor="middle" class="h">6 · VERIFICATION, RESEARCH REPORT &amp; LEARNING</text>
-<text x="1180" y="944" text-anchor="middle" class="t">Independent verification → analysis → technical research report</text>
-<text x="1180" y="970" text-anchor="middle" class="t">scope • environment • workload • instrumentation • evidence • findings</text>
-<text x="1180" y="996" text-anchor="middle" class="s">provenance • hashes • limitations • reproducibility • conclusion</text>
-<text x="1180" y="1022" text-anchor="middle" class="s">report/evidence can propose learning; replay + verification + human approval promote skills</text>
+<rect x="815" y="875" width="730" height="165" rx="18" class="data"/>
+<text x="1180" y="908" text-anchor="middle" class="h">6 · VERIFICATION / REPORT / LEARNING PLANE</text>
+<text x="1180" y="939" text-anchor="middle" class="t">Independent verification → research report → preserve → finalize dashboard</text>
+<text x="1180" y="967" text-anchor="middle" class="s">Optional learning: Taskflow / LangGraph → replay → independent verification</text>
+<text x="1180" y="995" text-anchor="middle" class="s">HUMAN APPROVAL → skills/validated or recipe improvement • rollback on regression</text>
 
-<rect x="55" y="1080" width="1490" height="55" rx="16" class="gov"/>
-<text x="800" y="1104" text-anchor="middle" class="t">7 · GOVERNANCE &amp; SECURITY BOUNDARY</text>
-<text x="800" y="1125" text-anchor="middle" class="s">policyctl is outside the agent control plane • gateways/agents are not the sandbox • Lima/QEMU + VM/OS enforce mounts, credentials, privilege and networking</text>
+<rect x="55" y="1060" width="1490" height="30" rx="12" class="gov"/>
+<text x="800" y="1081" text-anchor="middle" class="s">Governance invariant: policyctl is outside the agent control plane; agents, roles, skills, MCP, gateways and observability do not enforce isolation; VM/OS controls do.</text>
 
-<path d="M800 215V245 M800 450V480 M800 625V655 M500 850V880 M1100 850V880" class="line"/>
-<path d="M55 1080H1545" class="dash"/>
+<path d="M800 225V255 M800 465V495 M800 625V655 M500 845V875 M1100 845V875" class="line"/>
+<path d="M90 420 Q800 510 1510 420" class="dash"/>
 </svg>
