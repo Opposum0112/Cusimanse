@@ -11,9 +11,15 @@ OS="$(uname -s)"
 case "$OS" in
   Linux) platform=linux ;;
   Darwin) platform=macos ;;
+  MINGW*|MSYS*|CYGWIN*) platform=windows_native ;;
   *) platform=windows_wsl2 ;;
 esac
-while IFS= read -r t; do command -v "$t" >/dev/null 2>&1 || missing+=("command:$t"); done < <(yq -r '.common.commands[], .platforms["'"$platform"'"].commands[]' "$RECIPE" 2>/dev/null)
+if [ "$platform" = windows_native ]; then
+  echo 'PREFLIGHT NOT_READY: native Windows is supported for agent/repository operations; use WSL2 for Lima reference experiments.' >&2
+  exit 2
+fi
+while IFS= read -r t; do [ -z "$t" ] || command -v "$t" >/dev/null 2>&1 || missing+=("host-command:$t"); done < <(yq -r '.common.commands[]' "$RECIPE")
+while IFS= read -r t; do [ -z "$t" ] || command -v "$t" >/dev/null 2>&1 || missing+=("platform-command:$t"); done < <(yq -r '.platforms["'"$platform"'"].commands[]' "$RECIPE" 2>/dev/null)
 [ -x "$VENV/bin/python" ] || missing+=(python-venv)
 if [ -x "$VENV/bin/python" ]; then "$VENV/bin/python" - <<'PY' || missing+=(python-observability)
 import importlib.util
@@ -30,7 +36,5 @@ fi
 [ -f "$ROOT/recipes/lima/security-research.yaml" ] || missing+=(lima-profile)
 [ -f "$ROOT/recipes/instrumentation/security-research.yaml" ] || missing+=(instrumentation-profile)
 [ -f "$ROOT/recipes/session/session-state.yaml" ] || missing+=(session-state)
-[ "$platform" = macos ] && ! command -v qemu-system-aarch64 >/dev/null 2>&1 && missing+=(qemu-system-aarch64)
-[ "$platform" = macos ] && ! command -v qemu-system-x86_64 >/dev/null 2>&1 && echo 'PREFLIGHT NOTE: x86_64 QEMU is absent; native arm64 Lima experiments remain supported.'
 [ "${#missing[@]}" -eq 0 ] || { printf 'PREFLIGHT FAIL: %s\n' "${missing[*]}" >&2; exit 1; }
 printf 'PREFLIGHT PASS: platform=%s host capabilities, mandatory gateways/observability and experiment profiles are ready.\n' "$platform"
