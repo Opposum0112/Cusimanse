@@ -1,0 +1,6 @@
+version: 1
+name: forensics-analyst
+description: "Analyze filesystem and process artifacts"
+skills: ["forensics", "evidence-analysis"]
+capabilities: ["collect"]
+managed_by: cmd/cusimanse
