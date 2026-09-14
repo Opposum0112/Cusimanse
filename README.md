@@ -39,7 +39,7 @@ Cusimanse is a **declarative research-contract, YAML-recipe and agent-operation 
 | Capability registry | Reusable host/workload capabilities | `recipes/profiles/registry.yaml` |
 | Go capability API | Resolve, provision, configure, execute, collect, destroy | `cmd/cusimanse/` |
 | Roles/Skills | Specialist behavior and least-scope delegation | `recipes/agents/role-skill-registry.json` |
-| Policy | Allow, deny, approval and audit | `policies/host-policy.yaml` + Go runtime |
+| Policy | Declarative authority and enforcement | `policies/host-policy.yaml` + Go runtime + `scripts/policyctl` |
 | Agent | Plan, select, operate, observe, adapt, analyze | Goose + specialist roles |
 | Containment | Disposable execution boundary | Lima/QEMU guest |
 | Evidence | Observations, provenance, verification and report | `runs/<session-id>/` |
@@ -51,7 +51,7 @@ The agent may operate registered capabilities, but cannot create trusted profile
 1. **Declaration** — Markdown contract plus YAML requirements.
 2. **Agent operation** — Goose is the reference operator; roles and Skills provide specialist behavior.
 3. **Capability resolution** — Go matches requirements to versioned profiles and fails closed on no match or ambiguity.
-4. **Policy control** — the Go capability runtime is the policy decision point; `scripts/policyctl` remains a compatibility/audit helper.
+4. **Policy control** — Go owns lifecycle/control decisions and invokes `scripts/policyctl` for the current policy validation/check/approval compatibility surface.
 5. **Execution** — the provider operates Lima/QEMU and fixed workload handlers inside disposable compute.
 6. **Research** — evidence is collected and hashed, then analyzed, independently verified, reported and preserved.
 
@@ -62,9 +62,9 @@ Experiment requirements
        ↓
 Agent selects WHICH registered capability
        ↓
-Go Capability API owns HOW
+Go Capability API owns lifecycle/HOW
        ↓
-Go policy decision + audit helper
+policy definition + policyctl enforcement helper
        ↓
 Lima/QEMU provides WHERE
        ↓
@@ -74,6 +74,8 @@ Specialists → verifier → report-generator
        ↓
 preserve → destroy
 ```
+
+**Policyctl evaluation:** it is still operationally required by the current Go runtime because `cmd/cusimanse` invokes it during policy validation/check/approval. It should be treated as a compatibility enforcement helper, not as a competing authority. A future native Go policy evaluator can remove this dependency; this branch does not falsely claim that migration is complete.
 
 Model output is never trusted infrastructure or raw evidence.
 
@@ -102,8 +104,6 @@ Do not put VM commands, package installation, host mounts or model-generated inf
 goose run --recipe ./recipes/npm-threat-001/recipe.yaml --interactive
 ```
 
-The recipe directs the agent to read the contract and requirements, resolve capabilities, obtain approval where required, and operate the Go API.
-
 ### 4. Resolve before execution
 
 ```bash
@@ -120,7 +120,7 @@ The lifecycle is `resolve → policy → provision → instrument → execute �
 
 ### 6. Analyze, verify and report
 
-The primary agent delegates runtime, forensics and detection analysis. The `verifier` independently checks evidence and conclusions. The `report-generator` creates the final researcher-facing report from the declared requirements, preserved evidence, specialist analysis, verification and observability metadata.
+The primary agent delegates runtime, forensics and detection analysis. The `verifier` independently checks evidence and conclusions. The `report-generator` creates the final report from requirements, preserved evidence, specialist analysis, verification and observability metadata.
 
 ```text
 observe → analyze → request declared capability → execute → observe
@@ -134,7 +134,7 @@ observe → analyze → request declared capability → execute → observe
 
 ## Host toolchain
 
-The authoritative inventory is `recipes/host/security-research.yaml`. It separates common host commands, platform-specific host commands, guest-only instrumentation, mandatory gateways/observers and configuration locations. `scripts/install.sh` installs/configures the stack and `scripts/tools.sh` reports inventory, versions and configuration.
+The authoritative inventory is `recipes/host/security-research.yaml`. It separates common host commands, platform-specific host commands, guest-only instrumentation, mandatory gateways/observers and configuration locations.
 
 ### Common host commands
 
@@ -150,7 +150,7 @@ The authoritative inventory is `recipes/host/security-research.yaml`. It separat
 | `rg` | repository/search operations |
 | `goose` | reference agent and recipe orchestration |
 
-`go` is a required host capability and is installed by `scripts/install.sh` on Linux and macOS. Numbat is installed with `go install`, so the Go toolchain is available before Numbat installation.
+`go` is a required host capability and is installed by `scripts/install.sh` on Linux and macOS. Numbat is installed with `go install`, so the Go toolchain is available before Go-based capabilities are installed.
 
 ### Platform-specific host commands
 
@@ -179,7 +179,7 @@ The authoritative inventory is `recipes/host/security-research.yaml`. It separat
 ./scripts/observability.sh status
 ```
 
-The installer is idempotent, installs Go explicitly, configures the gateways/observability stack, and fails before experiments when required host capabilities are unavailable. Remote installers are downloaded to temporary files and syntax-checked before execution.
+The installer is idempotent, installs Go explicitly, configures gateways/observability, and fails before experiments when required host capabilities are unavailable. Remote installers are downloaded to temporary files and syntax-checked before execution.
 
 ## Gateway configuration
 
@@ -213,8 +213,6 @@ Cusimanse separates **agent observability** from **experiment evidence**:
 
 For each run, preserve token/cost-oriented telemetry in `runs/<session-id>/observability/token-usage.yaml` when available. Never store API keys in telemetry artifacts.
 
-Convenience commands:
-
 ```bash
 ./scripts/tools.sh numbat
 ./scripts/observability.sh numbat
@@ -223,26 +221,11 @@ Convenience commands:
 ./scripts/observability.sh report <session-id>
 ```
 
-See [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md) for the detailed access model, correlation fields and reporting workflow.
+See [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md) for correlation fields, access details and the report workflow.
 
 ### Report generation
 
-`report-generator` is a first-class role and `report-generation` is a first-class Skill. It has no execution or policy mutation authority. It consumes:
-
-- research requirements and contract
-- preserved evidence and provenance
-- runtime/forensics/detection analysis
-- independent verification
-- relevant observability/token metadata
-
-and produces:
-
-```text
-runs/<session-id>/research-report/report.md
-runs/<session-id>/research-report/report.yaml
-```
-
-The report must trace conclusions to evidence, distinguish observation from inference, state confidence and limitations, record partial/failed steps and describe reproducibility.
+`report-generator` is a first-class role and `report-generation` is a first-class Skill. It has no execution or policy mutation authority. It consumes requirements, evidence, specialist analysis, independent verification and relevant observability metadata and writes `runs/<session-id>/research-report/report.md` and `report.yaml`.
 
 ## Agent adapters and prompt handoff
 
@@ -310,7 +293,7 @@ go run ./cmd/cusimanse capability skill upsert --name runtime-analysis --descrip
 go run ./cmd/cusimanse capability role upsert --name runtime-analyst --description 'Analyze runtime behavior' --skills runtime-analysis --capabilities execute,collect
 ```
 
-Role/Skill upserts update the source-of-truth registry and regenerate the corresponding YAML consumers deterministically. They do **not** grant infrastructure authority or change policy.
+Role/Skill upserts update the source-of-truth registry and regenerate role YAML, Skill YAML and role/Skill bindings deterministically. They do not grant infrastructure authority or change policy.
 
 ## Roles Skills and learning
 
@@ -373,9 +356,7 @@ The registry is deterministic, permits agent selection and forbids agent-created
 
 ## Policy and safety
 
-The **Go capability runtime is the intended policy decision point**. The policy definition remains declarative in `policies/host-policy.yaml`.
-
-`scripts/policyctl` is retained as a compatibility/audit helper for shell users, CI and existing recipes. It is **not an independent security authority** and should not be treated as a second policy engine.
+The policy definition remains declarative in `policies/host-policy.yaml`. The current Go runtime owns the capability lifecycle and invokes `scripts/policyctl` as its enforcement/approval compatibility helper. Therefore `policyctl` is still required for the current implementation, but it is **not a second policy authority**.
 
 ```bash
 ./scripts/policyctl validate
@@ -385,6 +366,8 @@ The **Go capability runtime is the intended policy decision point**. The policy 
 ./scripts/policyctl check mounts
 ./scripts/policyctl audit
 ```
+
+The intended future migration is a native Go evaluator over the same declarative policy file, followed by removal of the shell dependency after equivalent tests and independent verification. This branch deliberately does not claim that migration is complete.
 
 The security boundary remains:
 
@@ -460,7 +443,7 @@ CUSIMANSE_RUN_VM_TEST=1 ./scripts/tests/runtime.sh
 ./scripts/tests/integration.sh
 ```
 
-The integration test covers host inventory → gateways/observability → adapters/prompts → Goose recipes → role/Skill management → capability resolution → policy → session lifecycle → evidence hashing. VM mode validates the Lima recipe, checks guest Go/Node/npm/instrumentation and destroys the disposable VM.
+The integration test covers host inventory → gateways/observability → adapters/prompts → Goose recipes → role/Skill management → learning contract → capability resolution → policy → session lifecycle → evidence hashing. VM mode validates the Lima recipe, checks guest Go/Node/npm/instrumentation and destroys the disposable VM.
 
 CI does not claim a disposable-VM pass unless VM mode actually runs.
 
