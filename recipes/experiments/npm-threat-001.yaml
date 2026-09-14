@@ -3,6 +3,16 @@ version: 1
 id: npm-threat-001
 purpose: Exercise controlled package lifecycle behavior and localhost-only network observation in disposable Lima compute.
 contract: contracts/npm-threat-001.md
+policy:
+  enforcement: scripts/policyctl
+  policy_file: policies/host-policy.yaml
+  mount_denylist: policies/mount-denylist.yaml
+  permission_tiers: policies/permission-tiers.yaml
+  required_checks:
+    - vm
+    - network
+    - credentials
+    - mounts
 host:
   recipe: recipes/host/security-research.yaml
 compute:
