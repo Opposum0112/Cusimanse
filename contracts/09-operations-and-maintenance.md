@@ -1,39 +1,15 @@
-# 09 — Operations and Maintenance
+# Goose-native operations contract
 
-![Architecture](../docs/images/cusimanse-architecture.svg)
+## Operator
+Goose is the only required workflow operator in this branch.
 
-## Daily checks
+## Lifecycle
 
-```bash
-git status
-./policyctl check
+```text
+prepare → validate recipe → run Goose → inspect evidence → verify → report → preserve
 ```
 
-Review audit events, failed agent tasks, compute inventory, disk usage and observability health.
+Use Goose's documented CLI and recipe validation commands. Keep the environment disposable when the research warrants isolation. Do not depend on a custom host daemon or orchestration service.
 
-## Upgrades
-
-Checkpoint Git first. Upgrade one layer at a time:
-
-1. host packages
-2. QEMU/Lima
-3. primary agent adapter
-4. MCP servers
-5. skills
-6. security tooling
-7. model routing
-8. observability
-
-Re-run the project preflight after each layer.
-
-## Recovery
-
-Troubleshoot in this order: host resources → QEMU → Lima → compute networking → instrumentation → MCP → audit/policy → agent adapter → model routing → observability.
-
-## Token dashboard
-
-```bash
-./policyctl token-dashboard
-```
-
-Keep it localhost-only unless explicitly changed by a controlled deployment recipe.
+## Failure handling
+Stop on missing authorization or unsafe environment configuration. Record incomplete experiments and do not fabricate evidence.

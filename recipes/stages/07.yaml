@@ -1,9 +1,0 @@
-id: stage-07
-source_markdown: 07-experiment-framework.md
-purpose: validate workload-neutral experiment contract
-actions:
-  - validate_workload_schema
-  - validate_profile_references
-  - validate_lifecycle_scripts
-  - validate_evidence_contract
-orchestration: default-agent-chain

@@ -1,32 +1,7 @@
-# 06 — Observability and Evidence
+# Goose-native observability and evidence contract
 
-![Experiment workflow](../docs/images/cusimanse-workflow.png)
+Cusimanse keeps observability simple: Goose session history is the primary agent record, while workload commands and generated files form the experiment evidence. ClawMetry may be used to inspect Goose sessions locally.
 
-## Two telemetry domains
+External telemetry products are not required by this branch. If a researcher adds an MCP observability extension, its output is supplemental evidence and must not be confused with a security boundary.
 
-### Agent telemetry
-
-Model/provider, tokens, latency, tool calls, routing, errors and handoffs.
-
-### Workload telemetry
-
-Processes, syscalls, filesystem changes, DNS, sockets, packets and security events.
-
-## Evidence lifecycle
-
-```text
-capture → preserve → hash → reduce → analyse → verify → report
-```
-
-Raw evidence remains the ground truth. LLM context should receive deterministic reductions whenever practical.
-
-## Formats
-
-- JSON — manifests and structured state
-- JSONL/NDJSON — event streams
-- PCAP — packet evidence
-- text — command/tool output
-
-## Audit vs evidence
-
-The audit layer answers **what the agent workflow requested and did**. Experiment evidence answers **what the workload actually did**. They must not be conflated.
+Every conclusion in the report must identify its supporting artifact or explicitly state that it is an inference.

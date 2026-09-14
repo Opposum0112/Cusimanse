@@ -1,45 +1,24 @@
-version: 1
-id: go-install-001
-kind: experiment
-name: Go installation observation
-prerequisites: recipes/install/project-bootstrap.yaml
-mcp_registry: recipes/mcp/registry.yaml
-skill_registry: recipes/skills/registry.yaml
-framework_reference: recipes/reference/security-frameworks.yaml
-audit: recipes/audit/default.yaml
-session_state: recipes/session/session-state.yaml
-learning_workflow: recipes/session/learning-workflow.yaml
-workload: recipes/workloads/go-install-001.yaml
-host_profile: recipes/host/research-host.yaml
-vm_profile: recipes/lima/profiles/security-research.yaml
-tools: recipes/tools/security-research.yaml
-instrumentation_reference: recipes/reference/instrumentation-monitoring.yaml
-instrumentation:
-  - recipes/instrumentation/syscall.yaml
-  - recipes/instrumentation/network.yaml
-  - recipes/instrumentation/filesystem.yaml
-  - recipes/instrumentation/ebpf-optional.yaml
-agent_monitoring:
-  - recipes/agent-monitoring/numbat-agent.yaml
-  - recipes/agent-monitoring/phoenix-agent.yaml
-orchestration: recipes/orchestration/default-agent-chain.yaml
-routing: recipes/routing/default.yaml
-reporting: recipes/reporting/default.yaml
-detection_validation: recipes/detection/detection-validation.yaml
-token_dashboard: recipes/observability/token-dashboard.yaml
-roles:
-  required: [planner, security-reviewer, executor, runtime-analyst, detection-engineer, forensics, independent-verifier, reporter]
-framework_mappings:
-  - mitre-attack
-  - mitre-atlas
-  - nist-csf-2
-  - nist-sp-800-115
-  - sigma
-  - yara
-  - suricata
-approval:
-  required: true
-  reason: disposable VM provisioning and workload execution
-cleanup:
-  preserve_evidence_first: true
-  destroy_vm: true
+version: "1.0.0"
+title: "Go installation research"
+description: "Observe a Go installation workload with Goose-native tools and produce a reproducible report."
+prompt: |
+  Run the Go installation experiment described by contracts/08-go-install-001.md.
+  Inspect the contract before execution. Use Goose Plan/Todo to structure the work.
+  Use the Developer extension or Container Use for the workload environment.
+  Execute only:
+
+    go version
+    go install ./packages/labprobe
+
+  Preserve command output and generated artifacts in experiments/go-install-001/runs/<run-id>/.
+  Delegate evidence analysis and independent verification to the recipe subrecipes.
+  Finish with a Markdown research report that separates observations from inference.
+instructions: |
+  Work only within the Cusimanse repository and the selected experiment environment.
+  Do not access unrelated credentials or host data. Do not execute additional package
+  installation or network activity unless it is necessary for the declared workload.
+sub_recipes:
+  - name: evidence-analysis
+    path: "../subrecipes/evidence-analysis.yaml"
+  - name: verification
+    path: "../subrecipes/verification.yaml"

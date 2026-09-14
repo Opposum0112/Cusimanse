@@ -1,0 +1,11 @@
+# Cusimanse Goose project guidance
+
+- Treat the Markdown contract as the research scope and safety statement.
+- Treat the selected Goose recipe as the executable workflow definition.
+- Use Goose Plan/Todo for task decomposition.
+- Prefer Skills for reusable security-research instructions.
+- Use Summon/subrecipes for bounded specialist work and parallel work only when outputs do not conflict.
+- Prefer Container Use when the workload needs an isolated environment.
+- Never treat model output as evidence; cite observable files and command output.
+- Do not access unrelated credentials, host data or repositories.
+- Keep research artifacts under the experiment run directory.

@@ -1,29 +1,13 @@
-# 10 — Validation and Acceptance
+# Goose-native validation contract
 
-![Experiment workflow](../docs/images/cusimanse-workflow.png)
+A configuration-only validation checks that every Goose recipe is valid YAML and conforms to the Goose recipe schema.
 
-## Validation levels
+Run:
 
-- [ ] Host prerequisites pass.
-- [ ] Goose project recipe loads.
-- [ ] Installation/preflight resolves required capabilities.
-- [ ] MCP registry is resolved.
-- [ ] Skill registry is validated.
-- [ ] Audit layer records the run.
-- [ ] Disposable VM boots and can be destroyed.
-- [ ] Instrumentation starts before workload.
-- [ ] Evidence is preserved and hashed.
-- [ ] Findings are independently verified.
-- [ ] Research report is generated.
-- [ ] Token telemetry is available to `policyctl token-dashboard`.
+```bash
+goose recipe validate recipes/goose/project.yaml
+goose recipe validate recipes/experiments/go-install-001.yaml
+goose recipe validate recipes/experiments/npm-install-001.yaml
+```
 
-## Acceptance states
-
-| State | Meaning |
-|---|---|
-| `PASS` | required workflow and controls were exercised and evidenced |
-| `PARTIAL` | workflow works but optional capability is unavailable |
-| `FAIL` | mandatory safety/reproducibility boundary is broken |
-| `NOT_DEPLOYED` | capability is not installed or not exercised |
-
-Configuration files alone never establish PASS.
+Runtime acceptance requires an actual Goose session and evidence from the selected workload environment. Static recipe validation is not runtime proof.

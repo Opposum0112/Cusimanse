@@ -1,56 +1,21 @@
-# 08 — go-install-001
+# Goose-native Go experiment contract
 
-## Purpose
+## Question
+Observe a Go installation workload and produce a reproducible research record.
 
-Validate a recipe-driven Go installation workload inside disposable Lima/QEMU compute with VM-side instrumentation, durable evidence, independent verification and a reproducible research report.
+## Scope and authorization
+Run only in the researcher-selected working environment. Do not access unrelated credentials, repositories or host data.
 
-## Contract → recipe example
-
-This is the reference example for creating a Cusimanse experiment:
-
-- **Contract:** this file defines purpose, scope, safety, evidence and acceptance.
-- **Experiment recipe:** `recipes/experiments/go-install-001.yaml` composes the host, VM, tools, instrumentation, agent, orchestration, audit, reporting and observability profiles.
-- **Workload recipe:** `recipes/workloads/go-install-001.yaml` defines the exact Go workload and declares that it executes only inside disposable compute.
-- **Session:** `runs/<session-id>/session.yaml` snapshots the selected profiles and tracks lifecycle state.
-
-## Researcher execution
-
-From the Cusimanse repository root, use the **normal host shell** for preparation and agent startup:
-
-```bash
-./scripts/preflight.sh
-./policyctl validate
-```
-
-Start the selected primary agent, for example:
-
-```bash
-goose
-```
-
-Then give the primary agent the experiment prompt from `docs/prompts/go-install-001.md`.
-
-The prompt causes the primary agent to validate the recipe, request approval, provision the disposable VM and start instrumentation. The actual workload is executed **inside the VM**, not on the host:
-
+## Workload
 ```bash
 go version
 go install ./packages/labprobe
 ```
 
-The agent then collects evidence, delegates specialist analysis, verifies findings, writes the report, finalizes the session and destroys the VM only after evidence preservation.
+The workload is executed by Goose through its Developer tools or an isolated Container Use environment selected by the researcher.
 
-## Required evidence
-
-- workload execution record
-- process/syscall/network/filesystem evidence
-- evidence hashes and provenance
-- agent/MCP/skill audit events when applicable
-- forensic findings
-- independent verification
-- reproducibility manifest
-- final research report
-- finalized token/session dashboard snapshot
+## Evidence
+Preserve command output, relevant process/filesystem/network observations available through configured Goose extensions or workload tooling, file hashes where useful, and the exact recipe/contract versions.
 
 ## Acceptance
-
-PASS requires actual disposable-compute runtime evidence and independent verification. If a capability is unavailable, record `NOT_DEPLOYED` or `PARTIAL`; never simulate execution.
+The report must distinguish observed evidence from inference. A run is complete only when the workload succeeds, evidence is preserved and important conclusions are checked independently. Missing optional tooling is reported as `NOT_DEPLOYED` rather than simulated.

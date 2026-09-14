@@ -1,123 +1,59 @@
 version: "1.0.0"
-title: Cusimanse Security Research
-name: cusimanse
-schema: goose-native-recipe
-description: >-
-  Reference Goose operator recipe for running a declarative Cusimanse security
-  research experiment. The experiment YAML remains the authoritative source of
-  configuration; this file is the Goose-native adapter and operator handoff.
-author: Cusimanse
-
+title: "Cusimanse Security Research"
+description: "Goose-native research workflow using contracts, Skills, MCP extensions, subagents and optional isolated Container Use environments."
 parameters:
   - key: experiment
+    input_type: select
+    requirement: user_prompt
+    description: "Reference experiment to run"
+    options:
+      - go-install-001
+      - npm-install-001
+  - key: question
     input_type: string
-    requirement: required
-    description: >-
-      Experiment recipe ID, for example go-install-001 or npm-install-001.
-  - key: contract
-    input_type: string
-    requirement: required
-    description: Path to the Markdown research contract.
-  - key: recipe
-    input_type: string
-    requirement: required
-    description: Path to the authoritative YAML experiment recipe.
-
+    requirement: user_prompt
+    description: "Research question or hypothesis"
 instructions: |
-  You are the Goose primary operator for the Cusimanse security research project.
+  You are the primary Goose operator for a controlled Cusimanse security research experiment.
 
-  SOURCE OF TRUTH
-  - The Markdown contract defines research intent, scope, safety, evidence and acceptance.
-  - The YAML experiment recipe is the authoritative configuration for the experiment.
-  - Workload and referenced profile recipes are resolved from that experiment recipe.
-  - This Goose recipe is only the native Goose adapter/handoff. Do not create a second
-    experiment configuration or silently change experiment semantics.
+  First load the selected experiment recipe and its Markdown contract. The contract defines
+  research intent, scope, authorization, safety expectations, evidence requirements and acceptance.
+  The Goose recipe defines executable workflow configuration.
 
-  SELECTED EXPERIMENT
-  - Experiment: {{ experiment }}
-  - Contract: {{ contract }}
-  - Authoritative experiment recipe: {{ recipe }}
+  Use Goose-native capabilities only: Plan/Todo, Skills, Summon subagents/subrecipes, configured
+  MCP extensions, Developer tools and Container Use when isolation is appropriate. Do not invoke
+  a second orchestration framework or custom control-plane service.
 
-  OPERATING MODEL
-  - You are the single primary lifecycle/operator authority.
-  - Use Goose's native subagent/delegation capabilities for specialist roles when useful.
-  - Keep the declared specialist role recipes intact: planner, researcher, runtime analyst,
-    detection analyst, forensics analyst, verifier and report generator are semantic roles,
-    not competing lifecycle controllers.
-  - Do not introduce CrewAI or another competing orchestration controller.
-  - Use declared MCP extensions and skills only within their scoped permissions.
-  - policyctl remains outside the agent control plane and governs policy-sensitive host actions.
-  - Lima/QEMU plus VM/OS controls are the actual workload execution/isolation boundary.
+  Execute this lifecycle:
+  1. Read and understand the contract and selected recipe.
+  2. Confirm the research question and authorization.
+  3. Plan the work with Goose Plan/Todo.
+  4. Delegate bounded specialist analysis through Summon when useful.
+  5. Select an isolated environment when the workload warrants it.
+  6. Execute only the declared workload.
+  7. Preserve observable outputs and artifacts under the experiment run directory.
+  8. Ask a separate verification subrecipe to inspect the evidence.
+  9. Write a researcher-facing report with observed facts, inference, verification, limitations and reproduction steps.
 
-  REQUIRED LIFECYCLE
-  1. Discover the contract, experiment recipe and referenced profiles.
-  2. Validate the recipe graph and policy constraints.
-  3. Preflight the selected host and Goose configuration.
-  4. Plan the experiment and identify specialist delegation.
-  5. Review scope, safety, instrumentation and workload.
-  6. Request human approval for privileged or destructive actions.
-  7. Provision the disposable Lima/QEMU environment.
-  8. Start instrumentation before workload execution.
-  9. Execute the approved workload only inside disposable compute.
-  10. Collect, hash and index runtime evidence in the session artifact.
-  11. Reduce evidence deterministically before using AI-assisted interpretation where practical.
-  12. Delegate forensic/detection/analysis work to declared specialist roles.
-  13. Obtain independent verification of important findings.
-  14. Write runs/<session-id>/research-report/report.md and report.yaml.
-  15. Preserve evidence and provenance before destroying disposable compute.
-  16. Finalize token/dashboard accounting and complete the session.
-  17. Run the optional learning workflow only when explicitly enabled and approved.
+  Model output is not evidence. Never claim a security property that is not supported by observed artifacts.
+prompt: |
+  Run the Cusimanse experiment {{ experiment }} for this research question:
 
-  EVIDENCE RULES
-  - Model output is not evidence.
-  - Do not claim PASS without actual disposable-compute runtime evidence and independent verification.
-  - Record unavailable capabilities as NOT_DEPLOYED or PARTIAL.
-  - Never expose host credentials or unrestricted host mounts to an untrusted workload.
-  - Never self-approve privileged/destructive actions.
-  - Never modify the base contract through the learning workflow.
+  {{ question }}
 
-  RESEARCHER OUTPUT
-  The primary researcher-facing result is the preserved session artifact rooted at
-  runs/<session-id>/, with research-report/report.md as the primary human-readable output.
-  Report observed facts, analysis/inference, verification status, limitations, failed steps,
-  relevant agent actions, versions and reproducibility references.
-
+  Start by loading the experiment contract and recipe. Use Goose-native planning, Skills,
+  Summon/subrecipes and configured MCP tools. Prefer Container Use when an isolated environment
+  is needed. Preserve evidence and produce the final research report.
+extensions:
+  - type: platform
+    name: summon
+    description: "Goose-native subagent and subrecipe delegation"
 sub_recipes:
-  - name: installation
-    path: ../install/project-bootstrap.yaml
-  - name: mcp-registry
-    path: ../mcp/registry.yaml
-  - name: skill-registry
-    path: ../skills/registry.yaml
-  - name: audit
-    path: ../audit/default.yaml
-
-recipe_families:
-  experiments: ../experiments/
-  workloads: ../workloads/
-  host_profiles: ../host/
-  vm_profiles: ../lima/profiles/
-  tools: ../tools/
-  instrumentation: ../instrumentation/
-  agent_monitoring: ../agent-monitoring/
-  agents: ../agents/
-  orchestration: ../orchestration/default-agent-chain.yaml
-  routing: ../routing/
-  reporting: ../reporting/default.yaml
-  token_dashboard: ../observability/token-dashboard.yaml
-  learning: ../session/learning-workflow.yaml
-
-safety:
-  security_boundary: disposable-vm-and-os-controls
-  policy_owner: policyctl-and-vm-os-controls
-  model_output_is_evidence: false
-  self_approval: false
-  competing_orchestrator: false
-  unrestricted_host_credentials: false
-  unrestricted_host_mounts: false
-
-acceptance:
-  configuration_only: NOT_DEPLOYED
-  runtime: requires_disposable_vm_execution_and_independent_verification
-  report: required
-  preservation: required_before_destroy
+  - name: verification
+    path: "./subrecipes/verification.yaml"
+    description: "Independently inspect experiment evidence and report verification status"
+  - name: evidence-analysis
+    path: "./subrecipes/evidence-analysis.yaml"
+    description: "Analyze captured experiment artifacts without changing the workload"
+settings:
+  max_turns: 50

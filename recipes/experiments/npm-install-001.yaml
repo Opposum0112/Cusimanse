@@ -1,32 +1,25 @@
-version: 1
-id: npm-install-001
-kind: experiment
-name: npm installation observation
-contract: contracts/12-npm-install-001.md
-prerequisites: recipes/install/project-bootstrap.yaml
-mcp_registry: recipes/mcp/registry.yaml
-skill_registry: recipes/skills/registry.yaml
-audit: recipes/audit/default.yaml
-session_state: recipes/session/session-state.yaml
-learning_workflow: recipes/session/learning-workflow.yaml
-workload: recipes/workloads/npm-install-001.yaml
-host_profile: recipes/host/research-host.yaml
-vm_profile: recipes/lima/profiles/security-research.yaml
-tools: recipes/tools/security-research.yaml
-instrumentation:
-  - recipes/instrumentation/syscall.yaml
-  - recipes/instrumentation/network.yaml
-  - recipes/instrumentation/filesystem.yaml
-  - recipes/instrumentation/ebpf-optional.yaml
-agent_monitoring:
-  - recipes/agent-monitoring/numbat-agent.yaml
-  - recipes/agent-monitoring/phoenix-agent.yaml
-orchestration: recipes/orchestration/default-agent-chain.yaml
-routing: recipes/routing/default.yaml
-reporting: recipes/reporting/default.yaml
-token_dashboard: recipes/observability/token-dashboard.yaml
-approval:
-  required: true
-cleanup:
-  preserve_evidence_first: true
-  destroy_vm: true
+version: "1.0.0"
+title: "npm installation research"
+description: "Observe a pinned npm installation with Goose-native tools and produce a reproducible report."
+prompt: |
+  Run the npm installation experiment described by contracts/12-npm-install-001.md.
+  Use Goose Plan/Todo to structure the work and Container Use when isolation is appropriate.
+  Execute only:
+
+    node --version
+    npm --version
+    mkdir -p /tmp/npm-test
+    cd /tmp/npm-test && npm init -y
+    cd /tmp/npm-test && npm install lodash@4.17.21 --ignore-scripts
+
+  Preserve command output and generated package metadata in experiments/npm-install-001/runs/<run-id>/.
+  Delegate evidence analysis and independent verification to the recipe subrecipes.
+  Finish with a Markdown research report that separates observations from inference.
+instructions: |
+  Work only within the Cusimanse repository and the selected experiment environment.
+  Do not execute package lifecycle scripts for this reference workload.
+sub_recipes:
+  - name: evidence-analysis
+    path: "../subrecipes/evidence-analysis.yaml"
+  - name: verification
+    path: "../subrecipes/verification.yaml"
