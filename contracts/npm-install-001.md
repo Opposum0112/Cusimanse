@@ -1,10 +1,22 @@
 # npm installation experiment
 
-## Scope
-Observe the pinned npm installation workload inside the disposable Lima VM defined by `recipes/lima/security-research.yaml`. Do not access unrelated host files, credentials or mounts.
+## Purpose and scope
+Observe a pinned npm project bootstrap/install inside the disposable Lima VM. Do not access unrelated host files, credentials or mounts.
+
+## Configuration layers
+
+```text
+contract → recipes/experiments/npm-install-001.yaml → recipes/npm-install-001/recipe.yaml
+```
+
+- This contract defines purpose, scope and acceptance.
+- `recipes/experiments/npm-install-001.yaml` is the Cusimanse experiment configuration.
+- `recipes/npm-install-001/recipe.yaml` is the valid Goose recipe used to hand the experiment to Goose.
+- `prompts/experiments/npm-install-001.md` is the cross-agent prompt handoff.
 
 ## Workload
-The experiment recipe is the authoritative executable configuration. The selected primary agent executes the workload inside the VM; the researcher only launches the agent and reviews results.
+
+The primary agent executes the declared workload inside the VM:
 
 ```bash
 node --version
@@ -15,16 +27,16 @@ npm init -y
 npm install lodash@4.17.21 --ignore-scripts
 ```
 
-Prompt handoff reference:
-
-```text
-prompts/experiments/npm-install-001.md
-```
-
-Goose can consume the recipe natively. Other validated agents can consume the same recipe through the adapter matrix and this prompt handoff without creating a second workload configuration.
+The researcher launches the selected agent and reviews results; workload commands are not run manually on the host.
 
 ## Evidence
-Capture command output and process, syscall, network, DNS and filesystem observations using `recipes/instrumentation/security-research.yaml`. Preserve raw evidence and SHA-256 manifests before VM destruction.
+
+Capture command output and process, syscall, network, DNS and filesystem observations using `recipes/instrumentation/security-research.yaml`. Preserve raw evidence and SHA-256 manifests before VM destruction. Session lifecycle and artifact layout are governed by `recipes/session/session-state.yaml` and may be created/checkpointed with `scripts/session.sh`.
+
+## Threat-model coverage and limitations
+
+`--ignore-scripts` deliberately prevents package lifecycle scripts from running. This sample therefore does not test malicious postinstall behavior, package substitution or agent escape. Separate authorized adversarial fixtures should be added for those questions.
 
 ## Acceptance
+
 PASS requires actual disposable-VM execution and independent verification of material findings. Missing capabilities are recorded as PARTIAL or NOT_DEPLOYED.
