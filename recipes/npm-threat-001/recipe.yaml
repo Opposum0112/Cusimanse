@@ -1,0 +1,39 @@
+version: "1.0.0"
+title: "Cusimanse controlled npm threat research"
+description: "Run a controlled adversarial npm lifecycle fixture in disposable Lima compute and preserve observable evidence without executing untrusted code on the host."
+instructions: |
+  You are the primary Goose operator for a Cusimanse threat-model session.
+
+  Read contracts/npm-threat-001.md and recipes/experiments/npm-threat-001.yaml before execution.
+  The companion file is the Cusimanse experiment configuration; this file is the executable
+  Goose recipe. Do not invent experiment settings or broaden the network scope.
+
+  Execute ./scripts/run-experiment.sh npm-threat-001. The deterministic harness creates the
+  session, validates the recipe, provisions disposable Lima/QEMU, starts the declared guest
+  collectors before the workload, installs the local controlled fixture, captures lifecycle,
+  syscall, filesystem and localhost-network evidence, and hashes the evidence.
+
+  Analyze only preserved evidence. Independently verify the observations before producing the
+  report. The fixture is intentionally adversarial-like but local and harmless: its postinstall
+  writes a marker and attempts one localhost connection. Do not modify it to contact external
+  systems or execute on the host.
+
+  Complete the session only after independent verification, final artifact hashing, preservation,
+  VM destruction and the required DESTROYED/COMPLETE checkpoints. Record unavailable capabilities
+  as PARTIAL/NOT_DEPLOYED and never weaken the isolation or policy boundary.
+prompt: |
+  Execute the controlled npm threat-model experiment with ./scripts/run-experiment.sh npm-threat-001,
+  analyze preserved evidence, independently verify findings, produce the research report and complete
+  the lifecycle without executing the fixture on the host.
+sub_recipes:
+  - name: evidence_analysis
+    path: "../subrecipes/evidence-analysis.yaml"
+  - name: verification
+    path: "../subrecipes/verification.yaml"
+  - name: report
+    path: "../subrecipes/report.yaml"
+extensions:
+  - type: builtin
+    name: developer
+    timeout: 300
+    bundled: true
