@@ -14,7 +14,7 @@ workload:
   runtime: go
   commands:
     - go version
-    - go install github.com/Opposum0112/ai-security-lab/packages/labprobe@v0.1.0
+    - go install ./packages/labprobe
   source:
     mode: copy-approved-source-into-vm
     path: packages/labprobe
