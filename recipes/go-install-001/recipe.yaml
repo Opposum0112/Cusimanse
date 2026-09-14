@@ -2,40 +2,33 @@ version: "1.0.0"
 title: "Cusimanse Go installation research"
 description: "Run the approved Go installation experiment in disposable Lima compute and produce preserved evidence, independent verification and a research report."
 instructions: |
-  You are the primary operator for a Cusimanse security research session.
+  You are the primary Goose operator for a Cusimanse security research session.
 
   Read contracts/go-install-001.md and recipes/experiments/go-install-001.yaml first.
-  Also read recipes/session/session-state.yaml, recipes/agents/goose-orchestration.yaml,
-  recipes/host/security-research.yaml, recipes/lima/security-research.yaml,
-  recipes/instrumentation/security-research.yaml, recipes/skills/registry.yaml,
-  recipes/mcp/registry.yaml and prompts/experiments/go-install-001.md.
+  The companion file is Cusimanse experiment configuration; this file is the executable
+  Goose recipe. Do not invent experiment settings.
 
-  Treat recipes/experiments/go-install-001.yaml as the Cusimanse experiment
-  configuration and this file as the executable Goose recipe. Do not invent settings.
+  First execute the deterministic runtime harness from the repository root:
+    ./scripts/run-experiment.sh go-install-001
+  The harness creates the session, validates the recipe, provisions disposable Lima/QEMU,
+  starts the declared guest collectors before the workload, executes the approved workload,
+  captures raw evidence and hashes it. It stops at EVIDENCE_COLLECTED and leaves the
+  session available for you.
 
-  Create or resume the session using recipes/session/session-state.yaml. Validate
-  authorization and approvals. Use scripts/session.sh for session creation/checkpoints
-  and scripts/tests/runtime.sh for runtime integration when appropriate. Provision the
-  declared disposable Lima/QEMU VM, start collectors before the workload, execute the
-  workload inside the VM, collect evidence, hash preserved artifacts and finalize the
-  session. Never execute the workload on the host.
+  Then read the generated runs/<session-id>/session.yaml and evidence. Use the specialist
+  role definitions under .agents/agents/. Delegate evidence analysis, forensics/detection,
+  independent verification and report generation through the registered Goose subrecipes.
+  Keep verification independent from analysis. Replace the provisional analysis,
+  verification and report status files with substantive, evidence-cited results.
 
-  Workload inside the disposable VM:
-    go version
-    go install ./packages/labprobe
-    labprobe
-
-  Use the specialist role definitions under .agents/agents/ for role context. Delegate
-  evidence analysis, independent verification and report generation through the
-  subrecipes registered below. Keep verification separate from analysis.
-
-  Preserve evidence before destroying the VM. Never treat model output as evidence.
-  Record unavailable capabilities as PARTIAL/NOT_DEPLOYED and never weaken policy,
-  authorization or the VM boundary to obtain a pass.
+  After verification succeeds, advance the session through REPORTED and PRESERVED,
+  hash the final artifact set again, destroy the disposable VM, then checkpoint DESTROYED
+  and COMPLETE. Never execute the workload on the host and never treat model output as evidence.
+  Record unavailable capabilities as PARTIAL/NOT_DEPLOYED; never weaken policy or the VM boundary.
 prompt: |
-  Execute the Cusimanse Go installation experiment from the repository root. Keep the
-  workload inside the disposable Lima VM, collect declared evidence, independently
-  verify findings and produce the researcher report.
+  Execute the Cusimanse Go installation experiment. Start with ./scripts/run-experiment.sh
+  go-install-001, then analyze its preserved evidence, independently verify the findings,
+  produce the final researcher report, preserve the final hashes and complete the session.
 sub_recipes:
   - name: evidence_analysis
     path: "../subrecipes/evidence-analysis.yaml"
