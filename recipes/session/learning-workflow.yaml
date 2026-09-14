@@ -1,22 +1,26 @@
-version: 6
+version: 7
 id: learning-workflow
 kind: learning-and-skill-improvement-contract
 purpose: >-
-  Controlled experience-to-skill loop inspired by Voyager-style automatic skill
-  accumulation: successful reusable procedures are extracted from completed
-  experiments, evaluated and replayed, then explicitly approved before entering
-  the validated skill library. Learning never changes the base contract or
-  execution boundary.
+  Controlled experience-to-skill loop: verified reusable procedures are
+  extracted from completed experiments, replayed and independently verified,
+  then explicitly approved before promotion. Learning never changes the base
+  contract, trusted infrastructure profiles, policy scope or execution boundary.
 enabled:
   default: false
   session_key: learning.enabled
   explicit_value: true
   prerequisites: [research_report_complete, independent_verification_complete]
+commands:
+  inspect: ./scripts/learningctl status <session-id>
+  create_candidate: ./scripts/learningctl candidate <session-id> <candidate-id> <file>
+  promote: ./scripts/learningctl promote <session-id> <candidate-id> --approved
 how_to_enable:
   - complete the normal experiment and independent verification
   - set runs/<session-id>/session.yaml learning.enabled to true
-  - confirm the value is true
-  - manually continue the primary agent and provide this recipe
+  - extract a candidate from preserved evidence and analysis
+  - replay it in an authorized disposable environment
+  - independently verify replay evidence
   - require explicit human approval before promotion
 operator:
   primary_agent: true
@@ -27,7 +31,7 @@ voyager_style_loop:
   principle: retrieve_prior_skill_then_create_or_refine_reusable_skill_from_experience
   stages:
     - retrieve: search validated skills and prior session evidence for reusable procedures
-    - propose: extract a candidate skill from the verified experience and state its preconditions
+    - propose: extract a candidate skill with explicit preconditions and scope
     - execute: test the candidate against an authorized replay or fresh disposable VM
     - evaluate: compare outcome, evidence quality, cost and safety with acceptance criteria
     - refine: revise the candidate without changing the base contract
@@ -50,17 +54,6 @@ skill_update_model:
   provenance_required: true
   version_required: true
   rollback_metadata_required: true
-additional_tools:
-  default: none
-  principle: use_native_goose_capabilities_first
-  optional_helpers:
-    task_decomposition: Taskflow
-    graph_state: LangGraph
-    note: helpers are host/control-plane tools only and are never required for the security boundary
-  installation: ./scripts/install.sh
-external_skill_sources:
-  registry: recipes/skills/registry.yaml
-  imported_skills_are_candidates: true
 promotion_rules:
   evidence_required: true
   replay_required: true
@@ -68,6 +61,7 @@ promotion_rules:
   human_approval_required: true
   self_approval: false
   base_contract_mutation: false
+  trusted_profile_mutation: false
   automatic_privilege_grant: false
   automatic_security_policy_change: false
   validated_target: skills/validated/
