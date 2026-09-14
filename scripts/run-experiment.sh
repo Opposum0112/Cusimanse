@@ -3,11 +3,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
-usage(){ echo "usage: $0 <go-install-001|npm-install-001|npm-lifecycle-001> [session-id]"; exit 2; }
+usage(){ echo "usage: $0 <go-install-001|npm-install-001|npm-lifecycle-001|npm-threat-001> [session-id]"; exit 2; }
 fail(){ echo "EXPERIMENT FAIL: $*" >&2; exit 1; }
 [ $# -ge 1 ] || usage
 EXP="$1"; SESSION="${2:-$(date -u +%Y%m%dT%H%M%SZ)-$1}"
-case "$EXP" in go-install-001|npm-install-001|npm-lifecycle-001) CONFIG="recipes/experiments/$EXP.yaml";; *) fail "unknown experiment $EXP";; esac
+case "$EXP" in go-install-001|npm-install-001|npm-lifecycle-001|npm-threat-001) CONFIG="recipes/experiments/$EXP.yaml";; *) fail "unknown experiment $EXP";; esac
 for t in yq limactl goose; do command -v "$t" >/dev/null 2>&1 || fail "$t missing; run ./scripts/install.sh"; done
 [ -s "$CONFIG" ] || fail "missing $CONFIG"
 RECIPE="recipes/$EXP/recipe.yaml"
@@ -30,7 +30,7 @@ limactl start --name="$VM" recipes/lima/security-research.yaml
 limactl shell "$VM" -- bash -lc 'set -e; date -u +%Y-%m-%dT%H:%M:%SZ > /tmp/cusimanse-start-time; ps -ef > /tmp/cusimanse-process-before; ss -tunap > /tmp/cusimanse-network-before || true; find /workspace -xdev -type f -print 2>/dev/null | sort > /tmp/cusimanse-files-before || true; if command -v tcpdump >/dev/null && sudo -n true 2>/dev/null; then sudo -n tcpdump -i any -U -w /tmp/cusimanse-network.pcap >/tmp/cusimanse-tcpdump.log 2>&1 & echo $! > /tmp/cusimanse-tcpdump.pid; fi' || fail 'failed to start guest collectors'
 if [ "$EXP" = go-install-001 ]; then
   tar -C packages -cf - labprobe | limactl shell "$VM" -- bash -lc 'mkdir -p /workspace/packages && tar -xf - -C /workspace/packages'
-elif [ "$EXP" = npm-lifecycle-001 ]; then
+elif [ "$EXP" = npm-lifecycle-001 ] || [ "$EXP" = npm-threat-001 ]; then
   tar -C packages -cf - npm-fixture | limactl shell "$VM" -- bash -lc 'mkdir -p /workspace/packages && tar -xf - -C /workspace/packages'
 fi
 ./scripts/session.sh checkpoint "$SESSION" EXECUTING
@@ -39,6 +39,7 @@ case "$EXP" in
   go-install-001) limactl shell "$VM" -- bash -lc 'set -e; cd /workspace/packages/labprobe; strace -ff -o /tmp/cusimanse-strace go install .; command -v labprobe; labprobe' > "$RUN/evidence/workload.txt" 2>&1 ;;
   npm-install-001) limactl shell "$VM" -- bash -lc 'set -e; node --version; npm --version; mkdir -p /tmp/npm-test; cd /tmp/npm-test; npm init -y; strace -ff -o /tmp/cusimanse-strace npm install lodash@4.17.21 --ignore-scripts' > "$RUN/evidence/workload.txt" 2>&1 ;;
   npm-lifecycle-001) limactl shell "$VM" -- bash -lc 'set -e; node --version; npm --version; mkdir -p /tmp/npm-lifecycle; cd /tmp/npm-lifecycle; npm init -y; strace -ff -o /tmp/cusimanse-strace npm install /workspace/packages/npm-fixture; test -f /tmp/cusimanse-npm-lifecycle-marker' > "$RUN/evidence/workload.txt" 2>&1 ;;
+  npm-threat-001) limactl shell "$VM" -- bash -lc 'set -e; node --version; npm --version; mkdir -p /tmp/npm-threat; cd /tmp/npm-threat; npm init -y; strace -ff -o /tmp/cusimanse-strace npm install /workspace/packages/npm-fixture; test -f /tmp/cusimanse-npm-lifecycle-marker; test -f /tmp/cusimanse-start-time' > "$RUN/evidence/workload.txt" 2>&1 ;;
 esac
 rc=$?
 set -e
