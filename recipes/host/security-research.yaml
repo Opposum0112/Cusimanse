@@ -1,10 +1,9 @@
 kind: host-toolchain
-version: 6
+version: 7
 purpose: >-
-  Declarative host inventory. Host tools needed to operate the experiment are
-  separated from Linux guest instrumentation tools. Preflight selects the host
-  capability group for the current platform; guest-only tools are never treated
-  as native macOS or Windows requirements.
+  Declarative host inventory. Host tools needed to operate experiments are
+  separated from Linux guest instrumentation tools. Go is a required control
+  plane dependency and is installed before Go-based capabilities such as Numbat.
 common:
   commands: [git, bash, curl, python3, node, npm, go, jq, yq, rg, goose]
   python_packages: [phoenix, opentelemetry-api, opentelemetry-sdk, opentelemetry-exporter-otlp]
@@ -27,6 +26,12 @@ mandatory_services:
   gateways: [litellm, omniroute]
   observability: [numbat, aegis, phoenix, opentelemetry, clawmetry]
   primary_agent: goose
+helpers:
+  tooling_inventory: scripts/tools.sh
+  observability: scripts/observability.sh
+  learning: scripts/learningctl
+  experiment_compatibility: scripts/run-experiment.sh
+  policy_compatibility: scripts/policyctl
 configuration:
   root: ~/.config/cusimanse/
   gateway: ~/.config/cusimanse/litellm.yaml
@@ -35,11 +40,13 @@ configuration:
   goose_environment: ~/.config/cusimanse/goose.env
   aegis_checkout: ~/.local/share/cusimanse/aegis/
   python_environment: ~/.local/share/cusimanse/venv/
+  numbat_records: ~/.numbat/cusimanse.ndjson
 access:
   path_prepend: "$HOME/.local/bin:$HOME/go/bin"
   inventory_command: ./scripts/tools.sh list
   version_command: ./scripts/tools.sh versions
   config_command: ./scripts/tools.sh config
+  observability_command: ./scripts/observability.sh status
   secrets_not_printed: true
 optional_adapters:
   recipe: recipes/agents/adapter-installation.yaml
@@ -48,6 +55,7 @@ installation:
   windows_entrypoint: ./scripts/install.ps1
   idempotent: true
   configure_from_recipe: true
+  install_go_before_go_capabilities: true
   fail_if_required_capability_unavailable: true
   unsupported_platform: report-and-stop-before-experiment
   remote_install_policy: download-to-temp-then-execute
