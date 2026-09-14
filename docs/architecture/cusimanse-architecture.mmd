@@ -1,33 +1,118 @@
 flowchart TB
-    R[Researcher] --> C[Research Contract]
-    C --> E[Cusimanse Experiment Configuration]
-    E --> GR[Goose Recipe: title + description + instructions/prompt]
-    E --> P[Prompt Reference: cross-agent handoff]
-    GR --> A{Selected Primary Agent}
-    P --> A
-    A -->|Goose native| G[Goose Reference Operator]
-    A -->|Validated adapter| O[OpenCode / Hermes / Antigravity / Pi]
-    G --> N[Native planning + semantic role delegation]
-    O --> N2[Native tools / plugins / skills / MCP]
-    N --> X[Lima/QEMU disposable VM]
-    N2 --> X
-    X --> I[Guest instrumentation profile]
-    I --> W[Recipe-defined workload]
-    W --> EV[Evidence + session.yaml]
-    EV --> S1[Specialist analysis / forensics / detection]
-    S1 --> V[Independent verifier]
-    V --> RP[Research report]
-    RP --> PR[Preserve provenance + hashes]
-    PR --> D[Destroy VM]
-    RP --> L{learning.enabled = true?}
-    L -->|No| END[Complete]
-    L -->|Yes| LR[Retrieve prior skills/evidence]
-    LR --> LP[Propose → execute → evaluate → refine → replay]
-    LP --> LI[Independent verification]
-    LI --> HA[Human approval]
-    HA --> SK[Promote candidate → skills/validated]
-    SK --> END
-    H[Mandatory host capabilities] --> A
-    M[Mandatory gateways: OmniRoute → LiteLLM] --> A
-    T[Mandatory observability: Numbat + Aegis + Phoenix/OTel + ClawMetry] --> EV
-    CU[Optional Container Use] -. additional environment .-> X
+    %% ------------------------------------------------------------------
+    %% CONTROL / DECLARATION PLANE
+    %% ------------------------------------------------------------------
+    subgraph CP[Control & Declaration Plane]
+        R[Researcher]
+        C[Research Contract<br/>purpose • scope • authorization • acceptance]
+        E[Cusimanse Experiment Configuration<br/>workload • compute • policy • instrumentation • evidence]
+        GR[Goose Recipe<br/>title • description • instructions/prompt]
+        PR[Prompt Reference<br/>cross-agent handoff only]
+        R --> C --> E
+        E --> GR
+        E --> PR
+    end
+
+    %% ------------------------------------------------------------------
+    %% AGENT / ORCHESTRATION PLANE
+    %% ------------------------------------------------------------------
+    subgraph AP[Agent & Orchestration Plane]
+        A{Selected Primary Agent}
+        G[Goose Reference Operator<br/>native recipes • Skills • Summon • MCP]
+        AD[Validated Adapter Layer<br/>OpenCode • Hermes • Antigravity • Pi]
+        ROLES[Semantic Specialist Roles<br/>planner • researcher • runtime analyst<br/>forensics • detection • verifier • report]
+        TOOLS[Agent Capabilities<br/>developer tools • plugins • MCP • skills]
+        A -->|reference| G
+        A -->|adapter| AD
+        G --> ROLES
+        AD --> ROLES
+        G --> TOOLS
+        AD --> TOOLS
+    end
+
+    GR --> A
+    PR --> A
+
+    %% ------------------------------------------------------------------
+    %% EXECUTION / SECURITY PLANE
+    %% ------------------------------------------------------------------
+    subgraph EP[Execution & Security Plane — containment boundary]
+        PLAN[Plan + approval checkpoint]
+        VM[Lima / QEMU Disposable VM<br/>guest OS is the execution boundary]
+        INST[Guest Instrumentation Profile<br/>process • syscall • filesystem • network]
+        WORK[Recipe-defined Workload<br/>Go • npm • controlled threat fixtures]
+        POL[Policy enforcement<br/>scope • network • filesystem • tool authorization]
+        DESTROY[Destroy / clean up VM]
+        PLAN --> VM
+        VM --> INST
+        VM --> POL
+        INST --> WORK
+        POL --> WORK
+        WORK --> DESTROY
+    end
+
+    ROLES --> PLAN
+    TOOLS --> PLAN
+
+    %% ------------------------------------------------------------------
+    %% EVIDENCE / VERIFICATION PLANE
+    %% ------------------------------------------------------------------
+    subgraph EVP[Evidence, Verification & Research Plane]
+        EV[Evidence bundle<br/>session.yaml • events • raw observations]
+        HASH[Integrity + provenance<br/>SHA-256 hashes • immutable index]
+        ANALYZE[Specialist analysis<br/>runtime • forensics • detection]
+        VERIFY[Independent verification<br/>separate from primary analysis]
+        REPORT[Research report<br/>findings • evidence • limitations]
+        PRESERVE[Preserve provenance + artifacts]
+        EV --> HASH --> ANALYZE --> VERIFY --> REPORT --> PRESERVE
+    end
+
+    WORK --> EV
+    DESTROY --> PRESERVE
+
+    %% ------------------------------------------------------------------
+    %% INTEGRATION / EXTENSION PLANE
+    %% ------------------------------------------------------------------
+    subgraph IP[Integration & Extension Plane]
+        HOST[Host capabilities<br/>platform-aware preflight]
+        GW[Model gateways<br/>OmniRoute → LiteLLM<br/>localhost / credentials from environment]
+        OBS[Observability<br/>Numbat • Aegis • Phoenix / OpenTelemetry • ClawMetry]
+        SKILLS[Skill registry<br/>candidate → replay → verify → human approval → validated]
+        MCP[MCP registry<br/>scoped extensions • environment-only credentials]
+        HOST --> A
+        GW --> A
+        OBS -. observes .-> EV
+        SKILLS -. extends agent .-> TOOLS
+        MCP -. extends agent .-> TOOLS
+    end
+
+    %% ------------------------------------------------------------------
+    %% LEARNING LOOP
+    %% ------------------------------------------------------------------
+    LEARN{learning.enabled?}
+    RETRIEVE[Retrieve prior evidence / skills]
+    PROPOSE[Propose → execute → evaluate → refine]
+    REPLAY[Replay candidate]
+    APPROVE[Independent verification + human approval]
+    PROMOTE[Promote to skills/validated]
+    REPORT --> LEARN
+    LEARN -->|No| DONE[Complete]
+    LEARN -->|Yes| RETRIEVE --> PROPOSE --> REPLAY --> APPROVE --> PROMOTE --> DONE
+
+    %% Optional environment is deliberately not a security boundary.
+    CU[Optional Container Use<br/>additional environment only]
+    CU -.-> VM
+
+    classDef control fill:#eef5ff,stroke:#356aa0,color:#10243e,stroke-width:1.5px;
+    classDef agent fill:#f4efff,stroke:#7450a5,color:#241536,stroke-width:1.5px;
+    classDef exec fill:#fff3df,stroke:#b06d18,color:#3a2309,stroke-width:2px;
+    classDef evidence fill:#edf8ef,stroke:#438451,color:#16361d,stroke-width:1.5px;
+    classDef integration fill:#f4f4f4,stroke:#666,color:#222,stroke-width:1.5px;
+    classDef boundary fill:#ffe9e9,stroke:#a33,color:#3a1111,stroke-width:2.5px;
+
+    class R,C,E,GR,PR control;
+    class A,G,AD,ROLES,TOOLS agent;
+    class PLAN,VM,INST,WORK,POL,DESTROY exec;
+    class EV,HASH,ANALYZE,VERIFY,REPORT,PRESERVE evidence;
+    class HOST,GW,OBS,SKILLS,MCP,CU integration;
+    class VM,POL boundary;
