@@ -1,34 +1,43 @@
 {
-  "manifest_version": 8,
+  "manifest_version": 9,
   "branch": "goose-refactor",
   "source_of_truth": {
     "contracts": "contracts/",
-    "experiments": "recipes/*/recipe.yaml",
+    "goose_recipes": "recipes/*/recipe.yaml",
+    "experiments": "recipes/experiments/*.yaml",
     "session_state": "recipes/session/session-state.yaml",
     "prompts": "prompts/experiments/",
     "roles": ".agents/agents/",
     "skills": "recipes/skills/registry.yaml",
     "mcp": "recipes/mcp/registry.yaml",
-    "adapters": "recipes/agents/adapter-matrix.yaml"
+    "adapters": "recipes/agents/adapter-matrix.yaml",
+    "host": "recipes/host/security-research.yaml"
   },
   "reference_operator": "goose",
   "primary_agents": ["goose", "opencode", "hermes", "antigravity", "pi"],
-  "experiments": [
-    "contracts/go-install-001.md",
-    "contracts/npm-install-001.md",
-    "recipes/go-install-001/recipe.yaml",
-    "recipes/npm-install-001/recipe.yaml",
-    "prompts/experiments/go-install-001.md",
-    "prompts/experiments/npm-install-001.md"
-  ],
+  "experiments": {
+    "go-install-001": {
+      "goose_recipe": "recipes/go-install-001/recipe.yaml",
+      "configuration": "recipes/experiments/go-install-001.yaml",
+      "contract": "contracts/go-install-001.md",
+      "prompt": "prompts/experiments/go-install-001.md"
+    },
+    "npm-install-001": {
+      "goose_recipe": "recipes/npm-install-001/recipe.yaml",
+      "configuration": "recipes/experiments/npm-install-001.yaml",
+      "contract": "contracts/npm-install-001.md",
+      "prompt": "prompts/experiments/npm-install-001.md"
+    }
+  },
   "host": {
     "inventory": "recipes/host/security-research.yaml",
     "installer": "scripts/install.sh",
     "windows_installer": "scripts/install.ps1",
     "access": "scripts/tools.sh",
     "preflight": "scripts/preflight.sh",
+    "session_helper": "scripts/session.sh",
     "idempotent": true,
-    "platforms": ["linux", "macos", "windows", "wsl2"]
+    "platforms": ["linux", "macos", "windows-wsl2"]
   },
   "mandatory_host_services": {
     "gateways": "recipes/gateway/mandatory.yaml",
@@ -48,6 +57,7 @@
   "validation": {
     "static": "scripts/tests/validate.sh",
     "runtime": "scripts/tests/runtime.sh",
-    "runtime_pass_requires": ["actual disposable VM execution", "independent verification"]
+    "runtime_pass_requires": ["actual disposable VM execution", "independent verification"],
+    "ci_does_not_require_lima": true
   }
 }
