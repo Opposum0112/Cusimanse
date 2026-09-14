@@ -42,8 +42,9 @@ fi
 case "$OS" in Linux) platform=linux;; Darwin) platform=macos;; *) platform=windows_wsl2;; esac
 NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"; [ "$NODE_MAJOR" -ge 22 ] || fail 'Node.js 22+ required'
 GOOSE_VERSION="${CUSIMANSE_GOOSE_VERSION:-1.50.0}"
+verify_sha256(){ local file="$1" expected="$2" actual; if have sha256sum; then actual="$(sha256sum "$file" | awk '{print $1}')"; elif have shasum; then actual="$(shasum -a 256 "$file" | awk '{print $1}')"; else fail 'sha256 verifier unavailable'; fi; [ "$actual" = "$expected" ] || fail 'download checksum mismatch'; }
 if ! have goose; then
-  tmp="$(mktemp)"; url="https://github.com/aaif-goose/goose/releases/download/v${GOOSE_VERSION}/download_cli.sh"; curl -fL --retry 3 --proto '=https' --tlsv1.2 "$url" -o "$tmp"; printf '%s  %s\n' 'ab5ae40513348ec4e6047cc7338040aab2df5246800c111d22065766ba6013f0' "$tmp" | sha256sum -c -; bash -n "$tmp"; CONFIGURE=false GOOSE_BIN_DIR="$BIN" bash "$tmp"; rm -f "$tmp"
+  tmp="$(mktemp)"; url="https://github.com/aaif-goose/goose/releases/download/v${GOOSE_VERSION}/download_cli.sh"; curl -fL --retry 3 --proto '=https' --tlsv1.2 "$url" -o "$tmp"; verify_sha256 "$tmp" 'ab5ae40513348ec4e6047cc7338040aab2df5246800c111d22065766ba6013f0'; bash -n "$tmp"; CONFIGURE=false GOOSE_BIN_DIR="$BIN" bash "$tmp"; rm -f "$tmp"
 fi
 have goose || fail 'Goose installation failed'
 CFG="$(yq -r '.configuration.root' "$HOST_RECIPE" | sed "s|^~|$HOME|")"; AEGIS="$(yq -r '.configuration.aegis_checkout' "$HOST_RECIPE" | sed "s|^~|$HOME|")"; VENV="$(yq -r '.configuration.python_environment' "$HOST_RECIPE" | sed "s|^~|$HOME|")"; GATEWAY_CFG="$(yq -r '.configuration.gateway' "$HOST_RECIPE" | sed "s|^~|$HOME|")"
