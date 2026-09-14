@@ -8,10 +8,9 @@ fail(){ echo "EXPERIMENT FAIL: $*" >&2; exit 1; }
 [ $# -ge 1 ] || usage
 EXP="$1"; SESSION="${2:-$(date -u +%Y%m%dT%H%M%SZ)-$1}"
 case "$EXP" in go-install-001|npm-install-001|npm-lifecycle-001) CONFIG="recipes/experiments/$EXP.yaml";; *) fail "unknown experiment $EXP";; esac
-for t in yq limactl; do command -v "$t" >/dev/null 2>&1 || fail "$t missing; run ./scripts/install.sh"; done
+for t in yq limactl goose; do command -v "$t" >/dev/null 2>&1 || fail "$t missing; run ./scripts/install.sh"; done
 [ -s "$CONFIG" ] || fail "missing $CONFIG"
 RECIPE="recipes/$EXP/recipe.yaml"
-command -v goose >/dev/null 2>&1 || fail 'Goose is required; run ./scripts/install.sh'
 goose recipe validate "$RECIPE"
 RUN="runs/$SESSION"
 ./scripts/session.sh create "$EXP" "${CUSIMANSE_PRIMARY_AGENT:-goose}" "$SESSION" >/dev/null
@@ -28,7 +27,6 @@ trap cleanup EXIT
 ./scripts/session.sh checkpoint "$SESSION" PROVISIONED
 limactl start --name="$VM" recipes/lima/security-research.yaml
 ./scripts/session.sh checkpoint "$SESSION" INSTRUMENTED
-# The instrumentation profile is guest-scoped. These collectors start before the workload.
 limactl shell "$VM" -- bash -lc 'set -e; date -u +%Y-%m-%dT%H:%M:%SZ > /tmp/cusimanse-start-time; ps -ef > /tmp/cusimanse-process-before; ss -tunap > /tmp/cusimanse-network-before || true; find /workspace -xdev -type f -print 2>/dev/null | sort > /tmp/cusimanse-files-before || true; if command -v tcpdump >/dev/null && sudo -n true 2>/dev/null; then sudo -n tcpdump -i any -U -w /tmp/cusimanse-network.pcap >/tmp/cusimanse-tcpdump.log 2>&1 & echo $! > /tmp/cusimanse-tcpdump.pid; fi' || fail 'failed to start guest collectors'
 if [ "$EXP" = go-install-001 ]; then
   tar -C packages -cf - labprobe | limactl shell "$VM" -- bash -lc 'mkdir -p /workspace/packages && tar -xf - -C /workspace/packages'
@@ -59,8 +57,8 @@ if [ "$rc" -ne 0 ]; then
   echo "RUNTIME FAIL: workload exited with status $rc; evidence preserved at $RUN" >&2
   exit "$rc"
 fi
-# Runtime harness stops at evidence collection. Goose or another primary agent owns analysis,
-# independent verification, report generation and final lifecycle checkpoints.
+# The deterministic harness intentionally stops at EVIDENCE_COLLECTED. The primary agent
+# then performs analysis, independent verification, reporting, preservation and final destroy.
 cat > "$RUN/analysis/summary.md" <<EOF
 # Analysis status
 
@@ -68,7 +66,7 @@ Experiment: $EXP
 
 Status: PENDING_AGENT_ANALYSIS
 
-The deterministic runtime harness collected raw evidence. The selected primary agent must analyze it using the evidence-analysis subrecipe and replace this status with cited observations and inference.
+Raw evidence was collected by the deterministic runtime harness. The selected primary agent must analyze the evidence using the registered evidence-analysis subrecipe and replace this status with cited observations and inference.
 EOF
 cat > "$RUN/verification/result.md" <<'EOF'
 # Verification status
@@ -93,11 +91,5 @@ session_id: $SESSION
 status: PENDING_AGENT_ANALYSIS_AND_VERIFICATION
 evidence: evidence/
 EOF
-./scripts/session.sh checkpoint "$SESSION" ANALYZING
-./scripts/session.sh checkpoint "$SESSION" VERIFYING
-./scripts/session.sh hash "$SESSION"
-./scripts/session.sh checkpoint "$SESSION" PRESERVED
 ./scripts/session.sh verify-layout "$SESSION"
-# Do not claim REPORTED/COMPLETE: the primary agent must replace the provisional artifacts,
-# independently verify them, then advance the session through REPORTED -> DESTROYED -> COMPLETE.
-printf 'RUNTIME PARTIAL: deterministic disposable-VM execution, declared collector capture and hashing completed. Agent analysis, independent verification and final report remain required. Session: %s\n' "$RUN"
+printf 'RUNTIME PARTIAL: deterministic disposable-VM execution, declared collector capture and hashing completed at EVIDENCE_COLLECTED. Agent analysis, independent verification, final report, preservation and destruction remain required. Session: %s\n' "$RUN"
