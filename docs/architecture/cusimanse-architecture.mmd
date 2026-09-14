@@ -1,28 +1,39 @@
-flowchart TD
-  R[Researcher] --> C[Research Contract]
-  C --> E[Agent-neutral YAML Experiment Recipe]
-  E --> G[Primary Agent<br/>Goose reference operator]
-  E -.same recipe.-> OA[Other validated primary-agent adapters]
-  G --> N[Native agent capabilities]
-  N --> P[Plan / Todo]
-  N --> S[Skills]
-  N --> SS[Specialist subagents / subrecipes]
-  N --> M[MCP / Developer tools]
-  G --> H[Mandatory Host Preparation]
-  H --> GW[LiteLLM + OmniRoute]
-  H --> OB[Numbat + Aegis + Phoenix/OpenTelemetry + ClawMetry]
-  G --> VM[Lima + QEMU disposable VM]
-  VM --> I[Instrumentation Profile]
-  I --> W[Recipe-defined Workload]
-  W --> EVID[Evidence Collection]
-  EVID --> ST[session.yaml + evidence index]
-  EVID --> AN[Analysis]
-  AN --> V[Independent Verification]
-  V --> RR[Research Report]
-  RR --> PR[Preserve evidence + provenance]
-  PR --> D[Destroy VM]
-  G -. optional .-> CU[Container Use]
-  RR -. enable only after verification .-> L[session.yaml<br/>learning.enabled: true]
-  L --> LR[Retrieve → Propose → Execute → Evaluate → Refine → Replay]
-  LR --> LV[Independent verification → Human approval → Promote]
-  LV --> SK[skills/validated/]
+flowchart TB
+    R[Researcher<br/>question / hypothesis] --> C[Contract<br/>scope • safety • evidence • acceptance]
+    C --> E[Experiment Recipe YAML<br/>agent-neutral source of truth]
+    E --> A[Primary Agent<br/>Goose reference • other validated adapters]
+
+    subgraph HOST[Mandatory Host Layer]
+      H1[Goose]
+      H2[Lima + QEMU]
+      H3[LiteLLM + OmniRoute]
+      H4[Numbat + Aegis + Phoenix/OTel + ClawMetry]
+      H5[Research / forensic tools]
+      H6[Host YAML recipes + install.sh]
+    end
+    H6 --> H1
+    H6 --> H2
+    H6 --> H3
+    H6 --> H4
+    H6 --> H5
+    A --> HOST
+
+    A --> S[Native multiagent / subagent delegation]
+    S --> ROLES[Specialist roles<br/>planner • researcher • runtime • forensics • detection • verifier • reporter]
+    A --> X[Lima VM + instrumentation profile]
+    ROLES --> X
+    X --> W[Recipe-defined workload<br/>executed by agent inside VM]
+    W --> EV[Evidence + session.yaml]
+    EV --> AN[Evidence analysis / forensics]
+    AN --> V[Independent verification]
+    V --> RP[Research report<br/>report.md + report.yaml]
+    RP --> P[Preserve hashes / provenance]
+    P --> D[Destroy disposable VM]
+    RP --> L{Learning enabled?}
+    L -- No --> END[Complete]
+    L -- Yes --> LW[Retrieve → propose → execute → evaluate → refine → replay]
+    LW --> IV[Independent verification]
+    IV --> HA[Human approval]
+    HA --> PR[Promote approved skill]
+    PR --> END
+    CU[Container Use<br/>optional additional isolation] -. optional .-> X
