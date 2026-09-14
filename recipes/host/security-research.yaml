@@ -1,9 +1,9 @@
 kind: host-toolchain
-version: 3
+version: 4
 purpose: >-
   Declarative inventory for the complete host toolchain. The recipe is the
-  source of truth for what must be installed/configured; scripts/install.sh
-  implements it and scripts/tools.sh exposes the resulting tool inventory.
+  source of truth for mandatory capabilities; scripts/install.sh implements
+  it and scripts/tools.sh exposes the resulting inventory.
 required:
   commands:
     - git
@@ -38,13 +38,14 @@ required:
     - omniroute
     - numbat
     - clawmetry
-  python_packages:
-    - phoenix
-    - opentelemetry-api
-    - opentelemetry-sdk
-    - opentelemetry-exporter-otlp
-  host_observer:
-    - aegis
+  python_packages: [phoenix, opentelemetry-api, opentelemetry-sdk, opentelemetry-exporter-otlp]
+  host_observer: [aegis]
+mandatory:
+  gateways: [litellm, omniroute]
+  observability: [numbat, aegis, phoenix, opentelemetry, clawmetry]
+  primary_agent: goose
+optional_adapters:
+  recipe: recipes/agents/adapter-installation.yaml
 configuration:
   root: ~/.config/cusimanse/
   gateway: ~/.config/cusimanse/litellm.yaml
@@ -59,8 +60,14 @@ access:
   version_command: ./scripts/tools.sh versions
   config_command: ./scripts/tools.sh config
   secrets_not_printed: true
+platforms:
+  linux: [apt, dnf, pacman, zypper]
+  macos: [homebrew]
+  windows: [native-powershell-shim, wsl2]
+  fallback: report-unsupported-and-stop-before-experiment
 installation:
   entrypoint: ./scripts/install.sh
+  windows_entrypoint: ./scripts/install.ps1
   idempotent: true
   configure_from_recipe: true
   fail_if_required_capability_unavailable: true

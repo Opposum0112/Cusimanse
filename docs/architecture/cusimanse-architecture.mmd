@@ -1,39 +1,31 @@
 flowchart TB
-    R[Researcher<br/>question / hypothesis] --> C[Contract<br/>scope • safety • evidence • acceptance]
-    C --> E[Experiment Recipe YAML<br/>agent-neutral source of truth]
-    E --> A[Primary Agent<br/>Goose reference • other validated adapters]
-
-    subgraph HOST[Mandatory Host Layer]
-      H1[Goose]
-      H2[Lima + QEMU]
-      H3[LiteLLM + OmniRoute]
-      H4[Numbat + Aegis + Phoenix/OTel + ClawMetry]
-      H5[Research / forensic tools]
-      H6[Host YAML recipes + install.sh]
-    end
-    H6 --> H1
-    H6 --> H2
-    H6 --> H3
-    H6 --> H4
-    H6 --> H5
-    A --> HOST
-
-    A --> S[Native multiagent / subagent delegation]
-    S --> ROLES[Specialist roles<br/>planner • researcher • runtime • forensics • detection • verifier • reporter]
-    A --> X[Lima VM + instrumentation profile]
-    ROLES --> X
-    X --> W[Recipe-defined workload<br/>executed by agent inside VM]
+    R[Researcher] --> C[Research Contract]
+    C --> E[Agent-neutral Experiment Recipe YAML]
+    E --> P[Prompt Reference]
+    P --> A{Selected Primary Agent}
+    A -->|Native recipe| G[Goose Reference Operator]
+    A -->|Prompt adapter| O[OpenCode / Hermes / Antigravity / Pi]
+    G --> N[Native planning + role delegation]
+    O --> N2[Native tools / plugins / skills / MCP]
+    N --> X[Lima/QEMU disposable VM]
+    N2 --> X
+    X --> I[Instrumentation profile]
+    I --> W[Recipe-defined workload]
     W --> EV[Evidence + session.yaml]
-    EV --> AN[Evidence analysis / forensics]
-    AN --> V[Independent verification]
-    V --> RP[Research report<br/>report.md + report.yaml]
-    RP --> P[Preserve hashes / provenance]
-    P --> D[Destroy disposable VM]
-    RP --> L{Learning enabled?}
-    L -- No --> END[Complete]
-    L -- Yes --> LW[Retrieve → propose → execute → evaluate → refine → replay]
-    LW --> IV[Independent verification]
-    IV --> HA[Human approval]
-    HA --> PR[Promote approved skill]
-    PR --> END
-    CU[Container Use<br/>optional additional isolation] -. optional .-> X
+    EV --> S1[Parallel specialist analysis / forensics / detection]
+    S1 --> V[Independent verifier]
+    V --> RP[Research report]
+    RP --> PR[Preserve provenance + hashes]
+    PR --> D[Destroy VM]
+    RP --> L{learning.enabled = true?}
+    L -->|No| END[Complete]
+    L -->|Yes| LR[Retrieve prior skills]
+    LR --> LP[Propose / execute / evaluate / refine / replay]
+    LP --> LI[Independent verification]
+    LI --> HA[Human approval]
+    HA --> SK[Promote skill → skills/validated]
+    SK --> END
+    H[Mandatory host: Goose + tools + gateways + observability] --> A
+    M[Mandatory gateways: OmniRoute → LiteLLM] --> A
+    T[Mandatory observability: Numbat + Aegis + Phoenix/OTel + ClawMetry] --> EV
+    CU[Optional Container Use] -. additional environment .-> X

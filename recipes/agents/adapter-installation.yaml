@@ -1,0 +1,33 @@
+version: 1
+kind: agent-adapter-installation
+purpose: Interactive, idempotent selection of optional primary-agent adapters.
+mandatory:
+  - goose
+optional_adapters:
+  opencode:
+    command: opencode
+    unix_install: curl -fsSL https://opencode.ai/install | bash
+    windows: scoop install opencode
+  hermes:
+    command: hermes
+    unix_install: curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
+    windows: irm https://hermes-agent.nousresearch.com/install.ps1 | iex
+  antigravity:
+    command: agy
+    unix_install: curl -fsSL https://antigravity.google/cli/install.sh | bash
+    windows: irm https://antigravity.google/cli/install.ps1 | iex
+  pi:
+    command: pi
+    unix_install: npm install -g @mariozechner/pi-coding-agent
+    windows: npm install -g @mariozechner/pi-coding-agent
+selection:
+  interactive: true
+  noninteractive_all: CUSIMANSE_INSTALL_ADAPTERS=all
+  noninteractive_list: CUSIMANSE_INSTALL_ADAPTERS=opencode,hermes,antigravity,pi
+idempotency:
+  check_command_before_install: true
+  rerun_safe: true
+fallback:
+  unsupported_native_install: report_and_continue
+  failed_optional_adapter: PARTIAL
+  required_goose_failure: FAIL

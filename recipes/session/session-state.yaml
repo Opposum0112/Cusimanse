@@ -1,11 +1,11 @@
-version: 4
+version: 5
 id: research-session-state
 kind: session-state-contract
 purpose: >-
   Maintain one durable YAML state record for every Cusimanse research session,
-  including immutable experiment identity, selected recipes, lifecycle checkpoints,
-  approvals, evidence, verification, reporting, mandatory host gateways and
-  observability, and optional learning state.
+  including immutable experiment identity, selected agent adapter, lifecycle
+  checkpoints, approvals, evidence, verification, reporting, mandatory host
+  gateway/observability state and optional learning.
 identity:
   required: [session_id, experiment_id, contract_ref, recipe_ref]
   immutable_after_start: [session_id, experiment_id, contract_ref, recipe_ref]
@@ -14,7 +14,8 @@ profiles:
   compute: recipes/lima/security-research.yaml
   instrumentation: recipes/instrumentation/security-research.yaml
   experiment_recipe: required
-  primary_agent: goose-reference
+  primary_agent: selected-at-session-start
+  adapter_matrix: recipes/agents/adapter-matrix.yaml
   gateway: recipes/gateway/mandatory.yaml
   observability: recipes/observability/mandatory.yaml
 lifecycle:
@@ -24,7 +25,7 @@ lifecycle:
   stage_history_required: true
   checkpoint_after_each_stage: true
 approvals:
-  required_for: [privileged_action, destructive_action, network_policy_change, credential_access, skill_promotion]
+  required_for: [privileged_action, destructive_action, network_policy_change, credential_access, skill_promotion, new_mcp_or_extension]
   self_approval: false
   record_decision_and_actor: true
 audit:
@@ -51,12 +52,14 @@ artifacts:
   hashes_before_destroy: true
   model_output_is_evidence: false
 agent:
-  selected_primary_agent: goose-reference
+  selected_primary_agent: required
+  reference_primary_agent: goose
   operator_authority: primary-agent
-  native_orchestration: true
+  native_orchestration: required_for_selected_agent_when_supported
   recipe_input: required
-  prompt_handoff: optional
-  other_agent_adapters: allowed_when_validated
+  prompt_handoff: supported
+  adapter_matrix: recipes/agents/adapter-matrix.yaml
+  unsupported_native_capability: record_as_partial
 execution:
   workload_owner: primary-agent
   workload_source: experiment-recipe
@@ -68,10 +71,12 @@ execution:
 orchestration:
   owner: primary-agent
   specialist_roles: required
-  mechanism: native-primary-agent-subagents-and-subrecipes
+  role_definitions: .agents/agents/
+  mechanism: native-agent-subagents-and-recipe-subrecipes
   competing_orchestration_framework: false
   specialist_execution_may_be_parallel: true
-  backend_is_security_boundary: false
+  sequential_lifecycle_required: true
+  independent_verifier: required
 learning:
   enabled: opt_in
   default: false
@@ -107,3 +112,4 @@ reproducibility:
   record_recipe_digests: true
   record_tool_versions: true
   record_primary_agent_version: true
+  record_adapter_version: true

@@ -1,10 +1,31 @@
 kind: host-observability
+version: 2
 required: true
+mandatory_host_stack: true
+installation:
+  owner: scripts/install.sh
+  lifecycle: install-configure-preflight-session-start-session-end
 components:
-  numbat: {command: numbat, mode: monitor-only}
-  aegis: {source: antropos17/Aegis, mode: monitor-only}
-  phoenix: {python_import: phoenix}
-  opentelemetry: {python_import: opentelemetry}
-  clawmetry: {command: clawmetry}
+  numbat:
+    command: numbat
+    mode: monitor-only
+  aegis:
+    source: antropos17/Aegis
+    mode: monitor-only
+    independent_observer: true
+  phoenix:
+    python_import: phoenix
+    mode: telemetry
+  opentelemetry:
+    python_import: opentelemetry
+    mode: telemetry
+  clawmetry:
+    command: clawmetry
+    mode: goose-session-and-token-visibility
+configuration:
+  generated_by_installer: true
+  secret_source: environment-only
+  environment: ~/.config/cusimanse/observability.env
 security:
   observers_are_not_security_boundaries: true
+  telemetry_must_not_contain_credentials: true

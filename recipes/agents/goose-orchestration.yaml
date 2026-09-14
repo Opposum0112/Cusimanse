@@ -1,0 +1,35 @@
+version: 1
+kind: goose-orchestration
+primary_agent: goose-reference
+model: native-goose
+recipe_source_of_truth: true
+role_definitions:
+  source: .agents/agents/
+  roles:
+    - planner
+    - researcher
+    - runtime-analyst
+    - forensics-analyst
+    - detection-analyst
+    - verifier
+    - report-generator
+orchestration:
+  mechanism: Goose native agents/subagents and recipe/subrecipe delegation
+  parallel_allowed: [evidence-analysis, forensics, detection-analysis]
+  sequential_required: [plan, provision, instrument, workload, verify, report, preserve, destroy]
+  independent_verifier: required
+  human_approval: required_for_privileged_destructive_and_skill_promotion
+  role_recipes_remain_semantic: true
+  competing_framework_required: false
+skills:
+  native_first: true
+  registry: recipes/skills/registry.yaml
+  external_registry: recipes/skills/registry.yaml
+mcp:
+  registry: recipes/mcp/registry.yaml
+  recipe_scoped: true
+  security_boundary: false
+extensions:
+  native_first: true
+  external_adapter_extensions: allowed
+  extension_cannot_change_experiment_scope: true

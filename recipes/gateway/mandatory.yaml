@@ -1,13 +1,25 @@
 kind: host-gateway
+version: 2
 required: true
+installation:
+  owner: scripts/install.sh
+  lifecycle: install-configure-preflight
 components:
+  omniroute:
+    command: omniroute
+    bind: 127.0.0.1:20128
+    role: provider-routing-and-fallback
   litellm:
     command: litellm
     bind: 127.0.0.1:4000
     upstream: http://127.0.0.1:20128/v1
-  omniroute:
-    command: omniroute
-    bind: 127.0.0.1:20128
+    role: model-gateway-and-normalization
+configuration:
+  generated_by_installer: true
+  secret_source: environment-only
+  files:
+    litellm: ~/.config/cusimanse/litellm.yaml
+    omniroute_environment: ~/.config/cusimanse/omniroute.env
 security:
   localhost_only: true
   gateways_are_not_security_boundaries: true

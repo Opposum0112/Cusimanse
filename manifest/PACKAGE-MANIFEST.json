@@ -1,0 +1,53 @@
+{
+  "manifest_version": 8,
+  "branch": "goose-refactor",
+  "source_of_truth": {
+    "contracts": "contracts/",
+    "experiments": "recipes/*/recipe.yaml",
+    "session_state": "recipes/session/session-state.yaml",
+    "prompts": "prompts/experiments/",
+    "roles": ".agents/agents/",
+    "skills": "recipes/skills/registry.yaml",
+    "mcp": "recipes/mcp/registry.yaml",
+    "adapters": "recipes/agents/adapter-matrix.yaml"
+  },
+  "reference_operator": "goose",
+  "primary_agents": ["goose", "opencode", "hermes", "antigravity", "pi"],
+  "experiments": [
+    "contracts/go-install-001.md",
+    "contracts/npm-install-001.md",
+    "recipes/go-install-001/recipe.yaml",
+    "recipes/npm-install-001/recipe.yaml",
+    "prompts/experiments/go-install-001.md",
+    "prompts/experiments/npm-install-001.md"
+  ],
+  "host": {
+    "inventory": "recipes/host/security-research.yaml",
+    "installer": "scripts/install.sh",
+    "windows_installer": "scripts/install.ps1",
+    "access": "scripts/tools.sh",
+    "preflight": "scripts/preflight.sh",
+    "idempotent": true,
+    "platforms": ["linux", "macos", "windows", "wsl2"]
+  },
+  "mandatory_host_services": {
+    "gateways": "recipes/gateway/mandatory.yaml",
+    "observability": "recipes/observability/mandatory.yaml"
+  },
+  "goose_native": ["recipes", "subrecipes", "Summon", "Skills", "MCP/extensions", "native delegation"],
+  "external_skill_registry": "https://github.com/mukul975/Anthropic-Cybersecurity-Skills",
+  "execution_boundary": "Lima/QEMU + guest OS",
+  "container": "optional",
+  "learning": {
+    "recipe": "recipes/session/learning-workflow.yaml",
+    "default_enabled": false,
+    "candidate_library": "skills/candidate/",
+    "validated_library": "skills/validated/",
+    "human_approval_required": true
+  },
+  "validation": {
+    "static": "scripts/tests/validate.sh",
+    "runtime": "scripts/tests/runtime.sh",
+    "runtime_pass_requires": ["actual disposable VM execution", "independent verification"]
+  }
+}

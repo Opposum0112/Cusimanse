@@ -1,36 +1,42 @@
-version: "1.1.0"
-title: "Cusimanse npm installation experiment"
-description: "Run the approved npm installation workload in a disposable Lima VM, collect instrumentation evidence, verify findings and produce the researcher report."
-instructions: |
-  Act as the primary Goose operator.
-  1. Read contracts/npm-install-001.md and create/update runs/<session-id>/session.yaml from recipes/session/session-state.yaml.
-  2. Run ./scripts/preflight.sh on the host.
-  3. Review scope and ask the researcher for approval before privileged or destructive actions.
-  4. Provision the disposable VM from recipes/lima/security-research.yaml.
-  5. Start every collector declared by recipes/instrumentation/security-research.yaml before the workload.
-  6. Execute the workload defined by this recipe inside the VM; the researcher does not manually run the workload commands on the host.
-     Workload commands:
-       node --version
-       npm --version
-       mkdir -p /tmp/npm-test
-       cd /tmp/npm-test
-       npm init -y
-       npm install lodash@4.17.21 --ignore-scripts
-  7. Store command output and collected observations under runs/<session-id>/evidence/ and update session.yaml checkpoints.
-  8. Delegate evidence analysis, forensics and independent verification to the declared specialist subrecipes/Skills as appropriate.
-  9. Generate runs/<session-id>/research-report/report.md and report.yaml.
-  10. Preserve hashes/provenance, finalize observability records, and destroy the VM only after preservation.
-  Model output is analysis, never evidence. Material findings must cite observable artifacts.
-prompt: "Run the npm installation experiment from contracts/npm-install-001.md and complete the full lifecycle. Execute the recipe-defined workload yourself inside the disposable VM; do not ask the researcher to run workload commands manually."
-extensions:
-  - type: builtin
-    name: developer
-    timeout: 600
-    bundled: true
-sub_recipes:
-  - name: evidence-analysis
-    path: ../subrecipes/evidence-analysis.yaml
-  - name: verification
-    path: ../subrecipes/verification.yaml
-  - name: report
-    path: ../subrecipes/report.yaml
+version: 1
+id: npm-install-001
+title: Cusimanse npm installation experiment
+description: Run the pinned npm installation workload in disposable Lima compute and produce evidence, verification and report.
+contract: contracts/npm-install-001.md
+workload:
+  commands:
+    - node --version
+    - npm --version
+    - mkdir -p /tmp/npm-test
+    - cd /tmp/npm-test && npm init -y
+    - cd /tmp/npm-test && npm install lodash@4.17.21 --ignore-scripts
+  execution: primary-agent-inside-disposable-vm
+host:
+  recipe: recipes/host/security-research.yaml
+compute:
+  recipe: recipes/lima/security-research.yaml
+instrumentation:
+  recipe: recipes/instrumentation/security-research.yaml
+session:
+  state: recipes/session/session-state.yaml
+prompt_reference: prompts/experiments/npm-install-001.md
+agent:
+  reference: goose
+  adapters: recipes/agents/adapter-matrix.yaml
+  orchestration: recipes/agents/goose-orchestration.yaml
+  role_delegation:
+    planner: .agents/agents/planner.md
+    researcher: .agents/agents/researcher.md
+    runtime_analyst: .agents/agents/runtime-analyst.md
+    forensics_analyst: .agents/agents/forensics-analyst.md
+    detection_analyst: .agents/agents/detection-analyst.md
+    verifier: .agents/agents/verifier.md
+    report_generator: .agents/agents/report-generator.md
+subrecipes:
+  - recipes/subrecipes/evidence-analysis.yaml
+  - recipes/subrecipes/verification.yaml
+  - recipes/subrecipes/report.yaml
+gateways: recipes/gateway/mandatory.yaml
+observability: recipes/observability/mandatory.yaml
+skills: recipes/skills/registry.yaml
+mcp: recipes/mcp/registry.yaml

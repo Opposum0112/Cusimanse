@@ -1,0 +1,33 @@
+version: 1
+kind: skill-registry
+purpose: >-
+  Agent-neutral registry of reusable skills. Goose-native skills/extensions are
+  preferred at runtime; external skills are candidates until provenance,
+  authorization, replay and independent verification pass.
+roots:
+  local: .agents/skills/
+  candidates: skills/candidate/
+  validated: skills/validated/
+external:
+  - id: anthropic-cybersecurity-skills
+    source: https://github.com/mukul975/Anthropic-Cybersecurity-Skills
+    standard: Agent Skills
+    domains: cybersecurity
+    import_mode: candidate-only
+    trust: untrusted-until-reviewed
+    human_approval: required
+native_goose:
+  skills_extension: true
+  summon_extension: true
+  extension_manager: true
+  mcp_extensions: true
+selection:
+  recipe_declared: true
+  least_scope: true
+  workload_vm_only_for_execution: true
+  model_output_is_not_evidence: true
+promotion:
+  replay_required: true
+  independent_verification_required: true
+  human_approval_required: true
+  target: skills/validated/

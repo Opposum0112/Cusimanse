@@ -1,10 +1,12 @@
-version: 5
+version: 6
 id: learning-workflow
 kind: learning-and-skill-improvement-contract
 purpose: >-
-  Optional post-experiment improvement loop. Learning is disabled by default and
-  starts only after a completed report and independent verification when the
-  session flag learning.enabled is explicitly set to true.
+  Controlled experience-to-skill loop inspired by Voyager-style automatic skill
+  accumulation: successful reusable procedures are extracted from completed
+  experiments, evaluated and replayed, then explicitly approved before entering
+  the validated skill library. Learning never changes the base contract or
+  execution boundary.
 enabled:
   default: false
   session_key: learning.enabled
@@ -14,33 +16,26 @@ how_to_enable:
   - complete the normal experiment and independent verification
   - set runs/<session-id>/session.yaml learning.enabled to true
   - confirm the value is true
-  - manually continue the primary agent and provide this recipe as the learning workflow
+  - manually continue the primary agent and provide this recipe
   - require explicit human approval before promotion
 operator:
   primary_agent: true
-  mechanism: native-agent-subagents-and-subrecipes
+  mechanism: native-agent-subagents-and-skills
+  memory_source: preserved-session-evidence
   competing_orchestrator: false
-steps:
-  - id: retrieve
-    action: retrieve relevant prior evidence, sessions and validated skills
-  - id: propose
-    action: create a candidate improvement with rationale and expected benefit
-  - id: execute
-    action: run the candidate through the same experiment recipe; use disposable Lima compute when execution is required
-  - id: evaluate
-    action: compare candidate results against contract acceptance and safety requirements
-  - id: refine
-    action: revise only the candidate and record the evaluation
-  - id: replay
-    action: replay the candidate against preserved or fresh authorized evidence
-  - id: independent_verification
-    action: independently challenge the candidate result and record verification
-  - id: human_approval
-    action: require explicit researcher approval before promotion
-  - id: promote
-    action: copy only the approved candidate into skills/validated/
-  - id: rollback
-    action: revert a promoted skill if later evaluation finds regression or safety impact
+voyager_style_loop:
+  principle: retrieve_prior_skill_then_create_or_refine_reusable_skill_from_experience
+  stages:
+    - retrieve: search validated skills and prior session evidence for reusable procedures
+    - propose: extract a candidate skill from the verified experience and state its preconditions
+    - execute: test the candidate against an authorized replay or fresh disposable VM
+    - evaluate: compare outcome, evidence quality, cost and safety with acceptance criteria
+    - refine: revise the candidate without changing the base contract
+    - replay: run the candidate again on a separate authorized case or preserved fixture
+    - independent_verification: challenge the result independently
+    - human_approval: researcher reviews provenance, evidence and candidate behavior
+    - promote: copy approved candidate to skills/validated/
+    - rollback: disable/revert a promoted skill if regression or safety impact is found
 artifacts:
   root: runs/<session-id>/learning/
   candidate: candidates/<candidate-id>.yaml
@@ -48,12 +43,24 @@ artifacts:
   replay: replays/<replay-id>.yaml
   verification: verification/<verification-id>.yaml
   promotion: promotions/<promotion-id>.yaml
-installation:
+skill_update_model:
+  validated_library: skills/validated/
+  candidate_library: skills/candidate/
+  source_evidence: runs/<session-id>/evidence/
+  provenance_required: true
+  version_required: true
+  rollback_metadata_required: true
+additional_tools:
   default: none
-  rule: >-
-    Learning does not require a separate installer. Helpers, when needed, are
-    installed on the host control plane only; never into the workload VM by default.
-  installer: ./scripts/install.sh
+  principle: use_native_goose_capabilities_first
+  optional_helpers:
+    task_decomposition: Taskflow
+    graph_state: LangGraph
+    note: helpers are host/control-plane tools only and are never required for the security boundary
+  installation: ./scripts/install.sh
+external_skill_sources:
+  registry: recipes/skills/registry.yaml
+  imported_skills_are_candidates: true
 promotion_rules:
   evidence_required: true
   replay_required: true

@@ -1,0 +1,29 @@
+version: 1
+kind: primary-agent-adapter-matrix
+purpose: >-
+  Map the agent-neutral Cusimanse experiment recipe and prompt handoff to
+  supported primary agents. Goose is the reference native operator. Other
+  agents use the same contract/recipe through an adapter prompt and retain
+  their own native tools, extensions and orchestration where available.
+reference:
+  agent: goose
+  mode: native-recipe
+  command: goose run --recipe <recipe> --interactive
+  native_features:
+    - recipes
+    - subrecipes
+    - custom-agents
+    - summon
+    - skills
+    - MCP/extensions
+    - native delegation
+adapters:
+  opencode:
+    command: opencode
+    mode: prompt-handoff
+    run: opencode run "$(cat <prompt>)"
+    install: curl -fsSL https://opencode.ai/install | bash
+    native_integration: plugins-and-MCP
+    orchestration: native-agent-capabilities-where-enabled
+    prompt_reference: prompts/experiments/
+    status: adapter-defined-runtime
