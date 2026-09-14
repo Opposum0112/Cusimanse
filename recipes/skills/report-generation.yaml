@@ -1,0 +1,6 @@
+version: 1
+name: report-generation
+description: "Generate a requirements-traceable research report from verified evidence and specialist analysis"
+capabilities: ["collect"]
+required_tools: ["jq", "yq"]
+managed_by: cmd/cusimanse
