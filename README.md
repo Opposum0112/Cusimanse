@@ -6,7 +6,7 @@
 
 ![Cusimanse agent-operated capability architecture](docs/architecture/cusimanse-architecture.svg)
 
-> **Flow:** Contract → requirements → agent → capability registry → Go capability API → policy gate → disposable VM → instrumentation/workload → evidence → specialist analysis → independent verification → report → preservation → destroy.
+> **Flow:** Contract → requirements → agent → capability registry → Go capability API → policy → disposable VM → instrumentation/workload → evidence → specialist analysis → independent verification → report → preservation → destroy.
 
 ## Table of contents
 
@@ -15,12 +15,13 @@
 - [Researcher workflow](#researcher-workflow)
 - [Host toolchain](#host-toolchain)
 - [Gateway configuration](#gateway-configuration)
+- [Observability and reports](#observability-and-reports)
 - [Agent adapters and prompt handoff](#agent-adapters-and-prompt-handoff)
 - [Quick start](#quick-start)
 - [Go capability API](#go-capability-api)
+- [Roles Skills and learning](#roles-skills-and-learning)
 - [Profiles and requirements](#profiles-and-requirements)
 - [Policy and safety](#policy-and-safety)
-- [Agent roles and Skills](#agent-roles-and-skills)
 - [Evidence and reproducibility](#evidence-and-reproducibility)
 - [Reference experiments](#reference-experiments)
 - [Validation and integration tests](#validation-and-integration-tests)
@@ -29,7 +30,7 @@
 
 ## What Cusimanse is
 
-Cusimanse is a **declarative research-contract, YAML-recipe and agent-operation framework**. The researcher describes **what is required**, not how to build the infrastructure.
+Cusimanse is a **declarative research-contract, YAML-recipe and agent-operation framework**. The researcher describes **what is required**, not how to build infrastructure.
 
 | Layer | Responsibility | Source of truth |
 |---|---|---|
@@ -37,19 +38,20 @@ Cusimanse is a **declarative research-contract, YAML-recipe and agent-operation 
 | Requirements | OS, isolation, workload, network, instrumentation | `recipes/experiments/` |
 | Capability registry | Reusable host/workload capabilities | `recipes/profiles/registry.yaml` |
 | Go capability API | Resolve, provision, configure, execute, collect, destroy | `cmd/cusimanse/` |
-| Policy | Allow, deny, approval and audit | `scripts/policyctl` + `policies/` |
+| Roles/Skills | Specialist behavior and least-scope delegation | `recipes/agents/role-skill-registry.json` |
+| Policy | Allow, deny, approval and audit | `policies/host-policy.yaml` + Go runtime |
 | Agent | Plan, select, operate, observe, adapt, analyze | Goose + specialist roles |
 | Containment | Disposable execution boundary | Lima/QEMU guest |
-| Evidence | Raw observations, provenance, verification and report | `runs/<session-id>/` |
+| Evidence | Observations, provenance, verification and report | `runs/<session-id>/` |
 
-The agent may provision and execute, but only by operating registered capabilities. It cannot create trusted profiles, mutate infrastructure recipes, expand policy scope, or execute the research workload on the host.
+The agent may operate registered capabilities, but cannot create trusted profiles, mutate infrastructure recipes, expand policy scope, or execute an untrusted research workload on the host.
 
 ## Architecture
 
 1. **Declaration** — Markdown contract plus YAML requirements.
 2. **Agent operation** — Goose is the reference operator; roles and Skills provide specialist behavior.
 3. **Capability resolution** — Go matches requirements to versioned profiles and fails closed on no match or ambiguity.
-4. **Policy control** — `policyctl` gates VM, network, mounts, credentials, host execution and other privileged actions.
+4. **Policy control** — the Go capability runtime is the policy decision point; `scripts/policyctl` remains a compatibility/audit helper.
 5. **Execution** — the provider operates Lima/QEMU and fixed workload handlers inside disposable compute.
 6. **Research** — evidence is collected and hashed, then analyzed, independently verified, reported and preserved.
 
@@ -58,15 +60,19 @@ Researcher says WHAT
        ↓
 Experiment requirements
        ↓
-Agent decides WHICH registered capability
+Agent selects WHICH registered capability
        ↓
-Go Capability API decides HOW to operate it
+Go Capability API owns HOW
        ↓
-policyctl decides WHETHER the action is allowed
+Go policy decision + audit helper
        ↓
-Lima/QEMU provides WHERE execution is contained
+Lima/QEMU provides WHERE
        ↓
-Evidence returns to the agent for analysis/adaptation
+Evidence + observability
+       ↓
+Specialists → verifier → report-generator
+       ↓
+preserve → destroy
 ```
 
 Model output is never trusted infrastructure or raw evidence.
@@ -88,7 +94,7 @@ requirements:
   instrumentation: [process, syscall, filesystem, network]
 ```
 
-Do not put VM commands, package installation, host mounts or model-generated infrastructure into the experiment configuration.
+Do not put VM commands, package installation, host mounts or model-generated infrastructure into experiment configuration.
 
 ### 3. Start Goose
 
@@ -104,40 +110,31 @@ The recipe directs the agent to read the contract and requirements, resolve capa
 go run ./cmd/cusimanse resolve npm-threat-001
 ```
 
-Expected profiles:
-
-```text
-host_profile: recipes/profiles/host/linux-lima.yaml
-workload_profile: recipes/profiles/workload/npm-threat.yaml
-```
-
 ### 5. Approve and operate
 
 ```bash
 go run ./cmd/cusimanse --approved run npm-threat-001
 ```
 
-The runtime performs `resolve → policy → provision → instrument → execute → collect → hash`.
+The lifecycle is `resolve → policy → provision → instrument → execute → collect → verify → report → preserve → destroy`.
 
-### 6. Analyze and verify
+### 6. Analyze, verify and report
 
-The primary agent delegates specialist analysis, independently verifies evidence and conclusions, and then produces the research report.
+The primary agent delegates runtime, forensics and detection analysis. The `verifier` independently checks evidence and conclusions. The `report-generator` creates the final researcher-facing report from the declared requirements, preserved evidence, specialist analysis, verification and observability metadata.
 
 ```text
 observe → analyze → request declared capability → execute → observe
                          ↓
                  independent verifier
                          ↓
+              report-generator role
+                         ↓
                  report → preserve → destroy
 ```
 
-### 7. Preserve before destroy
-
-Evidence, provenance, analysis and verification are finalized before disposable compute is destroyed. If a required capability is unavailable, record `PARTIAL`; do not silently weaken the experiment.
-
 ## Host toolchain
 
-The authoritative inventory is `recipes/host/security-research.yaml`. It separates common host commands, platform-specific host commands, guest-only instrumentation, mandatory gateways/observers and configuration locations. `scripts/install.sh` installs/configures the stack and `scripts/tools.sh` reports inventory, versions and configuration. fileciteturn195file0
+The authoritative inventory is `recipes/host/security-research.yaml`. It separates common host commands, platform-specific host commands, guest-only instrumentation, mandatory gateways/observers and configuration locations. `scripts/install.sh` installs/configures the stack and `scripts/tools.sh` reports inventory, versions and configuration.
 
 ### Common host commands
 
@@ -147,62 +144,28 @@ The authoritative inventory is `recipes/host/security-research.yaml`. It separat
 | `bash` | lifecycle scripts |
 | `curl` | controlled installation downloads |
 | `python3` | Python tooling and telemetry |
-| `node` | npm workloads and adapter installation |
-| `npm` | Node package workloads |
+| `node` / `npm` | Node workloads and adapters |
 | `go` | capability runtime and Go workloads |
-| `jq` | JSON processing |
-| `yq` | YAML/configuration processing |
+| `jq` / `yq` | JSON/YAML processing |
 | `rg` | repository/search operations |
 | `goose` | reference agent and recipe orchestration |
+
+`go` is a required host capability and is installed by `scripts/install.sh` on Linux and macOS. Numbat is installed with `go install`, so the Go toolchain is available before Numbat installation.
 
 ### Platform-specific host commands
 
 | Platform | Commands | Notes |
 |---|---|---|
 | Linux | `limactl`, `qemu-system-x86_64` | Full reference path |
-| macOS | `limactl`, `qemu-system-aarch64` | Apple Silicon ARM QEMU; Linux collectors run in guest |
-| Windows + WSL2 | `limactl`, `qemu-system-x86_64` | Full reference experiments use Linux/WSL2 |
+| macOS | `limactl`, `qemu-system-aarch64` | Apple Silicon path; Linux collectors run in guest |
+| Windows + WSL2 | `limactl`, `qemu-system-x86_64` | Full reference experiments use WSL2 |
 | Native Windows | none | Agent/repository fallback; full VM experiments require WSL2 |
 
 ### Guest instrumentation commands
 
-These are guest tools, not native macOS/Windows prerequisites:
+`strace`, `tcpdump`, `ss`, `ip`, `dig`, `getent`, `lsof`, `find`, `stat`, `sha256sum`, `inotifywait`, `file`, `ps` and `pgrep` are guest tools, not native macOS/Windows prerequisites.
 
-```text
-strace        syscall tracing
-tcpdump       packet capture
-ss            socket/network state
-ip            interfaces/routes/network state
-dig           DNS observation
-getent        name/service lookup
-lsof          open files/sockets/process relationships
-find          filesystem enumeration
-stat          file metadata/timestamps
-sha256sum     evidence hashing
-inotifywait   filesystem event observation
-file          file-type identification
-ps            process inventory
-pgrep         process lookup
-```
-
-This host/guest split prevents Linux-only collectors being incorrectly treated as native host requirements. fileciteturn195file0
-
-### Mandatory services and observability
-
-The host contract declares Goose, OmniRoute and LiteLLM plus Numbat, Aegis, Phoenix, OpenTelemetry and ClawMetry as the mandatory agent/gateway/observability stack. Observers and gateways are not the workload security boundary. fileciteturn195file0turn198file0
-
-| Component | Interface | Role |
-|---|---|---|
-| Goose | `goose` | primary agent/orchestrator |
-| OmniRoute | `omniroute` | routing/provider fallback |
-| LiteLLM | `litellm` | model gateway/normalization |
-| Numbat | `numbat` | monitoring |
-| Aegis | `~/.local/share/cusimanse/aegis/` | independent observer |
-| Phoenix | Python `phoenix` | telemetry/tracing |
-| OpenTelemetry | Python `opentelemetry` | telemetry/export |
-| ClawMetry | `clawmetry` | Goose session/token visibility |
-
-### Installation and inspection commands
+### Installation and inspection
 
 ```bash
 ./scripts/install.sh
@@ -212,15 +175,15 @@ The host contract declares Goose, OmniRoute and LiteLLM plus Numbat, Aegis, Phoe
 ./scripts/tools.sh config
 ./scripts/tools.sh path
 ./scripts/tools.sh check
+./scripts/tools.sh observability
+./scripts/observability.sh status
 ```
 
-`tools.sh list` reports every declared command, Python package and Aegis checkout. `versions` prints command paths/versions; `config` prints configuration locations without secrets. fileciteturn194file0
-
-The installer is idempotent and fails before an experiment if required capabilities are missing. Remote installer scripts are downloaded to a temporary file and syntax-checked before execution. Pinned components include Goose `1.50.0`, Numbat `0.2.0`, OmniRoute `3.8.50` and Pi `0.74.0`; Aegis is pinned to a repository commit. fileciteturn197file0turn201file0
+The installer is idempotent, installs Go explicitly, configures the gateways/observability stack, and fails before experiments when required host capabilities are unavailable. Remote installers are downloaded to temporary files and syntax-checked before execution.
 
 ## Gateway configuration
 
-The mandatory gateway recipe is `recipes/gateway/mandatory.yaml`. OmniRoute binds to `127.0.0.1:20128`; LiteLLM binds to `127.0.0.1:4000` and routes to OmniRoute. Both are localhost-only and are **not** security boundaries. fileciteturn197file0
+`recipes/gateway/mandatory.yaml` defines localhost-only OmniRoute and LiteLLM endpoints:
 
 ```text
 Agent / Goose
@@ -232,47 +195,68 @@ OmniRoute :20128
 configured model provider(s)
 ```
 
-The installer generates:
+Configuration is generated under `~/.config/cusimanse/`; secrets remain in environment variables and are never written to Git-tracked recipes.
 
-```text
-~/.config/cusimanse/litellm.yaml
-~/.config/cusimanse/omniroute.env
-~/.config/cusimanse/goose.env
-~/.config/cusimanse/observability.env
+## Observability and reports
+
+Cusimanse separates **agent observability** from **experiment evidence**:
+
+> **Goose observes the agent; Cusimanse observes the experiment.**
+
+| Tool | Purpose | Access |
+|---|---|---|
+| Numbat | monitoring records | `~/.numbat/cusimanse.ndjson`, `./scripts/tools.sh numbat` |
+| Phoenix | LLM/agent traces | `http://127.0.0.1:6006` |
+| OpenTelemetry | telemetry transport | `http://127.0.0.1:4318` |
+| ClawMetry | Goose session/token visibility | `http://127.0.0.1:8900` |
+| Aegis | independent observer | `~/.local/share/cusimanse/aegis/` |
+
+For each run, preserve token/cost-oriented telemetry in `runs/<session-id>/observability/token-usage.yaml` when available. Never store API keys in telemetry artifacts.
+
+Convenience commands:
+
+```bash
+./scripts/tools.sh numbat
+./scripts/observability.sh numbat
+./scripts/observability.sh phoenix
+./scripts/observability.sh clawmetry
+./scripts/observability.sh report <session-id>
 ```
 
-LiteLLM uses the OpenAI-compatible `openai/auto` route through OmniRoute. Gateway secrets are supplied through environment variables, not Git-tracked recipes. Goose points its OpenAI-compatible client at the local LiteLLM endpoint. Observability endpoints are configured separately. fileciteturn201file0
+See [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md) for the detailed access model, correlation fields and reporting workflow.
+
+### Report generation
+
+`report-generator` is a first-class role and `report-generation` is a first-class Skill. It has no execution or policy mutation authority. It consumes:
+
+- research requirements and contract
+- preserved evidence and provenance
+- runtime/forensics/detection analysis
+- independent verification
+- relevant observability/token metadata
+
+and produces:
+
+```text
+runs/<session-id>/research-report/report.md
+runs/<session-id>/research-report/report.yaml
+```
+
+The report must trace conclusions to evidence, distinguish observation from inference, state confidence and limitations, record partial/failed steps and describe reproducibility.
 
 ## Agent adapters and prompt handoff
 
-Goose is the **native reference operator**. Other agents are adapters over the same contract, experiment configuration and prompt reference. Adapter prompts are handoffs; they cannot mutate recipes or experiment scope. fileciteturn205file0
+Goose is the **native reference operator**. Other agents are adapters over the same contract, experiment configuration and prompt reference. Adapter prompts cannot mutate recipes or experiment scope.
 
-| Agent | Command | Mode | Native capabilities | Status |
-|---|---|---|---|---|
-| Goose | `goose` | native recipe | recipes, subrecipes, summon, Skills, MCP/extensions, delegation | Reference |
-| OpenCode | `opencode` | prompt handoff | agents, plugins, MCP | NOT_DEPLOYED until runtime evidence |
-| Hermes | `hermes` | prompt handoff | tools, Skills, delegation | NOT_DEPLOYED until runtime evidence |
-| Antigravity | `agy` | prompt handoff | agents, tools, delegation | NOT_DEPLOYED until runtime evidence |
-| Pi | `pi` | prompt handoff | extensions, Skills, packages | NOT_DEPLOYED until runtime evidence |
+| Agent | Command | Mode | Status |
+|---|---|---|---|
+| Goose | `goose` | native recipe | Reference |
+| OpenCode | `opencode` | prompt handoff | NOT_DEPLOYED until runtime evidence |
+| Hermes | `hermes` | prompt handoff | NOT_DEPLOYED until runtime evidence |
+| Antigravity | `agy` | prompt handoff | NOT_DEPLOYED until runtime evidence |
+| Pi | `pi` | prompt handoff | NOT_DEPLOYED until runtime evidence |
 
-Optional adapters are selected interactively or with `CUSIMANSE_INSTALL_ADAPTERS=opencode,hermes,antigravity,pi`. Installation is idempotent; failed optional adapters are `PARTIAL`, while Goose failure is `FAIL`. fileciteturn197file0
-
-### Prompt steps
-
-Every `prompts/experiments/<experiment>.md` is a controlled handoff. A compliant adapter follows this sequence:
-
-1. **Read first:** contract, experiment YAML, session-state and instrumentation recipe.
-2. **Validate scope:** authorization, workload, isolation, network and telemetry requirements.
-3. **Resolve:** run `go run ./cmd/cusimanse resolve <experiment>` and use only returned registered capabilities.
-4. **Obtain approval:** stop for researcher approval before approval-gated, privileged or destructive actions.
-5. **Operate:** invoke the Go capability runtime; never invent VM commands or mutate trusted profiles.
-6. **Observe:** start declared instrumentation before workload execution and preserve raw evidence.
-7. **Analyze:** delegate runtime, forensics and detection analysis to the appropriate roles/Skills.
-8. **Verify:** independently cross-check evidence, hashes and reproducibility.
-9. **Report:** record findings, confidence and limitations.
-10. **Preserve then destroy:** preserve artifacts/manifests before destroying disposable compute.
-
-The adapter contract requires `session.yaml`, `evidence/`, `verification/` and `research-report/`. A CLI being installed is not sufficient to mark an adapter deployed; runtime evidence and independent verification are required. fileciteturn205file0
+Every prompt follows: read contract → validate scope → resolve → approval → operate → observe → analyze → verify → report → preserve/destroy.
 
 ## Quick start
 
@@ -280,7 +264,6 @@ The adapter contract requires `session.yaml`, `evidence/`, `verification/` and `
 ./scripts/install.sh
 ./scripts/preflight.sh
 ./scripts/tools.sh check
-./scripts/policyctl validate
 ./scripts/tests/validate.sh
 ./scripts/tests/runtime.sh
 ./scripts/tests/integration.sh
@@ -311,17 +294,67 @@ execute
 collect
 destroy
 run
+capability skill list
+capability role list
+capability skill upsert
+capability role upsert
 ```
 
-CLI surface:
+Examples:
 
 ```bash
 go run ./cmd/cusimanse capability list
-go run ./cmd/cusimanse resolve <experiment>
-go run ./cmd/cusimanse --approved run <experiment> [session-id]
+go run ./cmd/cusimanse capability skill list
+go run ./cmd/cusimanse capability role list
+go run ./cmd/cusimanse capability skill upsert --name runtime-analysis --description 'Analyze runtime behavior' --capabilities collect --tools jq,yq
+go run ./cmd/cusimanse capability role upsert --name runtime-analyst --description 'Analyze runtime behavior' --skills runtime-analysis --capabilities execute,collect
 ```
 
-The API separates agent decisions from infrastructure implementation: resolver → registered profile → policy gate → provider/fixed handler → disposable compute. The initial provider is Lima/QEMU. `--approved` represents explicit researcher approval and never overrides a policy denial.
+Role/Skill upserts update the source-of-truth registry and regenerate the corresponding YAML consumers deterministically. They do **not** grant infrastructure authority or change policy.
+
+## Roles Skills and learning
+
+The managed source of truth is `recipes/agents/role-skill-registry.json`; generated role/Skill YAML lives under `.agents/agents/` and `recipes/skills/`. The generated binding contract is `recipes/agents/role-skill-bindings.yaml`.
+
+| Role | Focus | Skills |
+|---|---|---|
+| Planner | scope and lifecycle planning | `experiment-run` |
+| Researcher | execution and evidence interpretation | `experiment-run`, `evidence-analysis` |
+| Runtime analyst | runtime/process/syscall/network behavior | `experiment-run`, `evidence-analysis` |
+| Forensics analyst | filesystem/process/timeline analysis | `forensics`, `evidence-analysis` |
+| Detection analyst | indicators and findings | `evidence-analysis` |
+| Verifier | integrity and reproducibility | `verification`, `evidence-analysis` |
+| Report generator | requirements-traceable reporting | `report-generation`, `evidence-analysis`, `verification` |
+
+### Learning loop
+
+Learning is **disabled by default**. It is a controlled experience-to-Skill loop:
+
+```text
+verified experience
+      ↓
+retrieve existing validated skills
+      ↓
+propose candidate skill + preconditions
+      ↓
+authorized disposable replay
+      ↓
+evaluate + independently verify
+      ↓
+human approval
+      ↓
+skills/validated/
+```
+
+Commands:
+
+```bash
+./scripts/learningctl status <session-id>
+./scripts/learningctl candidate <session-id> <candidate-id> <file>
+./scripts/learningctl promote <session-id> <candidate-id> --approved
+```
+
+Promotion requires preserved evidence, replay and independent verification. Learned Skills cannot mutate contracts, trusted profiles, policy scope or the execution boundary.
 
 ## Profiles and requirements
 
@@ -336,11 +369,13 @@ recipes/profiles/
     └── npm-threat.yaml
 ```
 
-The registry is deterministic, permits agent selection and forbids agent-created profiles. Resolution fails closed on no match or ambiguity. The host profile forbids model-generated provisioning/instrumentation; workload profiles use fixed handlers and cannot be modified by the agent. fileciteturn201file0
+The registry is deterministic, permits agent selection and forbids agent-created profiles. Resolution fails closed on no match or ambiguity. Host profiles forbid model-generated provisioning/instrumentation; workload profiles use fixed handlers and cannot be modified by the agent.
 
 ## Policy and safety
 
-`policyctl` is the single policy control surface:
+The **Go capability runtime is the intended policy decision point**. The policy definition remains declarative in `policies/host-policy.yaml`.
+
+`scripts/policyctl` is retained as a compatibility/audit helper for shell users, CI and existing recipes. It is **not an independent security authority** and should not be treated as a second policy engine.
 
 ```bash
 ./scripts/policyctl validate
@@ -348,14 +383,13 @@ The registry is deterministic, permits agent selection and forbids agent-created
 ./scripts/policyctl check network
 ./scripts/policyctl check credentials
 ./scripts/policyctl check mounts
-./scripts/policyctl require vm --approved
 ./scripts/policyctl audit
 ```
 
-The security boundary is:
+The security boundary remains:
 
 ```text
-policy + authorization
+authorization + policy
         ↓
 Go capability API
         ↓
@@ -365,20 +399,6 @@ workload + declared instrumentation
 ```
 
 Gateways, MCP, Skills, model adapters and observability improve agent operation and visibility but cannot replace containment.
-
-## Agent roles and Skills
-
-| Role | Focus | Skills |
-|---|---|---|
-| Planner | scope, planning, lifecycle preparation | `experiment-run` |
-| Researcher | execution and evidence interpretation | `experiment-run`, `evidence-analysis` |
-| Runtime analyst | process/syscall/network/runtime behavior | `experiment-run`, `evidence-analysis` |
-| Forensics analyst | filesystem/process artifacts and timelines | `forensics`, `evidence-analysis` |
-| Detection analyst | indicators and security findings | `evidence-analysis` |
-| Verifier | independent integrity and reproducibility | `verification`, `evidence-analysis` |
-| Report generator | findings, confidence and limitations | `evidence-analysis`, `verification` |
-
-Goose orchestration permits analysis specialists to work in parallel while keeping provision, workload, verification, reporting, preservation and destruction controlled in sequence. The adaptive loop is restricted to declared capabilities. fileciteturn198file0
 
 ## Evidence and reproducibility
 
@@ -393,6 +413,9 @@ runs/<session-id>/
 ├── verification/result.md
 ├── research-report/report.md
 ├── research-report/report.yaml
+├── observability/token-usage.yaml
+├── observability/dashboard.yaml
+├── learning/
 └── preservation/manifest.yaml
 ```
 
@@ -417,7 +440,7 @@ The npm threat fixture is local and harmless, not real malware, and does not rec
 ./scripts/tests/validate.sh
 ```
 
-Checks the Go runtime, required files, manifest, policy, Goose recipe schema, requirements/profile restrictions and architecture assets. fileciteturn196file0
+Validates Go, recipes, manifests, role/Skill generated consumers, report generation, learning rules, observability configuration, policy, architecture assets and executable shell scripts.
 
 ### Runtime/control-plane validation
 
@@ -437,15 +460,9 @@ CUSIMANSE_RUN_VM_TEST=1 ./scripts/tests/runtime.sh
 ./scripts/tests/integration.sh
 ```
 
-The integration test covers host inventory → gateway/observability configuration → adapter matrix → prompt handoffs → Goose recipes → capability resolution → policy checks → session lifecycle → evidence hashing. Optional real provider test:
+The integration test covers host inventory → gateways/observability → adapters/prompts → Goose recipes → role/Skill management → capability resolution → policy → session lifecycle → evidence hashing. VM mode validates the Lima recipe, checks guest Go/Node/npm/instrumentation and destroys the disposable VM.
 
-```bash
-CUSIMANSE_RUN_VM_TEST=1 ./scripts/tests/integration.sh
-```
-
-VM mode validates the Lima recipe, starts disposable compute, checks Go/Node/npm plus guest instrumentation, then deletes the VM. Default CI does not require Lima. fileciteturn200file0
-
-CI runs static, runtime and integration tests after installing Go, yq, ShellCheck and Goose. A disposable-VM pass is only established when VM mode is actually requested. fileciteturn199file0
+CI does not claim a disposable-VM pass unless VM mode actually runs.
 
 ## Platform support
 
@@ -464,19 +481,21 @@ Cusimanse/
 ├── cmd/cusimanse/              # Go capability API/runtime
 ├── contracts/                  # research contracts
 ├── prompts/experiments/        # agent-neutral prompt handoffs
-├── policies/                   # policy definitions
+├── policies/                   # declarative policy
 ├── recipes/
 │   ├── experiments/            # researcher requirements
 │   ├── profiles/               # capability registry + profiles
-│   ├── agents/                 # Goose orchestration + adapter matrix
+│   ├── agents/                 # Goose orchestration + role/Skill registry
 │   ├── gateway/                # mandatory model gateway
 │   ├── observability/          # mandatory host observability
 │   ├── host/                   # host tool inventory
+│   ├── session/                # lifecycle + learning contract
 │   ├── subrecipes/             # delegated research tasks
 │   ├── lima/                   # disposable VM recipe
 │   └── instrumentation/        # guest telemetry recipe
-├── scripts/                    # installer, policy, lifecycle and tests
+├── scripts/                    # installer, helpers, lifecycle, learning and tests
 ├── docs/architecture/          # Mermaid source + rendered architecture
+├── docs/OBSERVABILITY.md       # observability/report access guide
 ├── manifest/                   # package/source-of-truth manifest
 ├── packages/                   # controlled workload fixtures
 └── runs/                       # generated research sessions
