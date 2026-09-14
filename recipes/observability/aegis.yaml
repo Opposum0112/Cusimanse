@@ -1,16 +1,26 @@
 id: aegis
-version: 1
-component: governance
-provider: Justin0504/Aegis
+version: 2
+component: agent-observability
+provider: antropos17/Aegis
 install:
-  method: docker-or-source
-  repository: https://github.com/Justin0504/Aegis
-  fallback: source-build
+  method: source
+  repository: https://github.com/antropos17/Aegis
+  prerequisites: [nodejs-22, npm, git]
+  platform: linux-or-macos
+  status_if_unavailable: NOT_DEPLOYED
 runtime:
-  mode: runtime-policy-and-audit
-  integration: host-side-agent-governance
+  mode: independent-os-level-observer
+  observes: [processes, files, network, behavioral-anomalies]
+  integration: host-side-agent-observability
+  agent_hooks_required: false
+  enforcement: monitor-only
 security:
   is_boundary: false
   agent_control_plane_authority: false
   credentials_from_agent_args: false
+  telemetry_local_only: true
 status: NOT_DEPLOYED
+notes:
+  - Aegis is an independent observer, not the workload isolation boundary.
+  - Do not treat Aegis observations as a substitute for Lima/QEMU evidence.
+  - Runtime availability must be verified by preflight; source installation is not evidence of a running observer.
