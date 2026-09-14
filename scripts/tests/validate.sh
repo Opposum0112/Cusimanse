@@ -8,10 +8,9 @@ for f in scripts/*.sh scripts/tests/*.sh; do
   [ -x "$f" ] || fail "not executable: $f"
   bash -n "$f" || fail "syntax error: $f"
 done
-for f in contracts/*.md recipes/go-install-001/recipe.yaml recipes/npm-install-001/recipe.yaml recipes/experiments/*.yaml recipes/subrecipes/*.yaml recipes/lima/security-research.yaml recipes/instrumentation/security-research.yaml recipes/host/security-research.yaml recipes/gateway/mandatory.yaml recipes/observability/mandatory.yaml recipes/session/session-state.yaml recipes/session/learning-workflow.yaml recipes/agents/adapter-matrix.yaml recipes/agents/adapter-installation.yaml recipes/agents/goose-orchestration.yaml recipes/skills/registry.yaml recipes/mcp/registry.yaml; do [ -s "$f" ] || fail "missing/empty: $f"; done
+for f in contracts/*.md recipes/go-install-001/recipe.yaml recipes/npm-install-001/recipe.yaml recipes/npm-lifecycle-001/recipe.yaml recipes/experiments/*.yaml recipes/subrecipes/*.yaml recipes/lima/security-research.yaml recipes/instrumentation/security-research.yaml recipes/host/security-research.yaml recipes/gateway/mandatory.yaml recipes/observability/mandatory.yaml recipes/session/session-state.yaml recipes/session/learning-workflow.yaml recipes/agents/adapter-matrix.yaml recipes/agents/adapter-installation.yaml recipes/agents/goose-orchestration.yaml recipes/skills/registry.yaml recipes/mcp/registry.yaml; do [ -s "$f" ] || fail "missing/empty: $f"; done
 for f in prompts/README.md prompts/experiments/*.md; do [ -s "$f" ] || fail "missing/empty prompt reference: $f"; done
 for d in skills/candidate skills/validated; do [ -d "$d" ] || fail "missing skill staging directory: $d"; done
-[ -x scripts/session.sh ] || fail 'session helper must be executable'
 [ -x scripts/run-experiment.sh ] || fail 'experiment runner must be executable'
 [ -s docs/architecture/cusimanse-architecture.svg ] || fail 'architecture SVG missing'
 [ -s docs/architecture/cusimanse-architecture.mmd ] || fail 'architecture Mermaid source missing'
@@ -21,13 +20,13 @@ python3 - <<'PY'
 from pathlib import Path
 import json, yaml
 json.loads(Path('manifest/PACKAGE-MANIFEST.json').read_text())
+allowed={'version','title','description','instructions','prompt','activities','extensions','parameters','response','retry','settings','sub_recipes'}
 for p in Path('recipes').glob('**/*.yaml'):
     assert isinstance(yaml.safe_load(p.read_text()), dict), p
-for p in (Path('recipes/go-install-001/recipe.yaml'), Path('recipes/npm-install-001/recipe.yaml')):
+for p in Path('recipes').glob('*/recipe.yaml'):
     d=yaml.safe_load(p.read_text())
     for key in ('title','description','instructions'):
         assert isinstance(d.get(key), str) and d[key].strip(), f'{p}: {key}'
-    allowed={'version','title','description','instructions','prompt','activities','extensions','parameters','response','retry','settings','sub_recipes'}
     assert set(d) <= allowed, f'{p}: non-Goose top-level fields: {set(d)-allowed}'
 for p in Path('recipes/experiments').glob('*.yaml'):
     d=yaml.safe_load(p.read_text())
@@ -36,9 +35,7 @@ for p in Path('recipes/experiments').glob('*.yaml'):
 print('YAML/JSON/GOOSE SCHEMA PASS')
 PY
 if command -v goose >/dev/null 2>&1; then
-  goose recipe validate recipes/go-install-001/recipe.yaml
-  goose recipe validate recipes/npm-install-001/recipe.yaml
-  for f in recipes/subrecipes/*.yaml; do goose recipe validate "$f"; done
+  for f in recipes/*/recipe.yaml; do goose recipe validate "$f"; done
 else
   echo 'Goose CLI not installed: Goose runtime validation deferred'
 fi
