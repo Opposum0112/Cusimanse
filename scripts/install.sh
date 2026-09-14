@@ -24,14 +24,19 @@ else fail 'Use Linux, macOS, or WSL2'; fi
 have limactl || fail 'Lima installation failed'
 if ! have goose; then curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | CONFIGURE=false GOOSE_BIN_DIR="$BIN" bash; fi
 have goose || fail 'Goose installation failed'
-node_major="$(node -p 'process.versions.node.split(".")[0]')"; [ "$node_major" -ge 20 ] || fail 'Node.js 20+ is required'
+node_major="$(node -p 'process.versions.node.split(".")[0]')"
+[ "$node_major" -ge 22 ] || fail 'Node.js 22+ is required by the current mandatory gateway/observer stack'
 
-python3 -m pip install --user --upgrade litellm arize-phoenix opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp
+python3 -m pip install --user --upgrade litellm arize-phoenix opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp clawmetry
 GOBIN="$BIN" go install github.com/perplexityai/numbat/cmd/numbat@latest
 npm install -g omniroute
-have numbat || fail 'Numbat installation failed'; have omniroute || fail 'OmniRoute installation failed'
+have numbat || fail 'Numbat installation failed'
+have omniroute || fail 'OmniRoute installation failed'
+have clawmetry || fail 'ClawMetry installation failed'
 
-AEGIS="$DATA/aegis"; if [ ! -d "$AEGIS/.git" ]; then git clone --depth 1 https://github.com/antropos17/Aegis "$AEGIS"; fi; (cd "$AEGIS" && npm ci)
+AEGIS="$DATA/aegis"
+if [ ! -d "$AEGIS/.git" ]; then git clone --depth 1 https://github.com/antropos17/Aegis "$AEGIS"; fi
+(cd "$AEGIS" && npm ci)
 cat > "$BIN/cusimanse-aegis" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
@@ -40,7 +45,7 @@ npm start
 EOF
 chmod +x "$BIN/cusimanse-aegis"
 
-# Mandatory local routing: Goose -> LiteLLM -> OmniRoute. Provider secrets are external.
+# Mandatory local routing: Goose -> LiteLLM -> OmniRoute. Provider secrets stay outside Git.
 cat > "$CFG/litellm.yaml" <<'EOF'
 model_list:
   - model_name: auto
@@ -51,6 +56,8 @@ model_list:
 router_settings:
   routing_strategy: simple-shuffle
   fallbacks: []
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
 EOF
 cat > "$CFG/omniroute.env" <<'EOF'
 OMNIROUTE_HOST=127.0.0.1
@@ -62,6 +69,8 @@ PHOENIX_HOST=127.0.0.1
 PHOENIX_PORT=6006
 OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318
 AEGIS_ROOT=$AEGIS
+CLAWMETRY_HOST=127.0.0.1
+CLAWMETRY_PORT=8900
 EOF
 cat > "$CFG/goose.env" <<'EOF'
 export GOOSE_PROVIDER=openai
@@ -70,7 +79,12 @@ export OPENAI_API_KEY=${LITELLM_API_KEY:-}
 export GOOSE_RECIPE_PATH="$PWD/recipes"
 EOF
 
-for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do [ -f "$rc" ] && grep -Fq 'export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"' "$rc" || { [ -f "$rc" ] && printf '\nexport PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"\n' >> "$rc" || true; }; done
+for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
+  if [ -f "$rc" ] && ! grep -Fq 'export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"' "$rc"; then
+    printf '\n# Cusimanse\nexport PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"\n' >> "$rc"
+  fi
+done
+
 "$ROOT/preflight.sh"
 log 'Host preparation PASS'
-printf '%s\n' 'Next:' '  source ~/.config/cusimanse/goose.env' '  ./validate.sh' '  goose run --recipe ./recipes/go-install-001/recipe.yaml --interactive'
+printf '%s\n' 'Next:' '  source ~/.config/cusimanse/goose.env' '  ./scripts/tests/validate.sh' '  goose run --recipe ./recipes/go-install-001/recipe.yaml --interactive'
