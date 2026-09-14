@@ -13,9 +13,7 @@ OS="$(uname -s)"; SUDO=""; [ "$(id -u)" -eq 0 ] || SUDO=sudo
 [ -s "$HOST_RECIPE" ] || fail 'host recipe missing'
 have yq || { if [ "$OS" = Darwin ] && have brew; then brew install yq; elif [ "$OS" = Linux ] && have apt-get; then run_root apt-get update; run_root apt-get install -y yq; else fail 'yq is required to read the host recipe'; fi; }
 install_common_linux(){
-  if have apt-get; then
-    run_root apt-get update
-    run_root apt-get install -y git bash curl python3 python3-pip python3-venv nodejs npm golang-go jq yq ripgrep ca-certificates
+  if have apt-get; then run_root apt-get update; run_root apt-get install -y git bash curl python3 python3-pip python3-venv nodejs npm golang-go jq yq ripgrep ca-certificates
   elif have dnf; then run_root dnf install -y git bash curl python3 python3-pip python3-virtualenv nodejs npm golang jq yq ripgrep ca-certificates
   elif have pacman; then run_root pacman -Sy --needed --noconfirm git bash curl python python-pip nodejs npm go jq yq ripgrep ca-certificates
   elif have zypper; then run_root zypper --non-interactive install git bash curl python3 python3-pip nodejs npm go jq yq ripgrep ca-certificates
@@ -34,9 +32,17 @@ else
   fail 'Use WSL2 for full Cusimanse experiments or the PowerShell native-agent fallback'
 fi
 
-# Pin the runtime families rather than installing unbounded latest releases.
 NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"; [ "$NODE_MAJOR" -ge 22 ] || fail 'Node.js 22+ required'
-if ! have goose; then curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | CONFIGURE=false GOOSE_BIN_DIR="$BIN" bash; fi
+GOOSE_VERSION="${CUSIMANSE_GOOSE_VERSION:-1.50.0}"
+if ! have goose; then
+  tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
+  url="https://github.com/aaif-goose/goose/releases/download/v${GOOSE_VERSION}/download_cli.sh"
+  curl -fsSL "$url" -o "$tmp"
+  printf '%s  %s\n' 'ab5ae40513348ec4e6047cc7338040aab2df5246800c111d22065766ba6013f0' "$tmp" | sha256sum -c -
+  bash -n "$tmp"
+  CONFIGURE=false GOOSE_BIN_DIR="$BIN" bash "$tmp"
+  rm -f "$tmp"; trap - EXIT
+fi
 have goose || fail 'Goose installation failed'
 CFG="$(yq -r '.configuration.root' "$HOST_RECIPE" | sed "s|^~|$HOME|")"; AEGIS="$(yq -r '.configuration.aegis_checkout' "$HOST_RECIPE" | sed "s|^~|$HOME|")"; VENV="$(yq -r '.configuration.python_environment' "$HOST_RECIPE" | sed "s|^~|$HOME|")"; GATEWAY_CFG="$(yq -r '.configuration.gateway' "$HOST_RECIPE" | sed "s|^~|$HOME|")"
 mkdir -p "$CFG" "$(dirname "$AEGIS")" "$(dirname "$VENV")"
@@ -44,9 +50,8 @@ python3 -m venv "$VENV"
 "$VENV/bin/pip" install --upgrade pip
 "$VENV/bin/pip" install litellm arize-phoenix opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp clawmetry
 ln -sf "$VENV/bin/litellm" "$BIN/litellm"; ln -sf "$VENV/bin/clawmetry" "$BIN/clawmetry"
-# Tool versions are recorded after installation for reproducibility.
-if ! have numbat; then GOBIN="$BIN" go install github.com/perplexityai/numbat/cmd/numbat@v0.1.0; fi
-if ! have omniroute; then npm install -g omniroute@latest; fi
+if ! have numbat; then GOBIN="$BIN" go install github.com/perplexityai/numbat/cmd/numbat@v0.2.0; fi
+if ! have omniroute; then npm install -g omniroute@3.8.50; fi
 have numbat || fail 'Numbat installation failed'; have omniroute || fail 'OmniRoute installation failed'; have clawmetry || fail 'ClawMetry installation failed'
 if [ ! -d "$AEGIS/.git" ]; then git clone --depth 1 https://github.com/antropos17/Aegis "$AEGIS"; else git -C "$AEGIS" fetch --depth 1 origin main >/dev/null 2>&1 || true; fi
 (cd "$AEGIS" && npm ci)
@@ -91,7 +96,6 @@ export OPENAI_API_KEY=${LITELLM_API_KEY:-}
 EOF
 for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do if [ -f "$rc" ] && ! grep -Fq 'Cusimanse PATH' "$rc"; then printf '\n# Cusimanse PATH\nexport PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"\n' >> "$rc"; fi; done
 
-# Optional primary-agent adapters are deliberately separate from the mandatory stack.
 selection="${CUSIMANSE_INSTALL_ADAPTERS:-}"
 if [ -z "$selection" ] && [ -t 0 ]; then
   printf '%s\n' 'Optional adapters:' '  1) none' '  2) OpenCode' '  3) Hermes' '  4) Antigravity' '  5) Pi' '  6) all'
@@ -99,9 +103,10 @@ if [ -z "$selection" ] && [ -t 0 ]; then
   case "$answer" in 2) selection=opencode;;3) selection=hermes;;4) selection=antigravity;;5) selection=pi;;6) selection=all;;*) selection=none;;esac
 fi
 [ "$selection" = all ] && selection=opencode,hermes,antigravity,pi
-case ",$selection," in *,opencode,*) have opencode || curl -fsSL https://opencode.ai/install | bash || log 'OpenCode optional install failed';; esac
-case ",$selection," in *,hermes,*) have hermes || curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash || log 'Hermes optional install failed';; esac
-case ",$selection," in *,antigravity,*) have agy || curl -fsSL https://antigravity.google/cli/install.sh | bash || log 'Antigravity optional install failed';; esac
-case ",$selection," in *,pi,*) have pi || npm install -g @mariozechner/pi-coding-agent || log 'Pi optional install failed';; esac
+install_remote_script(){ local url="$1"; local tmp; tmp="$(mktemp)"; curl -fsSL "$url" -o "$tmp"; bash -n "$tmp"; bash "$tmp"; rm -f "$tmp"; }
+case ",$selection," in *,opencode,*) have opencode || install_remote_script 'https://opencode.ai/install';; esac
+case ",$selection," in *,hermes,*) have hermes || install_remote_script 'https://hermes-agent.nousresearch.com/install.sh';; esac
+case ",$selection," in *,antigravity,*) have agy || install_remote_script 'https://antigravity.google/cli/install.sh';; esac
+case ",$selection," in *,pi,*) have pi || npm install -g @mariozechner/pi-coding-agent;; esac
 
-log 'Host installation/configuration complete; run scripts/preflight.sh before experiments.'
+log "Goose ${GOOSE_VERSION}, Numbat v0.2.0 and OmniRoute 3.8.50 selected; host installation/configuration complete."
