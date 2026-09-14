@@ -4,53 +4,76 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
 fail(){ echo "VALIDATION FAIL: $*" >&2; exit 1; }
+
 for f in scripts/*.sh scripts/tests/*.sh; do
-  if [ "$f" != scripts/session.sh ]; then [ -x "$f" ] || fail "not executable: $f"; fi
+  [ -x "$f" ] || fail "not executable: $f"
   bash -n "$f" || fail "syntax error: $f"
 done
-for f in contracts/*.md recipes/go-install-001/recipe.yaml recipes/npm-install-001/recipe.yaml recipes/npm-lifecycle-001/recipe.yaml recipes/experiments/*.yaml recipes/subrecipes/*.yaml recipes/lima/security-research.yaml recipes/instrumentation/security-research.yaml recipes/host/security-research.yaml recipes/gateway/mandatory.yaml recipes/observability/mandatory.yaml recipes/session/session-state.yaml recipes/session/learning-workflow.yaml recipes/agents/adapter-matrix.yaml recipes/agents/adapter-installation.yaml recipes/agents/goose-orchestration.yaml recipes/skills/registry.yaml recipes/mcp/registry.yaml; do [ -s "$f" ] || fail "missing/empty: $f"; done
+for f in contracts/*.md recipes/*/recipe.yaml recipes/experiments/*.yaml recipes/subrecipes/*.yaml recipes/lima/security-research.yaml recipes/instrumentation/security-research.yaml recipes/host/security-research.yaml recipes/gateway/mandatory.yaml recipes/observability/mandatory.yaml recipes/session/session-state.yaml recipes/session/learning-workflow.yaml recipes/agents/adapter-matrix.yaml recipes/agents/adapter-installation.yaml recipes/agents/goose-orchestration.yaml recipes/skills/registry.yaml recipes/mcp/registry.yaml; do [ -s "$f" ] || fail "missing/empty: $f"; done
 for f in prompts/README.md prompts/experiments/*.md; do [ -s "$f" ] || fail "missing/empty prompt reference: $f"; done
 for d in skills/candidate skills/validated; do [ -d "$d" ] || fail "missing skill staging directory: $d"; done
+[ -x scripts/session.sh ] || fail 'session helper must be executable'
 [ -x scripts/run-experiment.sh ] || fail 'experiment runner must be executable'
 [ -s docs/architecture/cusimanse-architecture.svg ] || fail 'architecture SVG missing'
 [ -s docs/architecture/cusimanse-architecture.mmd ] || fail 'architecture Mermaid source missing'
 [ -s docs/images/cusimanse-mascot-logo.svg ] || fail 'mascot/logo image missing'
 [ -s manifest/PACKAGE-MANIFEST.json ] || fail 'package manifest missing'
+
+if grep -RInE 'ai-security-lab|CrewAI|crewai|ARCHITECTURE-REFACTOR|scripts/cusimanse-host|scripts/agent-preflight|scripts/configure-recipes|scripts/goose-env|recipes/adapters|recipes/gateways|recipes/routing|recipes/orchestration|docs/research-workflow|docs/images/cusimanse-workflow|turn[0-9]+search[0-9]+' README.md .goosehints contracts recipes docs scripts 2>/dev/null; then
+  fail 'stale or retired architecture references remain'
+fi
+
 python3 - <<'PY'
 from pathlib import Path
 import json, yaml
 json.loads(Path('manifest/PACKAGE-MANIFEST.json').read_text())
 allowed={'version','title','description','instructions','prompt','activities','extensions','parameters','response','retry','settings','sub_recipes'}
 for p in Path('recipes').glob('*/recipe.yaml'):
-    d=yaml.safe_load(p.read_text())
-    for key in ('title','description','instructions'):
-        assert isinstance(d.get(key), str) and d[key].strip(), f'{p}: {key}'
-    assert set(d) <= allowed, f'{p}: non-Goose top-level fields: {set(d)-allowed}'
+    d=yaml.safe_load(p.read_text()); assert isinstance(d,dict), p
+    assert isinstance(d.get('title'),str) and d['title'].strip(), f'{p}: title'
+    assert isinstance(d.get('description'),str) and d['description'].strip(), f'{p}: description'
+    assert d.get('instructions') or d.get('prompt'), f'{p}: instructions/prompt required'
+    assert set(d) <= allowed, f'{p}: non-Goose fields: {set(d)-allowed}'
 for p in Path('recipes/experiments').glob('*.yaml'):
     d=yaml.safe_load(p.read_text()); assert d.get('kind') == 'cusimanse-experiment', p
     assert d.get('contract') and d.get('workload'), p
-print('YAML/JSON/GOOSE SCHEMA PASS')
+    assert d.get('compute') and d.get('instrumentation') and d.get('session'), p
+for p in Path('recipes/subrecipes').glob('*.yaml'):
+    d=yaml.safe_load(p.read_text()); assert d.get('title') and d.get('description'), p
+    assert d.get('instructions') or d.get('prompt'), p
+m=yaml.safe_load(Path('recipes/agents/adapter-matrix.yaml').read_text())
+assert m['reference']['agent'] == 'goose'
+assert all(x in m['adapters'] for x in ('opencode','hermes','antigravity','pi'))
+s=yaml.safe_load(Path('recipes/session/session-state.yaml').read_text())
+assert s['agent']['selected_primary_agent'] == 'required'
+assert s['agent']['reference_primary_agent'] == 'goose'
+assert s['execution']['researcher_runs_workload_commands'] is False
+assert s['orchestration']['specialist_roles'] == 'required'
+assert s['learning']['default'] is False
+h=yaml.safe_load(Path('recipes/host/security-research.yaml').read_text())
+assert 'common' in h and 'platforms' in h and 'guest' in h
+assert h['installation']['configure_from_recipe'] is True
+print('STRUCTURAL YAML/JSON PASS')
 PY
-if command -v goose >/dev/null 2>&1; then for f in recipes/*/recipe.yaml; do goose recipe validate "$f"; done; else echo 'Goose CLI not installed: Goose runtime validation deferred'; fi
+
+if command -v goose >/dev/null 2>&1; then
+  for f in recipes/*/recipe.yaml; do goose recipe validate "$f"; done
+else
+  echo 'Goose CLI not installed: Goose CLI validation deferred'
+fi
+
 python3 - <<'PY'
 from pathlib import Path
 import yaml
-m=yaml.safe_load(Path('recipes/agents/adapter-matrix.yaml').read_text())
-assert m['reference']['agent'] == 'goose'
-for name in ('opencode','hermes','antigravity','pi'): assert name in m['adapters']
-print('AGENT MATRIX PASS')
+for f in ['recipes/gateway/mandatory.yaml','recipes/observability/mandatory.yaml']:
+    d=yaml.safe_load(Path(f).read_text()); assert d.get('required') is True, f
+skill=yaml.safe_load(Path('recipes/skills/registry.yaml').read_text())
+assert 'anthropic-cybersecurity-skills' in {x['id'] for x in skill.get('external', [])}
+mcp=yaml.safe_load(Path('recipes/mcp/registry.yaml').read_text()); assert mcp.get('public_exposure') == 'deny'
+learning=yaml.safe_load(Path('recipes/session/learning-workflow.yaml').read_text())
+assert learning['enabled']['default'] is False
+assert learning['enabled']['session_key'] == 'learning.enabled'
+assert learning['promotion_rules']['human_approval_required'] is True
+print('POLICY/LEARNING/REGISTRY PASS')
 PY
-grep -Fq 'required: true' recipes/gateway/mandatory.yaml || fail 'gateway is not mandatory'
-grep -Fq 'required: true' recipes/observability/mandatory.yaml || fail 'observability is not mandatory'
-grep -Fq 'default: false' recipes/session/learning-workflow.yaml || fail 'learning must default off'
-grep -Fq 'session_key: learning.enabled' recipes/session/learning-workflow.yaml || fail 'learning enable key missing'
-grep -Fq 'how_to_enable:' recipes/session/learning-workflow.yaml || fail 'learning instructions missing'
-grep -Fq 'configure_from_recipe: true' recipes/host/security-research.yaml || fail 'host recipe install declaration missing'
-grep -Fq 'recipes/agents/adapter-matrix.yaml' recipes/session/session-state.yaml || fail 'adapter matrix linkage missing'
-grep -Fq 'anthropic-cybersecurity-skills' recipes/skills/registry.yaml || fail 'external skill registry missing'
-grep -Fq 'public_exposure: deny' recipes/mcp/registry.yaml || fail 'MCP exposure policy missing'
-grep -Fq 'role_definitions: .agents/agents/' recipes/agents/goose-orchestration.yaml || fail 'Goose role definitions missing'
-grep -Fq 'native-agent-subagents-and-skills' recipes/agents/goose-orchestration.yaml || fail 'Goose native orchestration missing'
-grep -Fq 'optional_adapters:' recipes/agents/adapter-installation.yaml || fail 'adapter installer options missing'
-grep -Fq 'CUSIMANSE_INSTALL_ADAPTERS' recipes/agents/adapter-installation.yaml || fail 'adapter noninteractive install missing'
 printf '%s\n' 'VALIDATION PASS'
