@@ -1,6 +1,8 @@
 # Agent-shell runtime runbook
 
-Cusimanse is terminal-first. After bootstrap, the **selected primary agent shell is the operator**: it loads YAML contracts, plans, requests approval, orchestrates the VM lifecycle, executes approved workload actions, observes telemetry, collects evidence, invokes independent verification, reports, preserves evidence and destroys the disposable VM.
+Cusimanse is terminal-first. After bootstrap, the **selected primary agent shell is the operator**: it loads the authoritative YAML experiment recipe, plans, requests approval, orchestrates the VM lifecycle, executes approved workload actions, observes telemetry, collects evidence, invokes independent verification, reports, preserves evidence and destroys the disposable VM.
+
+Goose is the **reference primary operator** in this branch. Other agents use the same contract/recipe model through their adapters; their runtime acceptance remains provider-specific.
 
 Host scripts are intentionally limited to prerequisite installation, configuration, validation and preflight. They are not a second orchestration controller.
 
@@ -9,39 +11,27 @@ Host scripts are intentionally limited to prerequisite installation, configurati
 ```bash
 git clone <REPOSITORY_URL> Cusimanse
 cd Cusimanse
-git checkout architecture-refactor
+git checkout goose-refactor
 ```
 
 ## 1. Bootstrap and select exactly one primary
 
-Interactive:
+Use the single installation front door, then preflight:
 
 ```bash
-./scripts/prerequisites.sh
+./scripts/install.sh
+./scripts/preflight.sh
+./policyctl validate
 ```
 
-Non-interactive examples:
+The canonical adapter registry is `recipes/agents/adapter-matrix.yaml`. It requires exactly one primary shell. Goose is the reference operator; other adapters remain candidates until their provider-specific commands and end-to-end runtime behavior are validated.
 
-```bash
-CUSIMANSE_PRIMARY_ADAPTER=grok-build ./scripts/prerequisites.sh
-CUSIMANSE_PRIMARY_ADAPTER=antigravity ./scripts/prerequisites.sh
-CUSIMANSE_PRIMARY_ADAPTER=pi ./scripts/prerequisites.sh
-CUSIMANSE_PRIMARY_ADAPTER=hermes ./scripts/prerequisites.sh
-CUSIMANSE_PRIMARY_ADAPTER=prime-intellect ./scripts/prerequisites.sh
-CUSIMANSE_PRIMARY_ADAPTER=codex ./scripts/prerequisites.sh
-CUSIMANSE_PRIMARY_ADAPTER=opencode ./scripts/prerequisites.sh
-```
-
-The selection is recorded at `.cusimanse/primary-agent.yaml`. Provider-managed candidates are not falsely marked available.
-
-The canonical adapter registry is `recipes/agents/adapter-matrix.yaml`. It requires exactly one primary shell and records the native shell/prompt form for each adapter.
+The selection is recorded at `.cusimanse/primary-agent.yaml` when the bootstrap flow is used.
 
 ## 2. Validate before starting the agent
 
 ```bash
-./scripts/agent-preflight.sh
-./policyctl validate
-bash ./scripts/tests/validate-project.sh
+./scripts/tests/validate.sh
 ```
 
 Confirm the selected command:
@@ -54,13 +44,39 @@ command -v <PRIMARY_COMMAND>
 
 The last command is intentionally provider-specific: use it to confirm the CLI syntax installed on the target host before runtime acceptance.
 
-## 3. Native primary-shell commands
+## 3. Goose reference operator
+
+For the reference Goose path, use the native Goose recipe adapter:
+
+```bash
+goose --help
+goose
+```
+
+The native recipe is:
+
+```text
+recipes/goose/project.yaml
+```
+
+The Goose adapter accepts the experiment, contract and authoritative recipe as parameters. Use the installed Goose version's documented invocation syntax; the declared adapter form is:
+
+```text
+goose run --recipe recipes/goose/project.yaml \
+  --params experiment=<EXPERIMENT> \
+  --params contract=<CONTRACT> \
+  --params recipe=<RECIPE>
+```
+
+The Goose recipe does not redefine the experiment. It tells Goose how to operate Cusimanse from the authoritative contract and YAML recipe.
+
+## 4. Other primary-agent adapters
 
 Do not translate one adapter's syntax into another. Use the selected adapter's native shell.
 
 | Adapter | Interactive | Headless / run | Status |
 |---|---|---|---|
-| Goose | `goose` | `goose run --text '<PROMPT>'` | reference |
+| Goose | `goose` | native Goose recipe | reference |
 | OpenCode | `opencode` | `opencode run '<PROMPT>'` | candidate |
 | Grok Build | `grok` | `grok -p '<PROMPT>'` | candidate |
 | Antigravity | `agy` | `agy -p '<PROMPT>'` | candidate; verify with `agy --help` |
@@ -71,31 +87,33 @@ Do not translate one adapter's syntax into another. Use the selected adapter's n
 | Claude Code | `claude` | `claude '<PROMPT>'` | enterprise candidate |
 | Devin | provider-managed | provider-managed | enterprise candidate |
 
-The matrix is configuration, not proof of deployment. A CLI must pass host preflight and a disposable-VM end-to-end test before being considered runtime accepted.
+The adapter matrix is configuration, not proof of deployment. A CLI must pass host preflight and a disposable-VM end-to-end test before being considered runtime accepted.
 
-## 4. Give the primary shell the shared contract
+## 5. Native primary-agent operating instruction
 
-Start the selected shell, then provide this operator instruction:
+When using an interactive primary agent, provide the shared operator instruction:
 
 ```text
-Operate this Cusimanse project from the primary-agent shell.
-Load recipes/agents/primary-agent.yaml and recipes/agents/primary-shell.yaml.
-Load recipes/agents/adapter-matrix.yaml, the selected adapter recipe, and the project
-experiment contract.
+Operate this Cusimanse experiment as the primary lifecycle authority.
+Load the Markdown contract, the authoritative YAML experiment recipe, the workload recipe,
+recipes/agents/primary-agent.yaml and recipes/agents/primary-shell.yaml.
+Resolve referenced profiles and registries before execution.
+Use native multiagent/subagent delegation for declared specialist role recipes when useful.
 Follow Discover → Validate → Preflight → Plan → Review → Approve → Provision →
 Instrument → Execute → Collect → Reduce → Forensics → Independent verification →
 Report → Preserve → Destroy.
 Do not bypass policy, VM/OS controls, credentials, approvals or evidence integrity.
-For privileged/destructive actions request approval before execution.
+Do not create a competing lifecycle controller.
 Do not claim PASS without runtime evidence and independent verification.
 ```
 
-## 5. Non-destructive shell test
+## 6. Non-destructive shell test
 
 Before provisioning a VM, ask the primary shell:
 
 ```text
-Load the Cusimanse primary-agent contract, adapter matrix and selected adapter recipe.
+Load the Cusimanse primary-agent contract, primary-shell contract, adapter matrix,
+authoritative experiment recipe and selected adapter recipe.
 Report the selected adapter, contract paths, required approval gates, security boundary,
 participating specialist roles, and expected evidence outputs. Do not modify the host,
 VM, credentials or repository.
@@ -103,91 +121,83 @@ VM, credentials or repository.
 
 Expected result: the agent identifies the selected adapter, YAML contract, approval gates, evidence paths, specialist roles and VM/OS security boundary without privileged or destructive action.
 
-## 6. Reference experiment: go-install-001
+## 7. Reference experiments
 
-The primary shell should discover the actual case files and referenced recipes rather than assuming paths. The repository's reference case is:
+The reference cases are:
 
 ```text
 experiments/go-install-001/
 recipes/experiments/go-install-001.yaml
+
+recipes/experiments/npm-install-001.yaml
 ```
 
-Then execute the semantic lifecycle from the primary-agent contract. The primary shell may call declared repository scripts, but no second orchestrator should take ownership of the lifecycle.
+The primary agent should discover the actual case files and referenced recipes rather than inventing configuration. The recipe remains authoritative.
 
-Required outputs:
+For either experiment, the lifecycle is:
 
-- runtime audit records;
-- raw evidence and evidence index;
-- findings/analysis;
-- independent verification result;
-- preservation/hash manifest before VM destruction;
-- technical research report.
-
-## 7. Adapter-specific smoke tests
-
-### Grok Build
-
-```bash
-grok --version
-grok inspect
-grok -p 'Load recipes/agents/primary-agent.yaml and perform the non-destructive shell test. Do not modify anything.'
+```text
+Contract
+  ↓
+Authoritative Experiment Recipe
+  ↓
+Goose / selected Primary Agent
+  ↓
+Native specialist delegation
+  ↓
+Policy approval
+  ↓
+Disposable Lima/QEMU VM
+  ↓
+Instrumentation
+  ↓
+Workload
+  ↓
+Evidence / Blackboard
+  ↓
+Analysis / Forensics
+  ↓
+Independent Verification
+  ↓
+Research Report
+  ↓
+Preservation
+  ↓
+VM Destruction
+  ↓
+Optional Learning
 ```
-
-### Antigravity
-
-```bash
-agy --help
-agy
-```
-
-Use the installed Antigravity prompt/agent mode to load the shared contract. Do not assume an IDE action is a security boundary.
-
-### Pi
-
-```bash
-pi --help
-pi -p 'Load the Cusimanse primary-agent contract. Perform only the non-destructive shell test.'
-```
-
-### Hermes
-
-```bash
-hermes --help
-hermes
-```
-
-Hermes is TUI-first. Use its native interactive prompt flow to load the contract; do not rely on an undocumented one-shot flag.
-
-### Prime Agent
-
-```bash
-prime-agent --help
-prime-agent -p 'Load the Cusimanse primary-agent contract. Perform only the non-destructive shell test.'
-```
-
-### Codex
-
-```bash
-codex --help
-codex
-```
-
-Use the installed version's documented non-interactive mode after confirming it with `codex --help`.
 
 ## 8. Runtime acceptance
 
 A run is `PASS` only when all are true:
 
 - the selected primary shell owned the lifecycle;
-- the contract, adapter matrix and adapter recipe loaded;
-- preflight passed;
+- the contract and authoritative experiment recipe loaded;
+- the selected adapter loaded and passed preflight;
 - approvals were recorded for privileged/destructive actions;
 - VM/OS controls enforced the boundary;
 - instrumentation started before workload execution and ran against the workload inside the VM;
-- raw evidence was collected;
+- raw evidence was collected and indexed;
 - important findings were independently verified;
 - evidence was hashed/preserved before destruction;
 - final report and audit records exist;
 - the run is reproducible from recorded inputs.
 
 Otherwise use `PARTIAL`, `FAIL` or `NOT_DEPLOYED` according to the acceptance contract.
+
+## 9. Researcher output
+
+The primary output is:
+
+```text
+runs/<session-id>/research-report/report.md
+```
+
+with the preserved session artifact and evidence package under:
+
+```text
+runs/<session-id>/
+```
+
+The researcher should read the report first, then verification, analysis, evidence index and preservation/provenance records. Model output is not evidence.
