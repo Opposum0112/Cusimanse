@@ -2,7 +2,7 @@
 
 > A composable research-contract and YAML-recipe framework for agent-operated security experiments on disposable compute.
 
-Cusimanse turns Markdown research contracts and declarative YAML recipes into repeatable research sessions. Contracts define purpose, scope, safety, evidence and acceptance. Recipes compose host, VM, workload, tools, instrumentation, agent, observability, routing, reporting and learning. The selected primary terminal agent owns the lifecycle and may use its native multi-agent/subagent capabilities. Lima/QEMU plus VM/OS controls enforce the workload boundary.
+Cusimanse turns Markdown research contracts and declarative YAML recipes into repeatable research sessions. Contracts define purpose, scope, safety, evidence and acceptance. Recipes compose host, VM, workload, tools, instrumentation, agent, specialist roles, observability, routing, reporting and optional learning. The selected primary terminal agent owns the lifecycle and may use its native multi-agent/subagent capabilities. Lima/QEMU plus VM/OS controls enforce the workload boundary.
 
 **Status:** beta research lab. This is not a certified sandbox, production security product or malware-detonation platform. Static validation is not proof of runtime isolation.
 
@@ -32,10 +32,21 @@ See [`docs/system-requirements.md`](docs/system-requirements.md) for detailed re
 
 ## Architecture
 
-![Cusimanse architecture](docs/architecture/cusimanse-architecture.svg)
+![Cusimanse simplified architecture](docs/architecture/cusimanse-architecture.svg)
 
-- [`docs/architecture/cusimanse-architecture.svg`](docs/architecture/cusimanse-architecture.svg) — canonical rendering
+- [`docs/architecture/cusimanse-architecture.svg`](docs/architecture/cusimanse-architecture.svg) — canonical simplified rendering
 - [`docs/architecture/cusimanse-architecture.mmd`](docs/architecture/cusimanse-architecture.mmd) — editable Mermaid source
+
+The architecture is intentionally split into planes so optional capabilities cannot be confused with the execution boundary:
+
+| Plane | Purpose | Status / boundary |
+|---|---|---|
+| Declarative / control | Contracts, recipes, session state, policy decisions, audit and blackboard metadata | Core; `recipes/` is the configuration source of truth |
+| Multiagentic operator | Primary agent, specialist role recipes, skills and scoped MCP | Core operator layer; roles remain intact; primary agent owns orchestration |
+| Model / routing | LiteLLM and OmniRoute model/provider routing | Optional; gateways are not security boundaries |
+| Controlled execution | Approval, Lima/QEMU, VM/OS controls, instrumentation and workload | **Security/execution boundary**; untrusted workload runs here |
+| Evidence / blackboard | Raw evidence, telemetry, hashes, provenance, analysis and case state | Core evidence plane; model output is not evidence |
+| Verification / report / learning | Independent verification, report, preservation, token finalization and opt-in learning | Core verification/reporting; learning is optional and promotion requires human approval |
 
 **Configuration rule:** `recipes/` is the single configuration source of truth. There is no parallel `infra/` configuration tree.
 
@@ -65,19 +76,25 @@ tools/           research-tool documentation
 Create a Markdown contract and a YAML experiment recipe. Use `go-install-001` and `npm-install-001` as references.
 
 ```text
-contract → experiment recipe → workload recipe → selected profiles
-                                      ↓
-                              primary agent session
-                                      ↓
-                         native specialist delegation
-                                      ↓
-                              disposable VM
-                                      ↓
-                         evidence → analysis → verification
-                                      ↓
-                              research report
-                                      ↓
-                         optional learning/promotion
+Researcher
+   ↓
+Contract → Recipe → Session
+   ↓
+Primary Agent
+   ↓
+Native orchestration → specialist role recipes
+   ↓
+policyctl approval → disposable Lima/QEMU VM
+   ↓
+Instrumentation → approved workload → raw evidence
+   ↓
+Blackboard → analysis → independent verification
+   ↓
+Research report → preserve → token/dashboard finalization
+   ↓
+Destroy disposable VM → complete session
+   ↓
+(optional) learning → replay → human approval → validated skill
 ```
 
 The **recipe is the authoritative experiment input**. Experiment prompts in `docs/prompts/` are adapter-facing handoff artifacts for agents that benefit from a prompt-shaped invocation; they do not create a second configuration system.
@@ -112,7 +129,7 @@ The selected agent becomes the lifecycle/operator authority. Do not introduce a 
 
 The primary agent reads the contract, experiment recipe, workload recipe and selected profiles, requests required approvals, provisions the declared Lima/QEMU environment, starts instrumentation, executes the workload, collects evidence, analyzes it, independently verifies findings, writes the report, preserves evidence and destroys disposable compute only after preservation.
 
-The project declares specialist roles such as planner, researcher, runtime analyst, forensics analyst, detection analyst, analysis agent, verifier and report generator. The primary agent may delegate these roles through its **native** multi-agent/subagent capability.
+The project declares specialist roles such as planner, researcher, runtime analyst, forensics analyst, detection analyst, analysis agent, verifier and report generator. **These role recipes remain intact.** The primary agent may delegate them through its native multi-agent/subagent capability; removing a competing orchestration framework does not remove the semantic role definitions.
 
 ### 5. Experiment prompts
 
@@ -186,7 +203,21 @@ Raw evidence is ground truth. Model output is not evidence. Evidence must be has
 
 ## Validation
 
-Validation has three project states:
+Validation is deliberately layered rather than treating optional tooling as part of the core project result.
+
+| Validation target | What is checked | Result semantics |
+|---|---|---|
+| Recipes | Every `recipes/**/*.yaml` parses successfully | Required; failure = `FAIL` |
+| Contracts | Required Markdown contracts and schemas exist and are non-empty | Required; failure = `FAIL` |
+| Scripts | Every repository `.sh` is executable and passes `bash -n` | Required; failure = `FAIL` |
+| Go / policyctl | format, vet, tests, build, policy load/check and audit path | Required; failure = `FAIL` |
+| Policy boundary | `policyctl` stays outside agent control; credentials, host root, mounts and policy-sensitive actions are governed | Required; failure = `FAIL` |
+| Agent observability | Numbat, Phoenix/OTel and Aegis deployment is checked independently | Optional; missing = `PARTIAL`/`NOT_DEPLOYED` |
+| Model gateways | LiteLLM / OmniRoute configuration and health are treated as routing capabilities, not containment | Optional; missing = `PARTIAL`/`NOT_DEPLOYED` |
+| Learning helpers | Taskflow / LangGraph are checked only when learning is selected | Optional/opt-in |
+| Runtime | Actual disposable Lima/QEMU execution, evidence and independent verification | Separate runtime gate |
+
+Project states:
 
 - **PASS** — required static/project checks pass.
 - **PARTIAL** — required structure is valid but optional capabilities are unavailable or unverified.
@@ -208,7 +239,7 @@ A runtime `PASS` requires actual disposable Lima/QEMU execution and evidence/ver
 
 ## Policy and security boundary
 
-`policyctl` is host-side governance and is outside the agent control plane. It is **not** the sandbox.
+`policyctl` is host-side governance and is **outside the agent control plane**. It is **not** the sandbox.
 
 ```bash
 ./policyctl validate
