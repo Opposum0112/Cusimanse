@@ -14,10 +14,11 @@ instructions: |
   configuration and this file as the executable Goose recipe. Do not invent settings.
 
   Create or resume the session using recipes/session/session-state.yaml. Validate
-  authorization and approvals. Use scripts/runtime.sh to provision the declared
-  disposable Lima/QEMU VM, start collectors before the workload, execute the baseline
-  workload inside the VM, collect evidence, hash preserved artifacts and finalize the
-  session. Never execute the workload on the host.
+  authorization and approvals. Use scripts/session.sh for session creation/checkpoints
+  and scripts/tests/runtime.sh for runtime integration when appropriate. Provision the
+  declared disposable Lima/QEMU VM, start collectors before the workload, execute the
+  baseline workload inside the VM, collect evidence, hash preserved artifacts and
+  finalize the session. Never execute the workload on the host.
 
   Baseline workload inside the disposable VM:
     node --version
