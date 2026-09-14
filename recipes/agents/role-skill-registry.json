@@ -1,16 +1,17 @@
 {
-  "version": 1,
+  "version": 2,
   "skills": [
     {"name":"evidence-analysis","version":1,"description":"Analyze collected research evidence without changing execution scope","capabilities":["collect"],"required_tools":["jq","yq"]},
     {"name":"experiment-run","version":1,"description":"Resolve and operate a declared disposable experiment","capabilities":["resolve","provision","configure","execute","collect","destroy"],"required_tools":["go","yq","limactl"]},
     {"name":"forensics","version":1,"description":"Analyze filesystem, process and timeline artifacts","capabilities":["collect"],"required_tools":["find","stat","lsof","ps"]},
+    {"name":"report-generation","version":1,"description":"Generate a requirements-traceable research report from verified evidence and specialist analysis","capabilities":["collect"],"required_tools":["jq","yq"]},
     {"name":"verification","version":1,"description":"Independently verify evidence integrity and reproducibility","capabilities":["collect"],"required_tools":["sha256sum","jq","yq"]}
   ],
   "roles": [
     {"name":"detection-analyst","version":1,"description":"Analyze behavioral indicators and security findings","skills":["evidence-analysis"],"capabilities":["collect"]},
     {"name":"forensics-analyst","version":1,"description":"Analyze filesystem and process artifacts","skills":["forensics","evidence-analysis"],"capabilities":["collect"]},
     {"name":"planner","version":1,"description":"Plan scope and experiment lifecycle","skills":["experiment-run"],"capabilities":["resolve"]},
-    {"name":"report-generator","version":1,"description":"Synthesize verified findings and limitations","skills":["evidence-analysis","verification"],"capabilities":["collect"]},
+    {"name":"report-generator","version":2,"description":"Synthesize verified findings and limitations into a research-requirements-traceable report","skills":["report-generation","evidence-analysis","verification"],"capabilities":["collect"]},
     {"name":"researcher","version":1,"description":"Operate experiments and interpret evidence","skills":["experiment-run","evidence-analysis"],"capabilities":["resolve","provision","configure","execute","collect","destroy"]},
     {"name":"runtime-analyst","version":1,"description":"Analyze runtime, process, syscall and network behavior","skills":["experiment-run","evidence-analysis"],"capabilities":["execute","collect"]},
     {"name":"verifier","version":1,"description":"Independently verify integrity and reproducibility","skills":["verification","evidence-analysis"],"capabilities":["collect"]}
