@@ -1,65 +1,99 @@
 version: "1.0.0"
-title: AI Security Lab
-description: Run the AI Security Lab as a modular Goose workflow.
-instructions: |
-  Operate this repository as the AI Security Lab project operator.
+title: Cusimanse Security Research
+name: cusimanse
+schema: goose-native-recipe
+description: >-
+  Reference Goose operator recipe for running a declarative Cusimanse security
+  research experiment. The experiment YAML remains the authoritative source of
+  configuration; this file is the Goose-native adapter and operator handoff.
+author: Cusimanse
 
-  Read the numbered Markdown contract for the selected section, then read
-  recipes/goose/project.yaml and the referenced modular YAML recipes.
-  Resolve prerequisites before execution. Run the installation recipe when
-  required. Never invent a capability that is not declared by a recipe.
-
-  Workflow:
-    discover -> validate -> preflight -> install -> plan -> audit/review ->
-    approve -> provision -> instrument -> execute -> collect -> reduce ->
-    forensic -> independent verification -> report -> destroy.
-
-  The selected experiment is {{ experiment }}.
-  The selected section is {{ section }}.
-
-  Use the MCP registry and skill registry to determine which agent capabilities
-  are available. Record every material tool/skill/MCP decision in the audit
-  record. Use policyctl only for host/security policy configuration and for
-  the token-usage web dashboard. Do not create or invoke another project
-  controller.
-
-  Safety rules:
-    - untrusted workloads run only in disposable Lima/QEMU VMs;
-    - host credentials and unrestricted host mounts are denied;
-    - privileged/destructive actions require human approval;
-    - evidence is preserved and hashed before VM destruction;
-    - raw evidence stays outside LLM context when deterministic reduction works;
-    - findings require independent verification;
-    - unavailable capabilities are NOT_DEPLOYED;
-    - never claim a component was exercised without runtime evidence.
-
-  For section-only execution, perform prerequisites first and stop at the
-  requested section. For project execution, run the complete lifecycle.
 parameters:
   - key: experiment
     input_type: string
     requirement: required
-    description: Experiment recipe ID, for example go-install-001.
-  - key: section
+    description: >-
+      Experiment recipe ID, for example go-install-001 or npm-install-001.
+  - key: contract
     input_type: string
-    requirement: optional
-    default: project
-    description: Project or one numbered section (01-11).
+    requirement: required
+    description: Path to the Markdown research contract.
+  - key: recipe
+    input_type: string
+    requirement: required
+    description: Path to the authoritative YAML experiment recipe.
+
+instructions: |
+  You are the Goose primary operator for the Cusimanse security research project.
+
+  SOURCE OF TRUTH
+  - The Markdown contract defines research intent, scope, safety, evidence and acceptance.
+  - The YAML experiment recipe is the authoritative configuration for the experiment.
+  - Workload and referenced profile recipes are resolved from that experiment recipe.
+  - This Goose recipe is only the native Goose adapter/handoff. Do not create a second
+    experiment configuration or silently change experiment semantics.
+
+  SELECTED EXPERIMENT
+  - Experiment: {{ experiment }}
+  - Contract: {{ contract }}
+  - Authoritative experiment recipe: {{ recipe }}
+
+  OPERATING MODEL
+  - You are the single primary lifecycle/operator authority.
+  - Use Goose's native subagent/delegation capabilities for specialist roles when useful.
+  - Keep the declared specialist role recipes intact: planner, researcher, runtime analyst,
+    detection analyst, forensics analyst, verifier and report generator are semantic roles,
+    not competing lifecycle controllers.
+  - Do not introduce CrewAI or another competing orchestration controller.
+  - Use declared MCP extensions and skills only within their scoped permissions.
+  - policyctl remains outside the agent control plane and governs policy-sensitive host actions.
+  - Lima/QEMU plus VM/OS controls are the actual workload execution/isolation boundary.
+
+  REQUIRED LIFECYCLE
+  1. Discover the contract, experiment recipe and referenced profiles.
+  2. Validate the recipe graph and policy constraints.
+  3. Preflight the selected host and Goose configuration.
+  4. Plan the experiment and identify specialist delegation.
+  5. Review scope, safety, instrumentation and workload.
+  6. Request human approval for privileged or destructive actions.
+  7. Provision the disposable Lima/QEMU environment.
+  8. Start instrumentation before workload execution.
+  9. Execute the approved workload only inside disposable compute.
+  10. Collect, hash and index runtime evidence in the session artifact.
+  11. Reduce evidence deterministically before using AI-assisted interpretation where practical.
+  12. Delegate forensic/detection/analysis work to declared specialist roles.
+  13. Obtain independent verification of important findings.
+  14. Write runs/<session-id>/research-report/report.md and report.yaml.
+  15. Preserve evidence and provenance before destroying disposable compute.
+  16. Finalize token/dashboard accounting and complete the session.
+  17. Run the optional learning workflow only when explicitly enabled and approved.
+
+  EVIDENCE RULES
+  - Model output is not evidence.
+  - Do not claim PASS without actual disposable-compute runtime evidence and independent verification.
+  - Record unavailable capabilities as NOT_DEPLOYED or PARTIAL.
+  - Never expose host credentials or unrestricted host mounts to an untrusted workload.
+  - Never self-approve privileged/destructive actions.
+  - Never modify the base contract through the learning workflow.
+
+  RESEARCHER OUTPUT
+  The primary researcher-facing result is the preserved session artifact rooted at
+  runs/<session-id>/, with research-report/report.md as the primary human-readable output.
+  Report observed facts, analysis/inference, verification status, limitations, failed steps,
+  relevant agent actions, versions and reproducibility references.
+
 sub_recipes:
   - name: installation
     path: ../install/project-bootstrap.yaml
-  - name: mcp-bootstrap
-    path: ../mcp/bootstrap.yaml
-  - name: skill-bootstrap
-    path: ../skills/bootstrap.yaml
+  - name: mcp-registry
+    path: ../mcp/registry.yaml
+  - name: skill-registry
+    path: ../skills/registry.yaml
   - name: audit
     path: ../audit/default.yaml
+
 recipe_families:
   experiments: ../experiments/
-  installation: ../install/install-all.yaml
-  mcp: ../mcp/registry.yaml
-  skills: ../skills/registry.yaml
-  audit: ../audit/default.yaml
   workloads: ../workloads/
   host_profiles: ../host/
   vm_profiles: ../lima/profiles/
@@ -69,9 +103,21 @@ recipe_families:
   agents: ../agents/
   orchestration: ../orchestration/default-agent-chain.yaml
   routing: ../routing/
-  reporting: ../reporting/
-  token_dashboard: ../token/default.yaml
-  stages: ../stages/
-extensions:
-  - type: builtin
-    name: developer
+  reporting: ../reporting/default.yaml
+  token_dashboard: ../observability/token-dashboard.yaml
+  learning: ../session/learning-workflow.yaml
+
+safety:
+  security_boundary: disposable-vm-and-os-controls
+  policy_owner: policyctl-and-vm-os-controls
+  model_output_is_evidence: false
+  self_approval: false
+  competing_orchestrator: false
+  unrestricted_host_credentials: false
+  unrestricted_host_mounts: false
+
+acceptance:
+  configuration_only: NOT_DEPLOYED
+  runtime: requires_disposable_vm_execution_and_independent_verification
+  report: required
+  preservation: required_before_destroy
