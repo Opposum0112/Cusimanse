@@ -1,4 +1,4 @@
-version: 2
+version: 3
 id: security-research-tools
 kind: tools
 host:
@@ -19,9 +19,11 @@ host:
     - strace
     - lsof
     - numbat
-    - crewai
     - miller
     - ponytail
+    - node
+    - npm
+    - aegis
 vm:
   required:
     - ps
@@ -44,11 +46,10 @@ agent:
   interface: adapter
   tool_calls: observable
 orchestration:
-  crewai:
-    executable: crewai
-    interface: role-orchestration
-    optional: true
-    authority: selected-primary-agent
+  owner: selected-primary-agent
+  native_multiagent: preferred
+  optional_learning_helpers: [langgraph, taskflow]
+  competing_frameworks: false
 rules:
   unknown_tools: NOT_DEPLOYED
   unknown_installers: deny
@@ -58,3 +59,4 @@ notes:
   host_inventory_source: this recipe is the source of truth for host preparation and preflight capability checks
   lima_qemu_boundary: Lima is the VM lifecycle interface and QEMU is the default backend; provider-specific executable names are normalized by preflight
   vm_tools: workload-specific tools such as node/npm are installed inside disposable compute by the workload recipe, not required on the host
+  learning_helpers: installed only when explicitly selected for post-research learning on the host/control plane
