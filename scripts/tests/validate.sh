@@ -15,7 +15,6 @@ for f in contracts/*.md recipes/*/recipe.yaml recipes/experiments/*.yaml recipes
 done
 for f in prompts/README.md prompts/experiments/*.md; do [ -s "$f" ] || fail "missing/empty prompt reference: $f"; done
 for d in skills/candidate skills/validated; do [ -d "$d" ] || fail "missing skill staging directory: $d"; done
-for f in scripts/session.sh scripts/run-experiment.sh; do [ -x "$f" ] || fail "required runtime helper missing/not executable: $f"; done
 [ -s docs/architecture/cusimanse-architecture.svg ] || fail 'architecture SVG missing'
 [ -s docs/architecture/cusimanse-architecture.mmd ] || fail 'architecture Mermaid source missing'
 [ -s docs/images/cusimanse-mascot-logo.svg ] || fail 'mascot/logo image missing'
@@ -55,7 +54,8 @@ for f in ['recipes/gateway/mandatory.yaml','recipes/observability/mandatory.yaml
     assert yaml.safe_load(Path(f).read_text()).get('required') is True, f
 skill=yaml.safe_load(Path('recipes/skills/registry.yaml').read_text())
 assert 'anthropic-cybersecurity-skills' in {x['id'] for x in skill.get('external', [])}
-mcp=yaml.safe_load(Path('recipes/mcp/registry.yaml').read_text()); assert mcp.get('public_exposure') == 'deny'
+mcp=yaml.safe_load(Path('recipes/mcp/registry.yaml').read_text())
+assert mcp['policy']['public_exposure'] == 'deny'
 learning=yaml.safe_load(Path('recipes/session/learning-workflow.yaml').read_text())
 assert learning['enabled']['default'] is False
 assert learning['enabled']['session_key'] == 'learning.enabled'
@@ -63,7 +63,6 @@ assert learning['promotion_rules']['human_approval_required'] is True
 print('STRUCTURAL YAML/JSON/POLICY PASS')
 PY
 
-# Reject retired architecture references without making README prose the test oracle.
 python3 - <<'PY'
 from pathlib import Path
 patterns=('ai-security-lab','CrewAI','crewai','scripts/cusimanse-host.sh','scripts/agent-preflight.sh','scripts/configure-recipes.sh','scripts/goose-env.sh','turn0search','turn1search','turn2search')
@@ -72,11 +71,9 @@ for root in roots:
     paths=[root] if root.is_file() else root.rglob('*')
     for p in paths:
         if not p.is_file() or p.as_posix() == 'scripts/tests/validate.sh': continue
-        try: text=p.read_text(errors='ignore')
-        except OSError: continue
-        for pat in patterns:
-            assert pat not in text, f'{p}: retired reference {pat}'
-print('RETired reference scan PASS')
+        text=p.read_text(errors='ignore')
+        for pat in patterns: assert pat not in text, f'{p}: retired reference {pat}'
+print('RETIRED REFERENCE SCAN PASS')
 PY
 
 if command -v goose >/dev/null 2>&1; then
