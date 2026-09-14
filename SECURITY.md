@@ -1,44 +1,24 @@
 # Security Policy
 
-## Scope
+Cusimanse is for authorized security research on systems, workloads and infrastructure controlled by the researcher.
 
-This repository describes a **personal, isolated AI security research lab**.
-It is intended for studying agent tooling, model routing, and telemetry on
-hardware and virtual machines you control.
+## Required controls
 
-It is **not** an invitation to test other people's systems.
+1. Reference workloads execute only inside disposable Lima/QEMU VMs.
+2. Do not provide unrelated host credentials, SSH keys, cloud tokens or personal files to workloads.
+3. Keep model gateways and observability services bound to localhost unless remote access is explicitly required and reviewed.
+4. Review privileged, destructive and network-sensitive actions before execution.
+5. Preserve and hash evidence before destroying a VM.
+6. Never commit secrets.
 
-## Lab rules
+The contract and experiment recipe define the scope and workload for each experiment.
 
-1. Untrusted experiments run only in disposable Lima/QEMU VMs.
-2. Host credentials, SSH keys, cloud tokens, and personal files stay off the VM.
-3. Management services bind to `127.0.0.1` unless remote access is explicitly required.
-4. Privileged MCP operations require approval.
-5. Evidence is hashed and preserved before a VM is deleted.
-6. Secrets never go into Git.
+## Reporting a problem
 
-See [AGENTS.md](AGENTS.md) and [contracts/04-security-model.md](contracts/04-security-model.md).
+Use GitHub's private security advisory mechanism for this repository or contact the repository owner. Do not publish credentials, private keys or sensitive forensic data in a public issue.
 
-## Reporting a problem in this repository
-
-If you find a credential, unsafe default, or documentation error in this
-project, use GitHub's private security advisory mechanism for this repository
-or contact the repository owner. Do not file a public issue that contains
-secrets.
-
-Please include:
-
-- the file path and commit
-- what is exposed or unsafe
-- a suggested fix if you have one
-
-## Supported versions
-
-This package is a living lab baseline. Treat the default branch as current.
-There is no long-term support channel.
+Include the affected path, commit, impact and a minimal reproduction where safe.
 
 ## Disclaimer
 
-The software and documents are provided "as is" under the MIT License.
-Using them against systems you do not own or have permission to test is
-outside the intended use of this project.
+The software is provided "as is" under the MIT License. It is a research framework, not a guarantee that a host, VM, agent, gateway, model or third-party dependency is secure.
