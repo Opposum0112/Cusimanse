@@ -1,28 +1,32 @@
-version: 4
+version: 5
 id: learning-workflow
 kind: learning-and-skill-improvement-contract
 purpose: >-
-  Optional post-experiment improvement loop. Learning never runs during the
-  workload unless explicitly enabled in the session state and approved by the researcher.
-
+  Optional post-experiment improvement loop. Learning is disabled by default and
+  starts only after a completed report and independent verification when the
+  session flag learning.enabled is explicitly set to true.
 enabled:
   default: false
   session_key: learning.enabled
   explicit_value: true
   prerequisites: [research_report_complete, independent_verification_complete]
-
+how_to_enable:
+  - complete the normal experiment and independent verification
+  - set runs/<session-id>/session.yaml learning.enabled to true
+  - confirm the value is true
+  - manually continue the primary agent and provide this recipe as the learning workflow
+  - require explicit human approval before promotion
 operator:
   primary_agent: true
   mechanism: native-agent-subagents-and-subrecipes
   competing_orchestrator: false
-
 steps:
   - id: retrieve
     action: retrieve relevant prior evidence, sessions and validated skills
   - id: propose
     action: create a candidate improvement with rationale and expected benefit
   - id: execute
-    action: run the candidate through the same recipe; use disposable Lima compute when execution is required
+    action: run the candidate through the same experiment recipe; use disposable Lima compute when execution is required
   - id: evaluate
     action: compare candidate results against contract acceptance and safety requirements
   - id: refine
@@ -37,7 +41,6 @@ steps:
     action: copy only the approved candidate into skills/validated/
   - id: rollback
     action: revert a promoted skill if later evaluation finds regression or safety impact
-
 artifacts:
   root: runs/<session-id>/learning/
   candidate: candidates/<candidate-id>.yaml
@@ -45,15 +48,12 @@ artifacts:
   replay: replays/<replay-id>.yaml
   verification: verification/<verification-id>.yaml
   promotion: promotions/<promotion-id>.yaml
-
 installation:
   default: none
   rule: >-
-    Do not install learning-specific tooling unless the session explicitly enables
-    learning. Any helper is installed on the host control plane only, never into the
-    workload VM by default.
+    Learning does not require a separate installer. Helpers, when needed, are
+    installed on the host control plane only; never into the workload VM by default.
   installer: ./scripts/install.sh
-
 promotion_rules:
   evidence_required: true
   replay_required: true
