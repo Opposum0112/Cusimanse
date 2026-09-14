@@ -1,35 +1,19 @@
 # Changelog
 
-All notable changes to Cusimanse are documented here.
+## v1.0.0-beta.2
 
-## [v1.0.0-beta.1] — 2026-09-11
+### Changed
 
-GitHub release channel: **pre-release** (not Latest). Tags containing `alpha`, `beta`, or `rc` are published with `--prerelease`.
+- Consolidated Cusimanse around declarative, agent-neutral experiment recipes.
+- Goose is the reference primary operator; specialist work uses Goose agents and subrecipes.
+- Reference experiments retain Lima/QEMU and the VM instrumentation profile.
+- Host preparation is a single `./scripts/install.sh` entry point.
+- LiteLLM, OmniRoute, Numbat, Aegis, Phoenix/OpenTelemetry and ClawMetry are declared mandatory host integrations.
+- Reduced contracts and recipes to the experiment, subrecipe, Lima, instrumentation, host, gateway and observability definitions required by the workflow.
+- Removed duplicate infrastructure, custom orchestration, alternate-agent adapter trees and the custom blackboard service.
+- Simplified the researcher-facing README and evidence/report workflow.
+- Added static validation and an optional disposable-Lima integration smoke test.
 
-### Added
+### Runtime status
 
-- Agent-neutral Cusimanse project identity and documentation.
-- Disposable Lima/QEMU VM experiment lifecycle.
-- Modular experiment, workload, routing, installation, VM, instrumentation, monitoring, MCP, skills, audit and reporting recipes.
-- Goose reference adapter with documented OpenCode, Grok Build and Antigravity adapter targets.
-- `policyctl` host/security policy interface and local token-usage dashboard.
-- Evidence preservation, hashing and independent-verification workflow.
-- CI validation for shell syntax, ShellCheck, Go formatting, `go vet` and project validation.
-- Dependabot configuration for Go modules and GitHub Actions.
-- Structured bug reporting and contribution guidance.
-- Reproducible source packaging with SHA-256 checksums on tagged releases.
-
-### Security posture
-
-- Unrestricted host mounts and host credentials remain denied by policy.
-- Public MCP/gateway exposure remains denied by default.
-- Privileged/destructive actions remain approval-gated.
-- AI agents and policy output are not treated as isolation or evidence boundaries.
-
-### Beta limitations
-
-- This is a pre-production research release.
-- Adapter and integration coverage is incomplete.
-- Platform capability must be evaluated through the acceptance matrix rather than inferred from binary startup.
-- Runtime/security capabilities must be independently exercised and evidenced.
-- Green CI is lint only; it does not exercise Lima or `go-install-001`.
+Configuration and CI validation do not prove a successful security experiment. A runtime PASS requires actual disposable-VM execution, captured evidence and independent verification.
