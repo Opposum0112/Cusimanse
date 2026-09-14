@@ -1,38 +1,54 @@
-version: 1
-title: Cusimanse npm installation experiment
-description: Run the pinned npm installation experiment in disposable Lima compute, collect evidence, verify results, and produce the researcher report.
+version: "1.0.0"
+title: "Cusimanse npm installation research"
+description: "Run the approved npm installation experiment in disposable Lima compute and produce preserved evidence, independent verification and a research report."
 instructions: |
-  You are the primary operator for this Cusimanse experiment.
+  You are the primary operator for a Cusimanse security research session.
 
-  Read contracts/npm-install-001.md and recipes/experiments/npm-install-001.yaml first. The companion experiment configuration is the authoritative Cusimanse configuration; this file is the executable Goose recipe wrapper.
+  Read contracts/npm-install-001.md and recipes/experiments/npm-install-001.yaml first.
+  Also read recipes/session/session-state.yaml, recipes/agents/goose-orchestration.yaml,
+  recipes/host/security-research.yaml, recipes/lima/security-research.yaml,
+  recipes/instrumentation/security-research.yaml, recipes/skills/registry.yaml,
+  recipes/mcp/registry.yaml and prompts/experiments/npm-install-001.md.
 
-  Create or resume the session using recipes/session/session-state.yaml. Validate authorization and approvals. Provision the declared Lima/QEMU VM and start every collector declared by the instrumentation profile before executing the workload.
+  Treat recipes/experiments/npm-install-001.yaml as the Cusimanse experiment
+  configuration and this file as the executable Goose recipe. Do not invent settings.
 
-  Execute the baseline workload only inside the disposable VM:
+  Create or resume the session using recipes/session/session-state.yaml. Validate
+  authorization and approvals. Use scripts/runtime.sh to provision the declared
+  disposable Lima/QEMU VM, start collectors before the workload, execute the baseline
+  workload inside the VM, collect evidence, hash preserved artifacts and finalize the
+  session. Never execute the workload on the host.
+
+  Baseline workload inside the disposable VM:
     node --version
     npm --version
     mkdir -p /tmp/npm-test
     cd /tmp/npm-test && npm init -y
     cd /tmp/npm-test && npm install lodash@4.17.21 --ignore-scripts
 
-  If and only if the contract explicitly authorizes the negative-control step, create the harmless local lifecycle fixture described in the companion configuration and observe it separately. Do not enable lifecycle scripts for the pinned baseline install.
+  Do not enable lifecycle scripts for the baseline. A separately authorized negative
+  control may be added later by changing the experiment configuration and contract.
 
-  Preserve raw evidence, generate hashes and provenance, delegate analysis/verification/reporting through the declared subrecipes and semantic roles, and write the required session artifacts. Preserve evidence before destroying the VM.
+  Use the specialist role definitions under .agents/agents/ for role context. Delegate
+  evidence analysis, independent verification and report generation through the
+  subrecipes registered below. Keep verification separate from analysis.
 
-  Never treat model output as evidence. Never run the workload on the host. Never change the contract or companion experiment configuration during execution. Record unavailable capabilities as PARTIAL/NOT_DEPLOYED.
-
-cusimanse:
-  experiment: recipes/experiments/npm-install-001.yaml
-  contract: contracts/npm-install-001.md
-  prompt_reference: prompts/experiments/npm-install-001.md
-  session_state: recipes/session/session-state.yaml
-  roles: .agents/agents/
-  orchestration: recipes/agents/goose-orchestration.yaml
-  subrecipes:
-    - recipes/subrecipes/evidence-analysis.yaml
-    - recipes/subrecipes/verification.yaml
-    - recipes/subrecipes/report.yaml
-  gateways: recipes/gateway/mandatory.yaml
-  observability: recipes/observability/mandatory.yaml
-  skills: recipes/skills/registry.yaml
-  mcp: recipes/mcp/registry.yaml
+  Preserve evidence before destroying the VM. Never treat model output as evidence.
+  Record unavailable capabilities as PARTIAL/NOT_DEPLOYED and never weaken policy,
+  authorization or the VM boundary to obtain a pass.
+prompt: |
+  Execute the Cusimanse npm installation experiment from the repository root. Keep the
+  baseline workload inside the disposable Lima VM, collect declared evidence,
+  independently verify findings and produce the researcher report.
+sub_recipes:
+  - name: evidence_analysis
+    path: "../subrecipes/evidence-analysis.yaml"
+  - name: verification
+    path: "../subrecipes/verification.yaml"
+  - name: report
+    path: "../subrecipes/report.yaml"
+extensions:
+  - type: builtin
+    name: developer
+    timeout: 300
+    bundled: true
