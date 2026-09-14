@@ -1,13 +1,14 @@
-version: 2
+version: 3
 id: primary-shell
 kind: agent-shell-contract
 purpose: >-
-  Define the terminal-first interface through which the selected primary agent owns
-  the complete Cusimanse operator, execution and orchestration cycle.
+  Define the terminal-first interface through which one selected primary agent owns
+  the complete Cusimanse operator, execution and native multiagent orchestration cycle.
 operator_model:
   host_bootstrap: scripts-only
   operator_shell: selected-primary-agent
   lifecycle_authority: primary-agent
+  orchestration_authority: primary-agent
   security_boundary: disposable-vm-and-os-controls
   execution_mode: agent-shell-driven
 
@@ -31,8 +32,11 @@ required_sequence:
 
 shell_rules:
   - The selected primary agent shell is the authoritative operator interface after bootstrap.
+  - The experiment YAML recipe is the authoritative experiment input.
+  - Goose uses its native recipe format as an adapter/handoff layer; it must not duplicate experiment semantics.
   - Host scripts bootstrap prerequisites, validate repository state and prepare configuration only.
   - Do not use a second orchestration controller to duplicate the primary agent lifecycle.
+  - Native primary-agent multiagent/subagent delegation may execute the declared specialist role recipes.
   - Every privileged or destructive action must pass the declared approval and policy gates.
   - Evidence must be written to the declared evidence paths before VM destruction.
   - Model output is not evidence; evidence is collected from runtime artifacts and independently verified.
@@ -41,37 +45,48 @@ shell_rules:
 adapter_cli:
   goose:
     interactive: "goose"
-    run: "goose run --recipe recipes/goose/project.yaml --params experiment=go-install-001 --params section=project"
+    run: "goose run --recipe recipes/goose/project.yaml --params experiment=<EXPERIMENT> --params contract=<CONTRACT> --params recipe=<RECIPE>"
+    status: reference
+    native_recipe: recipes/goose/project.yaml
   opencode:
     interactive: "opencode"
     run: "opencode run '<PROMPT>'"
+    status: candidate
   grok-build:
     interactive: "grok"
     run: "grok -p '<PROMPT>'"
+    status: candidate
   antigravity:
     interactive: "agy"
     run: "agy -p '<PROMPT>'"
+    status: candidate
     note: "Verify the installed Antigravity CLI help on the target host before runtime acceptance."
   pi:
     interactive: "pi"
     run: "pi -p '<PROMPT>'"
+    status: candidate
   hermes:
     interactive: "hermes"
     run: "hermes"
+    status: candidate
     note: "Hermes is TUI-first; send the Cusimanse run prompt in the interactive shell."
   codex:
     interactive: "codex"
     run: "codex"
+    status: candidate
     note: "Verify the installed Codex CLI help for the current non-interactive invocation."
   prime-intellect:
     interactive: "prime-agent"
     run: "prime-agent -p '<PROMPT>'"
+    status: candidate
   claude-code:
     interactive: "claude"
     run: "claude '<PROMPT>'"
+    status: enterprise-candidate
   devin:
     interactive: provider-managed
     run: provider-managed
+    status: enterprise-candidate
 
 runtime_test:
   prompt_file: docs/agent-shell-runbook.md
