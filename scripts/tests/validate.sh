@@ -5,7 +5,7 @@ cd "$ROOT"
 export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
 fail(){ echo "VALIDATION FAIL: $*" >&2; exit 1; }
 forbidden='ai-security-lab|CrewAI|crewai|infra/|ARCHITECTURE-REFACTOR|scripts/cusimanse-host|scripts/agent-preflight|scripts/configure-recipes|scripts/goose-env|recipes/adapters|recipes/gateways|recipes/routing|recipes/orchestration|docs/research-workflow|docs/images/cusimanse-workflow'
-if grep -RInE "$forbidden" README.md .goosehints contracts recipes docs scripts 2>/dev/null; then fail 'stale or retired architecture references remain'; fi
+if grep -RInE --exclude='validate.sh' "$forbidden" README.md .goosehints contracts recipes docs scripts 2>/dev/null; then fail 'stale or retired architecture references remain'; fi
 for f in scripts/*.sh scripts/tests/*.sh; do [ -x "$f" ] || fail "not executable: $f"; bash -n "$f" || fail "syntax error: $f"; done
 for f in contracts/*.md recipes/go-install-001/recipe.yaml recipes/npm-install-001/recipe.yaml recipes/subrecipes/*.yaml recipes/lima/security-research.yaml recipes/instrumentation/security-research.yaml recipes/host/security-research.yaml recipes/gateway/mandatory.yaml recipes/observability/mandatory.yaml recipes/session/session-state.yaml recipes/session/learning-workflow.yaml; do [ -s "$f" ] || fail "missing/empty: $f"; done
 [ -s docs/architecture/cusimanse-architecture.svg ] || fail 'architecture SVG missing'
