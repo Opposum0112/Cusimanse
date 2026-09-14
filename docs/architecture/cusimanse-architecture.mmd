@@ -1,31 +1,33 @@
 flowchart TB
     R[Researcher] --> C[Research Contract]
-    C --> E[Agent-neutral Experiment Recipe YAML]
-    E --> P[Prompt Reference]
-    P --> A{Selected Primary Agent}
-    A -->|Native recipe| G[Goose Reference Operator]
-    A -->|Prompt adapter| O[OpenCode / Hermes / Antigravity / Pi]
-    G --> N[Native planning + role delegation]
+    C --> E[Cusimanse Experiment Configuration]
+    E --> GR[Goose Recipe: title + description + instructions/prompt]
+    E --> P[Prompt Reference: cross-agent handoff]
+    GR --> A{Selected Primary Agent}
+    P --> A
+    A -->|Goose native| G[Goose Reference Operator]
+    A -->|Validated adapter| O[OpenCode / Hermes / Antigravity / Pi]
+    G --> N[Native planning + semantic role delegation]
     O --> N2[Native tools / plugins / skills / MCP]
     N --> X[Lima/QEMU disposable VM]
     N2 --> X
-    X --> I[Instrumentation profile]
+    X --> I[Guest instrumentation profile]
     I --> W[Recipe-defined workload]
     W --> EV[Evidence + session.yaml]
-    EV --> S1[Parallel specialist analysis / forensics / detection]
+    EV --> S1[Specialist analysis / forensics / detection]
     S1 --> V[Independent verifier]
     V --> RP[Research report]
     RP --> PR[Preserve provenance + hashes]
     PR --> D[Destroy VM]
     RP --> L{learning.enabled = true?}
     L -->|No| END[Complete]
-    L -->|Yes| LR[Retrieve prior skills]
-    LR --> LP[Propose / execute / evaluate / refine / replay]
+    L -->|Yes| LR[Retrieve prior skills/evidence]
+    LR --> LP[Propose → execute → evaluate → refine → replay]
     LP --> LI[Independent verification]
     LI --> HA[Human approval]
-    HA --> SK[Promote skill → skills/validated]
+    HA --> SK[Promote candidate → skills/validated]
     SK --> END
-    H[Mandatory host: Goose + tools + gateways + observability] --> A
+    H[Mandatory host capabilities] --> A
     M[Mandatory gateways: OmniRoute → LiteLLM] --> A
     T[Mandatory observability: Numbat + Aegis + Phoenix/OTel + ClawMetry] --> EV
     CU[Optional Container Use] -. additional environment .-> X
