@@ -1,22 +1,88 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="820" viewBox="0 0 1200 820">
-<rect width="1200" height="820" fill="white"/>
-<text x="600" y="42" text-anchor="middle" font-family="sans-serif" font-size="28" font-weight="bold">Cusimanse — Declarative Agent-Neutral Security Research</text>
-<g font-family="sans-serif" font-size="16" stroke="#333" stroke-width="2" fill="#f7f7f7">
-<rect x="430" y="70" width="340" height="52" rx="10"/><text x="600" y="102" text-anchor="middle" stroke="none">Research Contract</text>
-<rect x="400" y="150" width="400" height="58" rx="10"/><text x="600" y="185" text-anchor="middle" stroke="none">Cusimanse Experiment Configuration</text>
-<rect x="120" y="240" width="400" height="72" rx="10"/><text x="320" y="270" text-anchor="middle" stroke="none">Goose Recipe</text><text x="320" y="294" text-anchor="middle" stroke="none" font-size="13">title + description + instructions/prompt</text>
-<rect x="680" y="240" width="400" height="72" rx="10"/><text x="880" y="270" text-anchor="middle" stroke="none">Prompt Reference</text><text x="880" y="294" text-anchor="middle" stroke="none" font-size="13">handoff for non-Goose agents</text>
-<rect x="430" y="345" width="340" height="62" rx="10"/><text x="600" y="382" text-anchor="middle" stroke="none">Selected Primary Agent</text>
-<rect x="80" y="440" width="310" height="70" rx="10"/><text x="235" y="470" text-anchor="middle" stroke="none">Goose native operator</text><text x="235" y="494" text-anchor="middle" stroke="none" font-size="13">Recipes • Summon • Skills • MCP</text>
-<rect x="445" y="440" width="310" height="70" rx="10"/><text x="600" y="470" text-anchor="middle" stroke="none">Other validated adapters</text><text x="600" y="494" text-anchor="middle" stroke="none" font-size="13">OpenCode • Hermes • Antigravity • Pi</text>
-<rect x="810" y="440" width="310" height="70" rx="10"/><text x="965" y="470" text-anchor="middle" stroke="none">Mandatory host</text><text x="965" y="494" text-anchor="middle" stroke="none" font-size="13">Gateways + observability + tools</text>
-<rect x="360" y="555" width="480" height="70" rx="10"/><text x="600" y="585" text-anchor="middle" stroke="none">Lima/QEMU disposable VM + guest instrumentation</text><text x="600" y="609" text-anchor="middle" stroke="none" font-size="13">execution / isolation boundary</text>
-<rect x="360" y="660" width="480" height="58" rx="10"/><text x="600" y="696" text-anchor="middle" stroke="none">Recipe workload → evidence → verification → report</text>
-<rect x="890" y="555" width="240" height="110" rx="10"/><text x="1010" y="585" text-anchor="middle" stroke="none">Learning</text><text x="1010" y="610" text-anchor="middle" stroke="none" font-size="13">retrieve → propose → replay</text><text x="1010" y="632" text-anchor="middle" stroke="none" font-size="13">→ verify → approve</text><text x="1010" y="654" text-anchor="middle" stroke="none" font-size="13">→ validated skill</text>
-</g>
-<g stroke="#333" stroke-width="2" fill="none" marker-end="url(#a)">
-<path d="M600 122V150"/><path d="M500 208V240"/><path d="M700 208V240"/><path d="M320 312V345"/><path d="M880 312V345"/><path d="M520 407V440"/><path d="M600 407V440"/><path d="M680 407V440"/><path d="M235 510V555"/><path d="M600 510V555"/><path d="M965 510V555"/><path d="M600 625V660"/><path d="M840 690H890"/>
-</g>
-<defs><marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#333"/></marker></defs>
-<text x="600" y="790" text-anchor="middle" font-family="sans-serif" font-size="13">Container Use is optional; gateways and observers are not the containment boundary.</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1050" viewBox="0 0 1400 1050" role="img" aria-labelledby="title desc">
+<title id="title">Cusimanse architecture</title>
+<desc id="desc">Layered architecture showing declarative contracts and experiment configuration flowing into Goose or validated agent adapters, then into disposable Lima QEMU execution, instrumentation, evidence, independent verification, reporting, and optional learning.</desc>
+<defs>
+  <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#334155"/></marker>
+  <style>
+    .title{font:700 30px sans-serif;fill:#0f172a}.subtitle{font:16px sans-serif;fill:#475569}
+    .section{font:700 18px sans-serif;fill:#334155}.head{font:700 17px sans-serif;fill:#0f172a}.body{font:14px sans-serif;fill:#334155}
+    .small{font:12px sans-serif;fill:#475569}.box{stroke:#475569;stroke-width:1.5}.boundary{stroke:#b91c1c;stroke-width:2.5}.arrow{stroke:#334155;stroke-width:2;fill:none;marker-end:url(#arrow)}.dash{stroke-dasharray:7 6}
+  </style>
+</defs>
+<rect width="1400" height="1050" fill="#ffffff"/>
+<text x="700" y="42" text-anchor="middle" class="title">Cusimanse — Declarative, Agent-Neutral Security Research</text>
+<text x="700" y="68" text-anchor="middle" class="subtitle">Contracts define intent • recipes define composition • agents operate • disposable compute contains execution • evidence enables verification</text>
+
+<!-- Control plane -->
+<rect x="35" y="90" width="1330" height="190" rx="16" fill="#eef5ff" stroke="#7aa2d6"/>
+<text x="55" y="118" class="section">1. CONTROL &amp; DECLARATION PLANE</text>
+<rect x="70" y="140" width="280" height="105" rx="10" fill="#fff" class="box"/>
+<text x="210" y="169" text-anchor="middle" class="head">Research Contract</text>
+<text x="90" y="193" class="body">Why / scope / authorization</text><text x="90" y="215" class="body">Acceptance criteria / constraints</text><text x="90" y="237" class="small">Security intent; not an execution script</text>
+<rect x="390" y="140" width="360" height="105" rx="10" fill="#fff" class="box"/>
+<text x="570" y="169" text-anchor="middle" class="head">Cusimanse Experiment Configuration</text>
+<text x="410" y="193" class="body">workload • compute • policy • instrumentation</text><text x="410" y="215" class="body">evidence • roles • gateways • observability</text><text x="410" y="237" class="small">Cusimanse-specific source of experiment composition</text>
+<rect x="790" y="140" width="270" height="105" rx="10" fill="#fff" class="box"/>
+<text x="925" y="169" text-anchor="middle" class="head">Goose Recipe</text>
+<text x="810" y="193" class="body">title • description</text><text x="810" y="215" class="body">instructions / prompt</text><text x="810" y="237" class="small">Native Goose operator handoff</text>
+<rect x="1100" y="140" width="230" height="105" rx="10" fill="#fff" class="box"/>
+<text x="1215" y="169" text-anchor="middle" class="head">Prompt Reference</text>
+<text x="1120" y="193" class="body">Cross-agent handoff</text><text x="1120" y="215" class="body">Same experiment definition</text><text x="1120" y="237" class="small">Not a second recipe format</text>
+<path d="M350 192H390" class="arrow"/><path d="M750 192H790" class="arrow"/><path d="M750 215H1100" class="arrow dash"/>
+
+<!-- Agent plane -->
+<rect x="35" y="300" width="1330" height="205" rx="16" fill="#f4efff" stroke="#a98bd1"/>
+<text x="55" y="328" class="section">2. AGENT &amp; ORCHESTRATION PLANE</text>
+<rect x="70" y="350" width="230" height="120" rx="10" fill="#fff" class="box"/>
+<text x="185" y="379" text-anchor="middle" class="head">Selected Primary Agent</text>
+<text x="90" y="405" class="body">One operator owns lifecycle</text><text x="90" y="427" class="body">planning and workload execution</text><text x="90" y="449" class="small">Capability gaps are recorded</text>
+<rect x="335" y="350" width="300" height="120" rx="10" fill="#fff" class="box"/>
+<text x="485" y="379" text-anchor="middle" class="head">Goose — Reference Operator</text>
+<text x="355" y="405" class="body">Native recipes • Skills • Summon</text><text x="355" y="427" class="body">MCP / extensions • developer tools</text><text x="355" y="449" class="small">Preferred native orchestration path</text>
+<rect x="670" y="350" width="300" height="120" rx="10" fill="#fff" class="box"/>
+<text x="820" y="379" text-anchor="middle" class="head">Validated Adapter Layer</text>
+<text x="690" y="405" class="body">OpenCode • Hermes</text><text x="690" y="427" class="body">Antigravity • Pi</text><text x="690" y="449" class="small">Prompt/adapter path; no recipe fork</text>
+<rect x="1005" y="350" width="325" height="120" rx="10" fill="#fff" class="box"/>
+<text x="1167" y="379" text-anchor="middle" class="head">Specialist Roles</text>
+<text x="1025" y="405" class="body">planner • researcher • runtime analyst</text><text x="1025" y="427" class="body">forensics • detection • verifier</text><text x="1025" y="449" class="small">Semantic responsibilities, not another runtime</text>
+<path d="M925 245V350" class="arrow"/><path d="M1215 245V350" class="arrow dash"/><path d="M300 410H335" class="arrow"/><path d="M635 410H670" class="arrow dash"/><path d="M970 410H1005" class="arrow"/>
+
+<!-- Execution boundary -->
+<rect x="35" y="525" width="1330" height="230" rx="16" fill="#fff4e5" stroke="#d38a32"/>
+<text x="55" y="553" class="section">3. EXECUTION &amp; SECURITY PLANE</text>
+<rect x="70" y="575" width="245" height="135" rx="10" fill="#ffe8e8" class="boundary"/>
+<text x="192" y="604" text-anchor="middle" class="head">Approval + Policy</text>
+<text x="90" y="630" class="body">scope • authorization</text><text x="90" y="652" class="body">network • filesystem</text><text x="90" y="674" class="body">tool / privilege controls</text><text x="90" y="696" class="small">Policy gates execution</text>
+<rect x="365" y="565" width="410" height="155" rx="12" fill="#ffe8e8" class="boundary"/>
+<text x="570" y="595" text-anchor="middle" class="head">Lima / QEMU Disposable VM</text>
+<text x="390" y="623" class="body">Guest OS = execution / isolation boundary</text><text x="390" y="647" class="body">Ephemeral workload environment</text><text x="390" y="671" class="body">Destroyed after evidence preservation</text><text x="390" y="697" class="small">Container Use is optional additional isolation</text>
+<rect x="825" y="575" width="245" height="135" rx="10" fill="#fff" class="box"/>
+<text x="947" y="604" text-anchor="middle" class="head">Guest Instrumentation</text>
+<text x="845" y="630" class="body">process • syscall</text><text x="845" y="652" class="body">filesystem • network</text><text x="845" y="674" class="body">timestamps / tool versions</text><text x="845" y="696" class="small">Starts before workload</text>
+<rect x="1120" y="575" width="210" height="135" rx="10" fill="#fff" class="box"/>
+<text x="1225" y="604" text-anchor="middle" class="head">Recipe Workload</text>
+<text x="1140" y="630" class="body">Go / npm baselines</text><text x="1140" y="652" class="body">controlled threat fixtures</text><text x="1140" y="674" class="body">No host execution</text><text x="1140" y="696" class="small">Deterministic commands</text>
+<path d="M185 470V575" class="arrow"/><path d="M1167 470V525" class="arrow"/><path d="M315 642H365" class="arrow"/><path d="M775 642H825" class="arrow"/><path d="M1070 642H1120" class="arrow"/>
+
+<!-- Evidence plane -->
+<rect x="35" y="775" width="1330" height="170" rx="16" fill="#edf8ef" stroke="#78a983"/>
+<text x="55" y="803" class="section">4. EVIDENCE, VERIFICATION &amp; RESEARCH PLANE</text>
+<rect x="70" y="825" width="235" height="90" rx="10" fill="#fff" class="box"/>
+<text x="187" y="854" text-anchor="middle" class="head">Evidence Bundle</text><text x="90" y="878" class="body">session.yaml • audit events</text><text x="90" y="900" class="body">raw observations • evidence index</text>
+<rect x="330" y="825" width="235" height="90" rx="10" fill="#fff" class="box"/>
+<text x="447" y="854" text-anchor="middle" class="head">Integrity + Provenance</text><text x="350" y="878" class="body">SHA-256 hashes</text><text x="350" y="900" class="body">recipe / tool / Git provenance</text>
+<rect x="590" y="825" width="235" height="90" rx="10" fill="#fff" class="box"/>
+<text x="707" y="854" text-anchor="middle" class="head">Specialist Analysis</text><text x="610" y="878" class="body">runtime • forensics • detection</text><text x="610" y="900" class="body">findings tied to evidence</text>
+<rect x="850" y="825" width="235" height="90" rx="10" fill="#fff" class="box"/>
+<text x="967" y="854" text-anchor="middle" class="head">Independent Verification</text><text x="870" y="878" class="body">separate verifier</text><text x="870" y="900" class="body">reproduce / challenge findings</text>
+<rect x="1110" y="825" width="220" height="90" rx="10" fill="#fff" class="box"/>
+<text x="1220" y="854" text-anchor="middle" class="head">Report + Preserve</text><text x="1130" y="878" class="body">report.md + report.yaml</text><text x="1130" y="900" class="body">preservation metadata</text>
+<path d="M1225 710V825" class="arrow"/><path d="M305 870H330" class="arrow"/><path d="M565 870H590" class="arrow"/><path d="M825 870H850" class="arrow"/><path d="M1085 870H1110" class="arrow"/>
+
+<!-- Integration and learning -->
+<rect x="35" y="965" width="1330" height="65" rx="14" fill="#f5f5f5" stroke="#888"/>
+<text x="55" y="991" class="section">INTEGRATIONS &amp; OPTIONAL LEARNING</text>
+<text x="55" y="1013" class="small">Host preflight • OmniRoute → LiteLLM gateways • Numbat / Aegis / Phoenix-OTel / ClawMetry observability • Skill/MCP registries • learning: retrieve → propose → replay → independently verify → human approval → validated skill</text>
+
+<text x="1360" y="1047" text-anchor="end" class="small">Gateways, observability, Skills, MCP and adapters extend the system; they are not the workload containment boundary.</text>
 </svg>
