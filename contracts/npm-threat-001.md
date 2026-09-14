@@ -13,6 +13,28 @@ Every run must validate `policies/host-policy.yaml` through `scripts/policyctl` 
 
 The mount denylist (`policies/mount-denylist.yaml`) and permission tiers (`policies/permission-tiers.yaml`) are additional policy inputs. The policy CLI is a control interface; it does not replace Lima/QEMU isolation.
 
+## Researcher/operator procedure
+
+The researcher declares intent and approval; the operator/agent performs the controlled execution. Use the following sequence without inventing infrastructure:
+
+```bash
+./scripts/install.sh
+cusimanse doctor
+cusimanse validate
+goose recipe validate recipes/npm-threat-001/recipe.yaml
+cusimanse resolve npm-threat-001
+scripts/policyctl explain vm
+scripts/policyctl explain network
+scripts/policyctl check-all
+scripts/policyctl require vm --approved
+scripts/policyctl require network
+cusimanse --approved run npm-threat-001 <session-id>
+cusimanse observability report <session-id>
+scripts/policyctl audit
+```
+
+The adapter/operator must read this contract and the experiment requirements before using its own tools. Goose is the reference native operator. OpenCode, Hermes, Antigravity and Pi are handoff adapters and must not replace the Cusimanse capability boundary with host commands.
+
 ## Acceptance
 A run is successful when:
 
