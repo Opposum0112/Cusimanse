@@ -1,5 +1,5 @@
 {
-  "manifest_version": 12,
+  "manifest_version": 13,
   "branch": "goose-refactor",
   "source_of_truth": {
     "contracts": "contracts/",
@@ -11,6 +11,7 @@
     "skills": "recipes/skills/registry.yaml",
     "mcp": "recipes/mcp/registry.yaml",
     "adapters": "recipes/agents/adapter-matrix.yaml",
+    "adapter_validation": "recipes/agents/adapter-validation.yaml",
     "host": "recipes/host/security-research.yaml"
   },
   "reference_operator": "goose",
@@ -31,5 +32,6 @@
   "container":"optional",
   "learning":{"recipe":"recipes/session/learning-workflow.yaml","default_enabled":false,"candidate_library":"skills/candidate/","validated_library":"skills/validated/","human_approval_required":true},
   "threat_model":{"reference":"npm-lifecycle-001","coverage":["process","syscall","filesystem","network","controlled-package-lifecycle"],"limitations":"reference experiments are pipeline/evidence demonstrations, not comprehensive adversarial evaluations"},
-  "validation":{"static":"scripts/tests/validate.sh","runtime":"scripts/tests/runtime.sh","runtime_pass_requires":["actual disposable VM execution","independent verification"],"ci_does_not_require_lima":true}
+  "runtime":{"session_helper":"scripts/session.sh","runner":"scripts/run-experiment.sh","collectors_started_before_workload":true,"evidence_hashed_before_destroy":true,"final_report_is_agent_owned":true},
+  "validation":{"static":"scripts/tests/validate.sh","runtime":"scripts/tests/runtime.sh","adapter_status":"recipes/agents/adapter-validation.yaml","runtime_pass_requires":["actual disposable VM execution","independent verification"],"ci_does_not_require_lima":true}
 }
