@@ -1,82 +1,61 @@
-version: 2
-id: adapter-matrix
-kind: adapter-registry
-operator_model:
-  exactly_one_primary_shell: true
-  shell_driven: true
-  orchestration_owner: selected-primary-agent-shell
-  execution_owner: selected-primary-agent-shell
-  lifecycle_owner: selected-primary-agent-shell
-  host_scripts: bootstrap-validation-preflight-only
-  observability: recipes/agent-monitoring/observability.yaml
-primary_candidates:
+version: 4
+kind: agent-adapter-matrix
+purpose: Declare supported primary terminal agents and their native orchestration capability.
+observability: recipes/agent-monitoring/observability.yaml
+selection_rule: exactly_one_primary_agent
+orchestration_rule: selected_primary_agent_owns_lifecycle_and_native_multiagent_delegation
+adapters:
   goose:
-    status: reference
-    install: goose
-    shell: goose
-    prompt: "goose run --text '<PROMPT>'"
-    config_recipe: recipes/adapters/goose.yaml
+    role: primary-agent
+    executable: goose
+    orchestration: native-subagents
   opencode:
-    status: candidate
-    install: opencode
-    shell: opencode
-    prompt: "opencode run '<PROMPT>'"
-    config_recipe: recipes/adapters/opencode.yaml
+    role: primary-agent
+    executable: opencode
+    orchestration: native-or-configured-agent-capabilities
   grok-build:
-    status: candidate
-    install: manual-or-provider-specific
-    shell: grok
-    prompt: "grok -p '<PROMPT>'"
-    config_recipe: recipes/adapters/grok-build.yaml
+    role: primary-agent
+    executable: grok
+    orchestration: native-agent-capabilities
   antigravity:
-    status: candidate
-    install: manual-or-provider-specific
-    shell: agy
-    prompt: "verify native prompt mode with agy --help"
-    config_recipe: recipes/adapters/antigravity.yaml
+    role: primary-agent
+    executable: agy
+    orchestration: native-agent-capabilities
   pi:
-    status: candidate
-    install: pi
-    shell: pi
-    prompt: "pi -p '<PROMPT>'"
-    config_recipe: recipes/adapters/pi.yaml
+    role: primary-agent
+    executable: pi
+    orchestration: native-agent-capabilities
   hermes:
-    status: candidate
-    install: manual-or-provider-specific
-    shell: hermes
-    prompt: "TUI-first; use installed Hermes interactive prompt flow"
-    config_recipe: recipes/adapters/hermes.yaml
+    role: primary-agent
+    executable: hermes
+    orchestration: native-agent-capabilities
   codex:
-    status: candidate
-    install: codex
-    shell: codex
-    prompt: "verify native non-interactive mode with codex --help"
-    config_recipe: recipes/adapters/codex.yaml
+    role: primary-agent
+    executable: codex
+    orchestration: native-agent-capabilities
   prime-intellect:
-    status: candidate
-    install: prime-agent
-    shell: prime-agent
-    prompt: "prime-agent -p '<PROMPT>'"
-    config_recipe: recipes/adapters/prime-intellect.yaml
-enterprise_adapters:
+    role: primary-agent
+    executable: prime-agent
+    orchestration: native-agent-capabilities
   claude-code:
-    status: enterprise-candidate
-    install: claude
-    shell: claude
-    prompt: "verify native mode with claude --help"
-    config_recipe: recipes/adapters/claude-code.yaml
+    role: primary-agent
+    executable: claude
+    orchestration: native-agent-capabilities
   devin:
-    status: enterprise-candidate
-    install: provider-managed
-    shell: provider-managed
-    prompt: provider-managed
-    config_recipe: recipes/adapters/devin.yaml
-selection:
-  exactly_one_primary: true
-  interactive: true
-  preflight_selected_only: true
-  unavailable: NOT_DEPLOYED
-common_contract: recipes/agents/primary-agent.yaml
-shell_contract: recipes/agents/primary-shell.yaml
-learning_contract: recipes/agents/learning-loop.yaml
-security_boundary: disposable-vm-and-os-controls
+    role: primary-agent
+    executable: provider-managed
+    orchestration: provider-managed
+enterprise_adapters:
+  enterprise-claude-code:
+    role: primary-agent
+    executable: claude
+    orchestration: native-agent-capabilities
+  enterprise-devin:
+    role: primary-agent
+    executable: provider-managed
+    orchestration: provider-managed
+policy:
+  one_primary_shell: true
+  primary_agent_owns_orchestration: true
+  competing_orchestrator: deny
+  security_boundary: disposable-vm-and-os-controls
