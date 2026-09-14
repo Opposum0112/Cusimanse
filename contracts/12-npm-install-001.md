@@ -16,9 +16,7 @@ Validate a recipe-driven npm installation/project bootstrap workload inside disp
 Use the normal host shell only for host preparation, validation and primary-agent startup:
 
 ```bash
-./scripts/cusimanse-host.sh
-./scripts/prerequisites.sh
-./scripts/agent-preflight.sh
+./scripts/preflight.sh
 ./policyctl validate
 goose
 ```
