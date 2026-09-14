@@ -1,4 +1,4 @@
-version: 2
+version: 3
 kind: goose-orchestration
 primary_agent: goose-reference
 model: native-goose
@@ -7,48 +7,21 @@ capability_runtime:
   api: cmd/cusimanse
   capabilities: [resolve, provision, configure, execute, collect, destroy]
   requirements_first: true
-  policy_gate: scripts/policyctl
   execution_boundary: Lima/QEMU + guest OS
 role_definitions:
   source: .agents/agents/
-  roles:
-    - planner
-    - researcher
-    - runtime-analyst
-    - forensics-analyst
-    - detection-analyst
-    - verifier
-    - report-generator
-  role_skill_contract:
-    planner:
-      responsibility: experiment planning, scope validation and lifecycle preparation
-      skills: [experiment-run]
-    researcher:
-      responsibility: research execution, observation synthesis and evidence interpretation
-      skills: [experiment-run, evidence-analysis]
-    runtime-analyst:
-      responsibility: runtime behavior, process/syscall/network observation and execution analysis
-      skills: [experiment-run, evidence-analysis]
-    forensics-analyst:
-      responsibility: filesystem/process artifacts, timelines and forensic evidence analysis
-      skills: [forensics, evidence-analysis]
-    detection-analyst:
-      responsibility: behavioral indicators, detection hypotheses and security finding analysis
-      skills: [evidence-analysis]
-    verifier:
-      responsibility: independent cross-checking, evidence integrity and reproducibility validation
-      skills: [verification, evidence-analysis]
-    report-generator:
-      responsibility: finding synthesis, confidence, limitations and research reporting
-      skills: [evidence-analysis, verification]
-  cross_cutting_controls:
-    policy-control:
-      interface: scripts/policyctl
-      purpose: validate, check, require, enforce and audit privileged or approval-gated actions
-      required_before: [vm, network, credentials, mounts, git-write, host-execution]
-    evidence-integrity:
-      interface: scripts/session.sh
-      purpose: lifecycle checkpoints, hashes, provenance and preservation
+  registry: recipes/agents/role-skill-registry.json
+  generated_binding: recipes/agents/role-skill-bindings.yaml
+  managed_by: cmd/cusimanse
+  roles_are_selectable_at_runtime: true
+cross_cutting_controls:
+  policy-control:
+    interface: Go capability policy layer with scripts/policyctl compatibility helper
+    purpose: validate and audit privileged or approval-gated actions
+    required_before: [vm, network, credentials, mounts, git-write, host-execution]
+  evidence-integrity:
+    interface: scripts/session.sh
+    purpose: lifecycle checkpoints, hashes, provenance and preservation
 orchestration:
   mechanism: Goose native agents/subagents and recipe/subrecipe delegation
   lifecycle: [contract, requirements, resolve, plan, policy, provision, instrument, workload, observe, adapt, verify, report, preserve, destroy]
@@ -56,18 +29,20 @@ orchestration:
   sequential_required: [resolve, provision, instrument, workload, verify, report, preserve, destroy]
   adaptive_loop: observe → analyze → request_declared_capability → execute → observe
   independent_verifier: required
+  report_generator: report-generator
   human_approval: required_for_privileged_destructive_and_skill_promotion
   role_recipes_remain_semantic: true
   competing_framework_required: false
 skills:
   native_first: true
-  registry: recipes/skills/registry.yaml
-  external_registry: recipes/skills/registry.yaml
+  managed_registry: recipes/agents/role-skill-registry.json
+  runtime_skill_contracts: recipes/skills/*.yaml
   selection:
     role_declared: true
     least_scope: true
     workload_vm_only_for_execution: true
     model_output_is_not_evidence: true
+  promotion: recipes/session/learning-workflow.yaml
 mcp:
   registry: recipes/mcp/registry.yaml
   recipe_scoped: true
