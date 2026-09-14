@@ -1,0 +1,12 @@
+version: 1
+kind: generated-role-skill-bindings
+source: recipes/agents/role-skill-registry.json
+managed_by: cmd/cusimanse
+roles:
+  detection-analyst: [evidence-analysis]
+  forensics-analyst: [forensics, evidence-analysis]
+  planner: [experiment-run]
+  report-generator: [report-generation, evidence-analysis, verification]
+  researcher: [experiment-run, evidence-analysis]
+  runtime-analyst: [experiment-run, evidence-analysis]
+  verifier: [verification, evidence-analysis]
