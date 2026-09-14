@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
+HOST_RECIPE="$ROOT/recipes/host/security-research.yaml"
 BIN="$HOME/.local/bin"
 CFG="$HOME/.config/cusimanse"
 DATA="$HOME/.local/share/cusimanse"
 VENV="$DATA/venv"
 mkdir -p "$BIN" "$CFG" "$DATA"
-export PATH="$BIN:$HOME/go/bin:$PATH"
 log(){ printf '[cusimanse] %s\n' "$*"; }
 fail(){ printf '[cusimanse] ERROR: %s\n' "$*" >&2; exit 1; }
 have(){ command -v "$1" >/dev/null 2>&1; }
 run_root(){ if [ -n "$SUDO" ]; then "$SUDO" "$@"; else "$@"; fi; }
 OS="$(uname -s)"; SUDO=""; [ "$(id -u)" -eq 0 ] || SUDO=sudo
+[ -s "$HOST_RECIPE" ] || fail "missing host recipe: $HOST_RECIPE"
+
 if [ "$OS" = Darwin ]; then
   have brew || fail 'Homebrew is required on macOS'
   brew install git curl python node ruby go jq yq ripgrep qemu lima
@@ -26,12 +29,21 @@ elif [ "$OS" = Linux ]; then
       run_root apt-get install -y nodejs
     fi
     run_root apt-get install -y golang-go
-  elif have dnf; then run_root dnf install -y git bash curl python3 python3-pip python3-venv ruby nodejs npm golang jq yq ripgrep qemu-system-x86-core qemu-img lima ca-certificates strace tcpdump iproute iputils bind-utils lsof inotify-tools file psmisc procps
-  elif have pacman; then run_root pacman -Sy --needed --noconfirm git bash curl python python-pip ruby nodejs npm go jq yq ripgrep qemu lima strace tcpdump iproute iputils bind lsof inotify-tools file psmisc procps
-  elif have zypper; then run_root zypper --non-interactive install git bash curl python3 python3-pip ruby nodejs npm go jq yq ripgrep qemu lima ca-certificates strace tcpdump iproute2 iputils bind-utils lsof inotify-tools file psmisc procps
+  elif have dnf; then
+    run_root dnf install -y git bash curl python3 python3-pip python3-venv ruby nodejs npm golang jq yq ripgrep qemu-system-x86-core qemu-img lima ca-certificates strace tcpdump iproute iputils bind-utils lsof inotify-tools file psmisc procps
+  elif have pacman; then
+    run_root pacman -Sy --needed --noconfirm git bash curl python python-pip ruby nodejs npm go jq yq ripgrep qemu lima strace tcpdump iproute iputils bind lsof inotify-tools file psmisc procps
+  elif have zypper; then
+    run_root zypper --non-interactive install git bash curl python3 python3-pip ruby nodejs npm go jq yq ripgrep qemu lima ca-certificates strace tcpdump iproute2 iputils bind-utils lsof inotify-tools file psmisc procps
   else fail 'No supported Linux package manager'; fi
 else fail 'Use Linux, macOS, or WSL2'; fi
 
+have yq || fail 'yq installation failed; host configuration is recipe-driven'
+CFG="$(yq -r '.configuration.root' "$HOST_RECIPE" | sed "s|^~|$HOME|")"
+AEGIS="$(yq -r '.configuration.aegis_checkout' "$HOST_RECIPE" | sed "s|^~|$HOME|")"
+VENV="$(yq -r '.configuration.python_environment' "$HOST_RECIPE" | sed "s|^~|$HOME|")"
+GATEWAY_CFG="$(yq -r '.configuration.gateway' "$HOST_RECIPE" | sed "s|^~|$HOME|")"
+mkdir -p "$BIN" "$CFG" "$(dirname "$AEGIS")" "$(dirname "$VENV")"
 have limactl || fail 'Lima installation failed'
 if ! have goose; then curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | CONFIGURE=false GOOSE_BIN_DIR="$BIN" bash; fi
 have goose || fail 'Goose installation failed'
@@ -44,11 +56,8 @@ ln -sf "$VENV/bin/litellm" "$BIN/litellm"
 ln -sf "$VENV/bin/clawmetry" "$BIN/clawmetry"
 GOBIN="$BIN" go install github.com/perplexityai/numbat/cmd/numbat@latest
 npm install -g omniroute
-have numbat || fail 'Numbat installation failed'
-have omniroute || fail 'OmniRoute installation failed'
-have clawmetry || fail 'ClawMetry installation failed'
+have numbat || fail 'Numbat installation failed'; have omniroute || fail 'OmniRoute installation failed'; have clawmetry || fail 'ClawMetry installation failed'
 
-AEGIS="$DATA/aegis"
 if [ ! -d "$AEGIS/.git" ]; then git clone --depth 1 https://github.com/antropos17/Aegis "$AEGIS"; fi
 (cd "$AEGIS" && npm ci)
 cat > "$BIN/cusimanse-aegis" <<EOF
@@ -59,7 +68,7 @@ npm start
 EOF
 chmod +x "$BIN/cusimanse-aegis"
 
-cat > "$CFG/litellm.yaml" <<'EOF'
+cat > "$GATEWAY_CFG" <<'EOF'
 model_list:
   - model_name: auto
     litellm_params:
@@ -90,13 +99,15 @@ export GOOSE_PROVIDER=openai
 export OPENAI_HOST=http://127.0.0.1:4000
 export OPENAI_BASE_PATH=v1/chat/completions
 export OPENAI_API_KEY=${LITELLM_API_KEY:-}
-export GOOSE_RECIPE_PATH="$PWD/recipes"
 EOF
 
 for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
   if [ -f "$rc" ] && ! grep -Fq 'export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"' "$rc"; then printf '\n# Cusimanse\nexport PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"\n' >> "$rc"; fi
 done
 
+missing=0
+while IFS= read -r tool; do have "$tool" || { printf '[cusimanse] MISSING required command: %s\n' "$tool" >&2; missing=1; }; done < <(yq -r '.required.commands[]' "$HOST_RECIPE")
+[ "$missing" -eq 0 ] || fail 'one or more required host capabilities are unavailable'
 "$ROOT/scripts/preflight.sh"
-log 'Host preparation PASS'
-printf '%s\n' 'Next:' '  source ~/.config/cusimanse/goose.env' '  ./scripts/tests/validate.sh' '  goose run --recipe ./recipes/go-install-001/recipe.yaml --interactive'
+log 'Host installation and recipe-driven configuration PASS'
+printf '%s\n' 'Next:' '  source ~/.config/cusimanse/goose.env' '  ./scripts/tools.sh list' '  ./scripts/tests/validate.sh'
