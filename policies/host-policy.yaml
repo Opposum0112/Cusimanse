@@ -1,4 +1,4 @@
-version: 1
+version: 2
 host:
   credentials: deny
   unrestricted_mounts: deny
@@ -21,7 +21,9 @@ git:
   write: approval-required
   push: approval-required
 orchestration:
-  crewai: approval-required
+  competing_orchestrator: deny
+  primary_agent_native_orchestration: allow
+  learning_helpers: approval-required
 evidence:
   preserve_before_destroy: required
   hashing: required
