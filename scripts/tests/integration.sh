@@ -9,16 +9,24 @@ command -v goose >/dev/null 2>&1 || fail 'goose missing'
 command -v yq >/dev/null 2>&1 || fail 'yq missing'
 for f in scripts/install.sh scripts/preflight.sh scripts/tools.sh scripts/session.sh scripts/run-experiment.sh scripts/policyctl scripts/observability.sh scripts/learningctl; do [ -x "$f" ] || fail "not executable: $f"; done
 ./scripts/policyctl validate >/dev/null
+./scripts/policyctl explain vm >/dev/null
+./scripts/policyctl explain network >/dev/null
+./scripts/policyctl check-all --audit "${TMPDIR:-/tmp}/cusimanse-policy-integration-$$.jsonl" >/dev/null
 ./scripts/tools.sh list >/dev/null
 ./scripts/tools.sh config >/dev/null
 ./scripts/tools.sh path >/dev/null
 for action in credentials mounts vm network git-write; do ./scripts/policyctl check "$action" --audit "${TMPDIR:-/tmp}/cusimanse-policy-integration-$$.jsonl" >/dev/null; done
+if ./scripts/policyctl require host-execution >/dev/null 2>&1; then fail 'denied host execution unexpectedly allowed'; fi
+if ./scripts/policyctl require vm >/dev/null 2>&1; then fail 'approval-required VM unexpectedly allowed without approval'; fi
+./scripts/policyctl require vm --approved >/dev/null || fail 'approved VM action rejected'
 yq -e '.common.commands | length > 0' recipes/host/security-research.yaml >/dev/null || fail 'common host inventory missing'
 yq -e '.guest.commands | length > 0' recipes/host/security-research.yaml >/dev/null || fail 'guest inventory missing'
 yq -e '.components.omniroute.bind == "127.0.0.1:20128" and .components.litellm.bind == "127.0.0.1:4000"' recipes/gateway/mandatory.yaml >/dev/null || fail 'gateway localhost configuration mismatch'
 yq -e '.components.numbat and .components.aegis and .components.phoenix and .components.opentelemetry and .components.clawmetry' recipes/observability/mandatory.yaml >/dev/null || fail 'observability inventory incomplete'
 yq -e '.research_reporting.role == "report-generator" and (.correlation.required_fields | length) >= 8' recipes/observability/mandatory.yaml >/dev/null || fail 'report/correlation observability contract incomplete'
-yq -e '.reference.agent == "goose" and (.adapters | keys | length) == 4' recipes/agents/adapter-matrix.yaml >/dev/null || fail 'agent adapter matrix incomplete'
+yq -e '.reference.agent == "goose" and .reference.mode == "native-recipe" and (.adapters | keys | length) == 4' recipes/agents/adapter-matrix.yaml >/dev/null || fail 'agent adapter matrix incomplete'
+yq -e '.reference.operator_sequence | length >= 6' recipes/agents/adapter-matrix.yaml >/dev/null || fail 'operator sequence missing'
+yq -e '.adapter_contract.recipe_mutation == "forbidden" and .adapter_contract.execution_boundary == "Lima/QEMU + guest OS"' recipes/agents/adapter-matrix.yaml >/dev/null || fail 'adapter contract boundary incomplete'
 yq -e '.skills | length > 0 and .roles | length > 0' recipes/agents/role-skill-registry.json >/dev/null || fail 'Go role/skill registry empty'
 yq -e '.source == "recipes/agents/role-skill-registry.json"' recipes/agents/role-skill-bindings.yaml >/dev/null || fail 'generated role/skill bindings missing'
 for prompt in prompts/experiments/*.md; do grep -q 'Read first:' "$prompt" || fail "prompt missing read-first contract: $prompt"; done
@@ -52,7 +60,7 @@ test -s "runs/$sid/session.yaml" || fail 'session missing'
 test -s "runs/$sid/evidence/audit/events.jsonl" || fail 'audit events missing'
 test -s "runs/$sid/evidence/audit/manifest.sha256" || fail 'evidence hash missing'
 test -s "runs/$sid/provenance/manifest.sha256" || fail 'provenance hash missing'
-echo 'INTEGRATION PASS: host inventory → gateways/observability → adapters/prompts → role/skill management → learning contract → policy → Goose → capability resolution → session/evidence hashing'
+echo 'INTEGRATION PASS: inventory → gateways/observability → policy decisions → adapters/prompts → Goose recipes → role/skill management → learning contract → capability resolution → session/evidence hashing'
 if [ "${CUSIMANSE_RUN_VM_TEST:-0}" = 1 ]; then
   command -v limactl >/dev/null 2>&1 || fail 'limactl missing for VM integration'
   name="cusimanse-integration-$$"
