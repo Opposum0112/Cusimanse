@@ -4,6 +4,8 @@
 Observe the approved Go installation workload inside the disposable Lima VM defined by `recipes/lima/security-research.yaml`. Do not access unrelated host files, credentials or mounts.
 
 ## Workload
+The commands below are the authoritative workload definition. The **experiment recipe and primary agent execute them inside the VM**; the researcher only launches the experiment recipe and reviews the resulting evidence.
+
 ```bash
 go version
 go install ./packages/labprobe
