@@ -1,0 +1,6 @@
+version: 1
+name: experiment-run
+description: "Resolve and operate a declared disposable experiment"
+capabilities: ["resolve", "provision", "configure", "execute", "collect", "destroy"]
+required_tools: ["go", "yq", "limactl"]
+managed_by: cmd/cusimanse
