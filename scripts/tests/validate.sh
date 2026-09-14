@@ -19,12 +19,18 @@ from pathlib import Path
 import json, yaml
 json.loads(Path('manifest/PACKAGE-MANIFEST.json').read_text())
 for p in Path('recipes').glob('**/*.yaml'):
-    d=yaml.safe_load(p.read_text()); assert isinstance(d,dict),p
+    assert isinstance(yaml.safe_load(p.read_text()), dict), p
 for p in (Path('recipes/go-install-001/recipe.yaml'), Path('recipes/npm-install-001/recipe.yaml')):
     d=yaml.safe_load(p.read_text())
     for key in ('title','description','instructions'):
         assert isinstance(d.get(key), str) and d[key].strip(), f'{p}: {key}'
-print('YAML/JSON PASS')
+    allowed={'version','title','description','instructions','prompt','activities','extensions','parameters','response','retry','settings','sub_recipes'}
+    assert set(d) <= allowed, f'{p}: non-Goose top-level fields: {set(d)-allowed}'
+for p in Path('recipes/experiments').glob('*.yaml'):
+    d=yaml.safe_load(p.read_text())
+    assert d.get('kind') == 'cusimanse-experiment', p
+    assert d.get('contract') and d.get('workload'), p
+print('YAML/JSON/GOOSE SCHEMA PASS')
 PY
 if command -v goose >/dev/null 2>&1; then
   goose recipe validate recipes/go-install-001/recipe.yaml
@@ -39,9 +45,7 @@ import yaml
 m=yaml.safe_load(Path('recipes/agents/adapter-matrix.yaml').read_text())
 assert m['reference']['agent'] == 'goose'
 for name in ('opencode','hermes','antigravity','pi'): assert name in m['adapters']
-for p in ('recipes/go-install-001/recipe.yaml','recipes/npm-install-001/recipe.yaml'):
-    d=yaml.safe_load(Path(p).read_text()); assert d['cusimanse']['experiment'].startswith('recipes/experiments/')
-print('AGENT INTEGRATION PASS')
+print('AGENT MATRIX PASS')
 PY
 grep -Fq 'required: true' recipes/gateway/mandatory.yaml || fail 'gateway is not mandatory'
 grep -Fq 'required: true' recipes/observability/mandatory.yaml || fail 'observability is not mandatory'
