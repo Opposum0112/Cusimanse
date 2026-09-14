@@ -13,6 +13,36 @@ role_definitions:
     - detection-analyst
     - verifier
     - report-generator
+  role_skill_contract:
+    planner:
+      responsibility: experiment planning, scope validation and lifecycle preparation
+      skills: [experiment-run]
+    researcher:
+      responsibility: research execution, observation synthesis and evidence interpretation
+      skills: [experiment-run, evidence-analysis]
+    runtime-analyst:
+      responsibility: runtime behavior, process/syscall/network observation and execution analysis
+      skills: [experiment-run, evidence-analysis]
+    forensics-analyst:
+      responsibility: filesystem/process artifacts, timelines and forensic evidence analysis
+      skills: [forensics, evidence-analysis]
+    detection-analyst:
+      responsibility: behavioral indicators, detection hypotheses and security finding analysis
+      skills: [evidence-analysis]
+    verifier:
+      responsibility: independent cross-checking, evidence integrity and reproducibility validation
+      skills: [verification, evidence-analysis]
+    report-generator:
+      responsibility: finding synthesis, confidence, limitations and research reporting
+      skills: [evidence-analysis, verification]
+  cross_cutting_controls:
+    policy-control:
+      interface: scripts/policyctl
+      purpose: validate, check, require, enforce and audit privileged or approval-gated actions
+      required_before: [vm, network, credentials, mounts, git-write, host-execution]
+    evidence-integrity:
+      interface: scripts/session.sh
+      purpose: lifecycle checkpoints, hashes, provenance and preservation
 orchestration:
   mechanism: Goose native agents/subagents and recipe/subrecipe delegation
   parallel_allowed: [evidence-analysis, forensics, detection-analysis]
@@ -25,6 +55,11 @@ skills:
   native_first: true
   registry: recipes/skills/registry.yaml
   external_registry: recipes/skills/registry.yaml
+  selection:
+    role_declared: true
+    least_scope: true
+    workload_vm_only_for_execution: true
+    model_output_is_not_evidence: true
 mcp:
   registry: recipes/mcp/registry.yaml
   recipe_scoped: true

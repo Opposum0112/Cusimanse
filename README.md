@@ -17,6 +17,7 @@
 - [Experiment model](#experiment-model)
 - [Execution lifecycle](#execution-lifecycle)
 - [Goose and specialist roles](#goose-and-specialist-roles)
+- [Role-to-skill matrix](#role-to-skill-matrix)
 - [Agent adapters](#agent-adapters)
 - [Host, VM, and instrumentation](#host-vm-and-instrumentation)
 - [Gateways and observability](#gateways-and-observability)
@@ -177,7 +178,7 @@ Experiment Configuration
       ├── policy → policyctl
       ├── guest instrumentation
       ├── evidence requirements
-      ├── specialist roles
+      ├── specialist roles → role-specific Skills
       └── integrations
       ↓
 Goose Recipe or validated agent adapter
@@ -193,6 +194,8 @@ Disposable VM execution
 - **Experiment configuration:** concrete research composition.
 - **Policy:** allowed, denied and approval-gated operations.
 - **Goose recipe:** valid Goose-native instructions for operating the experiment.
+- **Role:** semantic responsibility assigned to a specialist agent/subagent.
+- **Skill:** reusable procedure/capability selected by a role; it does not replace policy or VM containment.
 - **Prompt reference:** convenience handoff for non-Goose agents.
 
 ## Execution lifecycle
@@ -221,7 +224,23 @@ COMPLETE / PARTIAL / FAILED
 
 Goose is the reference operator because Cusimanse uses native Goose recipes, Skills, delegation and MCP/extension capabilities without requiring a competing orchestration framework.
 
-Specialist definitions under `.agents/agents/` cover planning, research, runtime analysis, forensics, detection, verification and reporting. `recipes/agents/goose-orchestration.yaml` maps responsibilities to Goose-native delegation.
+A **role defines responsibility; a Skill defines how that responsibility is performed**. Roles may select multiple Skills, and the same Skill can be reused by multiple roles. Policy enforcement is a cross-cutting control rather than a role-owned bypass path.
+
+Specialist definitions under `.agents/agents/` cover planning, research, runtime analysis, forensics, detection, verification and reporting. `recipes/agents/goose-orchestration.yaml` is the source of truth for role-to-Skill assignment and Goose-native delegation.
+
+### Role-to-skill matrix
+
+| Specialist role | Primary responsibility | Skills used | Key outputs |
+|---|---|---|---|
+| Planner | Experiment planning, scope validation, lifecycle preparation | `experiment-run` | plan, scope/acceptance checks |
+| Researcher | Research execution, observation synthesis, evidence interpretation | `experiment-run`, `evidence-analysis` | research findings, analysis inputs |
+| Runtime analyst | Runtime behavior, process/syscall/network observation | `experiment-run`, `evidence-analysis` | runtime observations, behavioral findings |
+| Forensics analyst | Filesystem/process artifacts, timelines, forensic analysis | `forensics`, `evidence-analysis` | forensic artifacts, timelines |
+| Detection analyst | Indicators, detection hypotheses, security findings | `evidence-analysis` | detections, IOCs/behavioral findings |
+| Verifier | Independent cross-checking, integrity, reproducibility | `verification`, `evidence-analysis` | verification result, integrity checks |
+| Report generator | Synthesis, confidence, limitations, final research reporting | `evidence-analysis`, `verification` | report.md, report.yaml |
+
+**Cross-cutting skills/control:** `scripts/policyctl` handles policy validation, checks, approval-gated enforcement and audit; `scripts/session.sh` handles lifecycle checkpoints, evidence hashing and provenance. Specialist roles cannot use Skills to bypass either boundary.
 
 ## Agent adapters
 
@@ -260,6 +279,13 @@ These systems route or observe activity. **They are not the workload containment
 ## Skills and MCP
 
 `recipes/skills/registry.yaml` and `recipes/mcp/registry.yaml` define capability sources. External skills are candidate inputs rather than trusted code.
+
+```text
+role → selects least-scope Skills → invokes tools/MCP through those Skills
+→ produces role-specific artifacts → evidence bundle → independent verification
+```
+
+The role assignments above intentionally use the repository's current reusable Skills (`experiment-run`, `evidence-analysis`, `forensics`, `verification`). New specialist Skills can be added to `.agents/skills/` and promoted through the existing candidate/validated workflow.
 
 ```text
 candidate → provenance/scope review → execute → evaluate → replay
