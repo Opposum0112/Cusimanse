@@ -5,11 +5,14 @@ cd "$ROOT"
 export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
 fail(){ echo "VALIDATION FAIL: $*" >&2; exit 1; }
 for f in scripts/*.sh scripts/tests/*.sh; do
-  if [ "$f" != scripts/session.sh ]; then [ -x "$f" ] || fail "not executable: $f"; fi
+  [ -x "$f" ] || fail "not executable: $f"
   bash -n "$f" || fail "syntax error: $f"
 done
 for f in contracts/*.md recipes/go-install-001/recipe.yaml recipes/npm-install-001/recipe.yaml recipes/experiments/*.yaml recipes/subrecipes/*.yaml recipes/lima/security-research.yaml recipes/instrumentation/security-research.yaml recipes/host/security-research.yaml recipes/gateway/mandatory.yaml recipes/observability/mandatory.yaml recipes/session/session-state.yaml recipes/session/learning-workflow.yaml recipes/agents/adapter-matrix.yaml recipes/agents/adapter-installation.yaml recipes/agents/goose-orchestration.yaml recipes/skills/registry.yaml recipes/mcp/registry.yaml; do [ -s "$f" ] || fail "missing/empty: $f"; done
 for f in prompts/README.md prompts/experiments/*.md; do [ -s "$f" ] || fail "missing/empty prompt reference: $f"; done
+for d in skills/candidate skills/validated; do [ -d "$d" ] || fail "missing skill staging directory: $d"; done
+[ -x scripts/session.sh ] || fail 'session helper must be executable'
+[ -x scripts/run-experiment.sh ] || fail 'experiment runner must be executable'
 [ -s docs/architecture/cusimanse-architecture.svg ] || fail 'architecture SVG missing'
 [ -s docs/architecture/cusimanse-architecture.mmd ] || fail 'architecture Mermaid source missing'
 [ -s docs/images/cusimanse-mascot-logo.svg ] || fail 'mascot/logo image missing'
