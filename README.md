@@ -1,12 +1,12 @@
 # Cusimanse
 
-![Cusimanse mascot and logo](docs/images/cusimanse-mascot-logo.webp)
+![Cusimanse mascot and logo](docs/images/cusimanse-mascot-logo.svg)
 
-**Declarative security research with AI agents.** The experiment recipe is the source of truth: it defines the contract references, Lima VM, instrumentation profile, workload, evidence, verification, report and optional learning. **Goose is the reference primary operator**, while the same recipe can be handed to another validated primary agent through an adapter/prompt.
+**Declarative, agent-neutral security research with AI agents.** A YAML experiment recipe is the source of truth for the contract, Lima VM, instrumentation, workload, evidence, verification, report and learning settings. **Goose is the reference primary operator**; other validated primary agents can use the same recipe through their adapter/prompt path.
 
-![Cusimanse architecture](docs/images/cusimanse-architecture.webp)
+![Cusimanse architecture](docs/images/cusimanse-architecture.svg)
 
-## Researcher: run an experiment
+## Researcher workflow
 
 ### 1. Prepare the host once
 
@@ -14,70 +14,66 @@ From the repository root:
 
 ```bash
 ./scripts/install.sh
+./scripts/preflight.sh
 ```
 
-This installs the complete declared host toolchain from `recipes/host/security-research.yaml`, including Goose, Lima/QEMU, Go/Node/npm, forensic tools, LiteLLM, OmniRoute, Numbat, Aegis, Phoenix/OpenTelemetry and ClawMetry. The script also writes the local gateway, observability and Goose configuration under `~/.config/cusimanse/`.
+`install.sh` is the single host preparation entry point. It installs the declared host stack, including Goose, Lima/QEMU, workload and forensic tools, mandatory gateways, mandatory agent/host observability and their local configuration.
 
-Load the Goose environment:
+The authoritative host inventory is:
+
+```text
+recipes/host/security-research.yaml
+```
+
+The YAML recipe declares the inventory and configuration locations; `scripts/install.sh` implements that declaration. Do not maintain a second host-tool inventory.
+
+Load the configured environment when needed:
 
 ```bash
 source ~/.config/cusimanse/goose.env
+source ~/.config/cusimanse/observability.env
+source ~/.config/cusimanse/omniroute.env
 ```
 
-Check the installation:
-
-```bash
-./scripts/preflight.sh
-./scripts/tools.sh list
-./scripts/tools.sh versions
-```
-
-To see the installed configuration locations without printing secrets:
-
-```bash
-./scripts/tools.sh config
-```
-
-Host tools are configured through the YAML host recipe; `scripts/install.sh` implements that declaration. Do not create a second host-tool configuration file. Tools installed into `~/.local/bin` and `~/go/bin` are directly available on `PATH` after the environment is loaded.
-
-### 2. Validate the project
+### 2. Validate the repository and host
 
 ```bash
 ./scripts/tests/validate.sh
+./scripts/preflight.sh
 ```
 
-This validates shell scripts, YAML/recipe structure, required profiles, session state, mandatory gateway/observability declarations, stale references and repository invariants.
+A required capability that cannot be installed or verified makes the host not ready for a reference experiment.
 
-### 3. Start the experiment
+### 3. Start the primary agent manually
 
-Choose a reference experiment and launch its Goose recipe:
+The researcher chooses the contract and experiment recipe, then starts the selected primary agent. Goose is the reference example:
 
 ```bash
 goose run --recipe ./recipes/go-install-001/recipe.yaml --interactive
 ```
 
-or:
+For npm:
 
 ```bash
 goose run --recipe ./recipes/npm-install-001/recipe.yaml --interactive
 ```
 
-**The researcher does not manually run the workload commands.** The selected recipe tells the primary agent what to provision, instrument and execute. The agent executes the recipe-defined workload inside the disposable Lima VM and records the results.
+The researcher can also start another validated primary agent using its adapter/prompt handoff. The experiment recipe remains unchanged.
 
-### 4. What the agent executes for Go
+### 4. Let the recipe and agent run the workload
 
-The Go experiment recipe executes inside the VM:
+**Do not copy workload commands from the README and run them on the host.** The experiment recipe defines the workload and the primary agent executes it inside the disposable Lima VM after provisioning and instrumentation.
 
-```bash
+For the Go experiment, the recipe contains:
+
+```text
 go version
 go install ./packages/labprobe
 ```
 
-### 5. What the agent executes for npm
+For the npm experiment, the recipe contains:
 
-The npm experiment recipe executes inside the VM:
-
-```bash
+```text
 node --version
 npm --version
 mkdir -p /tmp/npm-test
@@ -86,11 +82,165 @@ npm init -y
 npm install lodash@4.17.21 --ignore-scripts
 ```
 
-These commands are workload definitions, not researcher host commands.
+The agent performs the VM creation, instrumentation startup, workload execution, evidence collection, analysis delegation, verification and report generation according to the recipe.
 
-### 6. Review the result
+### 5. Review the completed experiment
 
-The primary output is:
+When the agent finishes, inspect the session directory:
+
+```bash
+ls -la runs/<session-id>/
+cat runs/<session-id>/research-report/report.md
+cat runs/<session-id>/verification/result.md
+cat runs/<session-id>/analysis/summary.md
+cat runs/<session-id>/evidence/index.yaml
+cat runs/<session-id>/session.yaml
+```
+
+The researcher-facing primary output is `research-report/report.md`, backed by the preserved evidence and verification records.
+
+## Recipe and agent model
+
+```text
+Researcher
+   ↓
+Contract (intent, scope, safety, acceptance)
+   ↓
+Agent-neutral YAML experiment recipe (source of truth)
+   ↓
+Primary agent
+   ├── Goose: reference native operator
+   └── Other validated agents: adapter/prompt handoff
+          ↓
+   Native planning / multiagent delegation / Skills / MCP
+          ↓
+   Lima + QEMU disposable VM
+          ↓
+   Instrumentation profile
+          ↓
+   Recipe-defined workload
+          ↓
+   Evidence + session.yaml
+          ↓
+   Specialist analysis → independent verification
+          ↓
+   Research report
+          ↓
+   Preserve → destroy VM
+          ↓
+   Optional learning after verification + approval
+```
+
+Specialist role definitions remain under `.agents/agents/`. The primary agent can delegate those roles using native subagents/subrecipes; a separate orchestration controller is not required.
+
+## Host tools: configuration and access
+
+Host tools are **declared in YAML recipes**, not configured by editing shell commands in normal use.
+
+Authoritative inventory:
+
+```text
+recipes/host/security-research.yaml
+```
+
+Install/configure the declared stack:
+
+```bash
+./scripts/install.sh
+```
+
+Check readiness:
+
+```bash
+./scripts/preflight.sh
+```
+
+List every declared host capability and whether it is installed:
+
+```bash
+./scripts/tools.sh list
+```
+
+Show installed versions:
+
+```bash
+./scripts/tools.sh versions
+```
+
+Show non-secret configuration locations:
+
+```bash
+./scripts/tools.sh config
+```
+
+After installation, installed command-line tools are accessed normally from the shell. For example:
+
+```bash
+go version
+node --version
+npm --version
+limactl --version
+qemu-system-x86_64 --version
+goose --version
+litellm --version
+omniroute --version
+numbat --help
+git --version
+jq --version
+yq --version
+rg --version
+strace --version
+tcpdump --version
+lsof -v
+```
+
+To locate any installed executable:
+
+```bash
+command -v <tool>
+```
+
+To see the complete configured PATH:
+
+```bash
+echo "$PATH" | tr ':' '\n'
+```
+
+Cusimanse adds `~/.local/bin` and `~/go/bin` to the PATH. The Python observability/gateway environment is kept in `~/.local/share/cusimanse/venv/`.
+
+## Mandatory host stack
+
+The following capabilities are mandatory host preparation for the reference project:
+
+| Capability | Purpose | Access |
+|---|---|---|
+| Goose | Reference primary agent | `goose --help` |
+| Lima + QEMU | Disposable VM execution | `limactl`, `qemu-system-x86_64` |
+| Go / Node.js / npm | Reference workloads | `go`, `node`, `npm` |
+| Forensic/network utilities | VM instrumentation and evidence | `ps`, `ss`, `ip`, `dig`, `lsof`, `strace`, `tcpdump`, etc. |
+| LiteLLM | Model gateway | `litellm` |
+| OmniRoute | Provider routing/fallback | `omniroute` |
+| Numbat | Agent/process observability | `numbat` |
+| Aegis | Host-level observation | `cusimanse-aegis` |
+| Phoenix/OpenTelemetry | Agent telemetry/tracing | Python environment / OTEL configuration |
+| ClawMetry | Goose session/token visibility | `clawmetry` |
+
+Gateway and observability components are **mandatory host capabilities**, not optional experiment layers. Their configuration is created by `scripts/install.sh` from the repository's YAML declarations and local environment files.
+
+## Execution and instrumentation
+
+Every reference experiment uses:
+
+- `recipes/lima/security-research.yaml` for the disposable Lima/QEMU VM.
+- `recipes/instrumentation/security-research.yaml` for process, syscall, network, DNS and filesystem collection.
+- Recipe-defined workload commands executed by the primary agent inside the VM.
+- Evidence preservation and hashing before VM destruction.
+
+Container Use is optional. It can provide an additional containerized environment for tasks that benefit from it, but it does not replace the Lima VM experiment boundary.
+
+## Session state and artifacts
+
+Keep `recipes/session/session-state.yaml` as the canonical session-state contract. Every experiment creates:
 
 ```text
 runs/<session-id>/
@@ -107,212 +257,121 @@ runs/<session-id>/
 │   ├── report.md
 │   └── report.yaml
 ├── preservation/manifest.yaml
-└── observability/
-    ├── token-usage.yaml
-    └── dashboard.yaml
+├── observability/
+│   ├── token-usage.yaml
+│   └── dashboard.yaml
+└── learning/
+    ├── candidates/
+    ├── evaluations/
+    ├── replays/
+    ├── verification/
+    └── promotions/
 ```
 
-Read the researcher-facing result in this order:
+`session.yaml` records immutable experiment identity, selected profiles, lifecycle checkpoints, approvals, audit state, evidence, verification, reporting and learning state. The researcher should read the report first and use the remaining artifacts to substantiate its claims.
 
-```bash
-cat runs/<session-id>/research-report/report.md
-cat runs/<session-id>/verification/result.md
-cat runs/<session-id>/analysis/summary.md
-cat runs/<session-id>/evidence/index.yaml
-cat runs/<session-id>/session.yaml
-```
+## Learning workflow — explicitly opt in
 
-The report must distinguish observed facts, analysis/inference and independent verification. Model output is never evidence.
+Learning is **off by default**. It never starts merely because an experiment completed.
 
-## How the recipe and agent work
+### Enable learning for a run
 
-```text
-Researcher
-   ↓
-Contract
-   ↓
-Agent-neutral experiment recipe
-   ↓
-Primary agent (Goose reference)
-   ├── Plan / Todo
-   ├── Skills
-   ├── Specialist subagents / subrecipes
-   └── MCP / Developer tools
-   ↓
-Disposable Lima/QEMU VM
-   ↓
-Instrumentation profile
-   ↓
-Recipe-defined workload
-   ↓
-Evidence + session.yaml
-   ↓
-Analysis → independent verification
-   ↓
-Research report
-   ↓
-Preserve → destroy VM
-```
-
-Specialist role definitions remain available under `.agents/agents/` and are delegated by the primary agent. No second orchestration controller is required.
-
-## Host tool configuration and access
-
-The authoritative host inventory is:
-
-```text
-recipes/host/security-research.yaml
-```
-
-The installer is:
-
-```bash
-./scripts/install.sh
-```
-
-The host check is:
-
-```bash
-./scripts/preflight.sh
-```
-
-The complete installed-tool inventory is:
-
-```bash
-./scripts/tools.sh list
-```
-
-Tool versions are:
-
-```bash
-./scripts/tools.sh versions
-```
-
-Local configuration paths are:
-
-```bash
-./scripts/tools.sh config
-```
-
-The gateway configuration is under `~/.config/cusimanse/`. Observability configuration is under the same directory. Provider credentials are supplied through the environment and are never committed to Git.
-
-## Execution and instrumentation
-
-Every reference experiment uses:
-
-- `recipes/lima/security-research.yaml` for the disposable Lima/QEMU VM.
-- `recipes/instrumentation/security-research.yaml` for process, syscall, network, DNS and filesystem collection.
-- Recipe-defined workload commands executed by the primary agent inside the VM.
-- Evidence preservation and hashing before VM destruction.
-
-Container Use may be added for tasks that benefit from container isolation. It does not replace the Lima VM experiment boundary.
-
-## Mandatory host stack
-
-These components are installed and configured by `scripts/install.sh` and checked by `scripts/preflight.sh`:
-
-| Component | Purpose |
-|---|---|
-| Goose | Reference primary research operator |
-| Lima + QEMU | Disposable execution/isolation environment |
-| Go, Node.js, npm | Reference workload tooling |
-| forensic/network tools | VM instrumentation and evidence collection |
-| LiteLLM + OmniRoute | Mandatory local model/provider routing |
-| Numbat | Agent/process observability |
-| Aegis | Independent host-level observation |
-| Phoenix + OpenTelemetry | Agent telemetry/tracing |
-| ClawMetry | Goose session/token visibility |
-
-These are mandatory host capabilities. If installation or preflight cannot establish them, the host is not ready for an experiment.
-
-## Learning workflow
-
-Learning is **disabled by default** and starts only after the research report and independent verification are complete.
-
-To enable learning for a session, set the session flag before continuing the primary-agent workflow:
+1. Run the normal experiment and wait until the report and independent verification are complete.
+2. Set the session flag in the generated `runs/<session-id>/session.yaml`:
 
 ```bash
 yq -i '.learning.enabled = true' runs/<session-id>/session.yaml
 ```
 
-Then tell the primary agent to continue the session with learning enabled. The primary agent follows `recipes/session/learning-workflow.yaml`:
+3. Confirm it:
 
-```text
-retrieve
-  ↓
-propose
-  ↓
-execute
-  ↓
-evaluate
-  ↓
-refine
-  ↓
-replay
-  ↓
-independent verification
-  ↓
-human approval
-  ↓
-promote
+```bash
+yq '.learning.enabled' runs/<session-id>/session.yaml
 ```
 
-Learning artifacts are written under:
+It must print:
 
 ```text
-runs/<session-id>/learning/
-├── candidates/
-├── evaluations/
-├── replays/
-├── verification/
-└── promotions/
+true
 ```
 
-Only an approved candidate can be promoted to `skills/validated/`. Learning cannot mutate the base contract, grant privileges or weaken isolation automatically.
-
-## Safety boundary
-
-The contract defines authorization and research scope. The experiment recipe defines what the agent executes. The disposable Lima VM and guest OS provide the execution/isolation boundary. Instrumentation observes the VM. Gateways route model traffic. Agent/host observability records behavior. None of those observation or routing components is the workload containment boundary.
-
-## Repository structure
+4. Manually tell the primary agent to continue the completed session with learning enabled and use:
 
 ```text
-contracts/                         research contracts
-recipes/                           authoritative experiment and environment recipes
-├── go-install-001/                Go reference experiment
-├── npm-install-001/               npm reference experiment
-├── lima/                          disposable VM profiles
-├── instrumentation/               VM instrumentation profiles
-├── host/                          host tool inventory
-├── gateway/                       mandatory gateway configuration
-├── observability/                 mandatory observability configuration
-├── session/                       session state and learning workflow
-└── subrecipes/                    specialist analysis/verification/reporting
-.agents/                           specialist roles and reusable Skills
-scripts/
-├── install.sh                    single host installation/configuration entry point
-├── preflight.sh                  host readiness check
-├── tools.sh                      installed-tool inventory/access helper
-└── tests/                        validation and runtime integration
-docs/architecture/                canonical Mermaid architecture
-
-docs/images/                      project branding and architecture image
-packages/labprobe/                 reference Go workload
-runs/                              preserved per-session artifacts
+recipes/session/learning-workflow.yaml
 ```
 
-## Validation
+The primary agent then performs:
 
-Static validation:
+```text
+retrieve → propose → execute → evaluate → refine → replay
+→ independent verification → human approval → promote
+```
+
+5. Review candidates before approval:
+
+```bash
+find runs/<session-id>/learning -type f -maxdepth 3 -print
+```
+
+6. Only after explicit researcher approval may a candidate be promoted to:
+
+```text
+skills/validated/
+```
+
+Learning artifacts remain under `runs/<session-id>/learning/`. Learning cannot mutate base contracts, grant privileges or weaken execution controls automatically.
+
+## Validation and runtime integration
+
+Static/project validation:
 
 ```bash
 ./scripts/tests/validate.sh
 ```
 
-Runtime integration validation:
+Runtime integration test:
 
 ```bash
 ./scripts/tests/runtime.sh
 ```
 
-A runtime PASS requires an actual disposable Lima/QEMU execution and independent verification. Configuration-only checks are not represented as runtime success.
+For a real disposable-VM runtime test:
+
+```bash
+CUSIMANSE_RUN_VM_TEST=1 ./scripts/tests/runtime.sh
+```
+
+A runtime PASS requires actual Lima/QEMU execution and independent verification. Static configuration success is not runtime success.
+
+## Repository structure
+
+```text
+contracts/                         research intent, scope and acceptance
+recipes/                           authoritative YAML configuration
+├── go-install-001/                Go experiment
+├── npm-install-001/               npm experiment
+├── lima/                          Lima/QEMU profiles
+├── instrumentation/               instrumentation profiles
+├── host/                          mandatory host inventory
+├── gateway/                       mandatory gateway configuration
+├── observability/                 mandatory observability configuration
+├── session/                       session state and learning workflow
+└── subrecipes/                    specialist analysis/verification/reporting
+.agents/
+├── agents/                        specialist role definitions
+└── skills/                        reusable agent Skills
+scripts/
+├── install.sh                     unified host installation/configuration
+├── preflight.sh                   host readiness
+├── tools.sh                       host-tool inventory/access
+└── tests/                         validation and runtime integration
+docs/architecture/                canonical SVG + Mermaid architecture
+docs/images/                      mascot/logo and architecture artwork
+packages/labprobe/                 reference Go workload
+runs/                              per-session evidence and reports
+```
+
+## Safety boundary
+
+The contract defines authorization and research scope. The recipe defines the experiment. The primary agent operates it. Lima/QEMU plus the guest OS provide the execution/isolation boundary. Instrumentation observes the VM. Gateways route model/provider traffic. Observability records behavior. None of the routing or observation components is the workload containment boundary.
