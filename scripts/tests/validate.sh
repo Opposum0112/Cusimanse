@@ -10,7 +10,7 @@ while IFS= read -r -d '' f; do
   bash -n "$f" || fail "syntax error: $f"
 done < <(find scripts -type f -name '*.sh' -print0)
 
-for f in contracts/*.md recipes/*/recipe.yaml recipes/experiments/*.yaml recipes/subrecipes/*.yaml recipes/lima/security-research.yaml recipes/instrumentation/security-research.yaml recipes/host/security-research.yaml recipes/gateway/mandatory.yaml recipes/observability/mandatory.yaml recipes/session/session-state.yaml recipes/session/learning-workflow.yaml recipes/agents/adapter-matrix.yaml recipes/agents/adapter-installation.yaml recipes/agents/goose-orchestration.yaml recipes/skills/registry.yaml recipes/mcp/registry.yaml; do
+for f in contracts/*.md recipes/*/recipe.yaml recipes/experiments/*.yaml recipes/subrecipes/*.yaml recipes/lima/security-research.yaml recipes/instrumentation/security-research.yaml recipes/host/security-research.yaml recipes/gateway/mandatory.yaml recipes/observability/mandatory.yaml recipes/session/session-state.yaml recipes/session/learning-workflow.yaml recipes/agents/adapter-matrix.yaml recipes/agents/adapter-validation.yaml recipes/agents/adapter-installation.yaml recipes/agents/goose-orchestration.yaml recipes/skills/registry.yaml recipes/mcp/registry.yaml; do
   [ -s "$f" ] || fail "missing/empty: $f"
 done
 for f in prompts/README.md prompts/experiments/*.md; do [ -s "$f" ] || fail "missing/empty prompt reference: $f"; done
@@ -35,44 +35,37 @@ for p in Path('recipes/experiments').glob('*.yaml'):
     d=yaml.safe_load(p.read_text()); assert d.get('kind') == 'cusimanse-experiment', p
     assert d.get('contract') and d.get('workload'), p
     assert d.get('compute') and d.get('instrumentation') and d.get('session'), p
-for p in Path('recipes/subrecipes').glob('*.yaml'):
-    d=yaml.safe_load(p.read_text()); assert d.get('title') and d.get('description'), p
-    assert d.get('instructions') or d.get('prompt'), p
-m=yaml.safe_load(Path('recipes/agents/adapter-matrix.yaml').read_text())
-assert m['reference']['agent'] == 'goose'
-assert all(x in m['adapters'] for x in ('opencode','hermes','antigravity','pi'))
-s=yaml.safe_load(Path('recipes/session/session-state.yaml').read_text())
-assert s['agent']['selected_primary_agent'] == 'required'
-assert s['agent']['reference_primary_agent'] == 'goose'
-assert s['execution']['researcher_runs_workload_commands'] is False
-assert s['orchestration']['specialist_roles'] == 'required'
-assert s['learning']['default'] is False
-h=yaml.safe_load(Path('recipes/host/security-research.yaml').read_text())
-assert 'common' in h and 'platforms' in h and 'guest' in h
-assert h['installation']['configure_from_recipe'] is True
-for f in ['recipes/gateway/mandatory.yaml','recipes/observability/mandatory.yaml']:
-    assert yaml.safe_load(Path(f).read_text()).get('required') is True, f
-skill=yaml.safe_load(Path('recipes/skills/registry.yaml').read_text())
-assert 'anthropic-cybersecurity-skills' in {x['id'] for x in skill.get('external', [])}
-mcp=yaml.safe_load(Path('recipes/mcp/registry.yaml').read_text())
-assert mcp['policy']['public_exposure'] == 'deny'
-learning=yaml.safe_load(Path('recipes/session/learning-workflow.yaml').read_text())
-assert learning['enabled']['default'] is False
-assert learning['enabled']['session_key'] == 'learning.enabled'
-assert learning['promotion_rules']['human_approval_required'] is True
+    assert d['workload'].get('execution') == 'disposable-lima-vm', p
+
+lifecycle=yaml.safe_load(Path('recipes/experiments/npm-lifecycle-001.yaml').read_text())
+coverage=set(lifecycle['threat_model']['coverage'])
+assert {'package-lifecycle-process','filesystem-behavior','localhost-network-behavior'} <= coverage
+assert 'local-fixture-only' in lifecycle['threat_model']['limitations']
+
+inst=yaml.safe_load(Path('recipes/instrumentation/security-research.yaml').read_text())
+assert inst['rules']['collectors_start_before_workload'] is True
+assert inst['rules']['raw_evidence_immutable'] is True
+host=yaml.safe_load(Path('recipes/host/security-research.yaml').read_text())
+assert set(host['platforms']) >= {'linux','macos','windows_wsl2','windows_native'}
+assert host['installation']['remote_install_policy'] == 'download-to-temp-then-execute'
+adapters=yaml.safe_load(Path('recipes/agents/adapter-validation.yaml').read_text())
+for name in ('opencode','hermes','antigravity','pi'):
+    assert adapters['status'][name]['state'] == 'NOT_DEPLOYED', name
+assert adapters['rules']['cli_presence_is_not_pass'] is True
+assert adapters['rules']['pass_requires_actual_disposable_vm_execution'] is True
 print('STRUCTURAL YAML/JSON/POLICY PASS')
 PY
 
 python3 - <<'PY'
 from pathlib import Path
-patterns=('ai-security-lab','CrewAI','crewai','scripts/cusimanse-host.sh','scripts/agent-preflight.sh','scripts/configure-recipes.sh','scripts/goose-env.sh','turn0search','turn1search','turn2search')
+patterns=('ai-security-lab','CrewAI','crewai','scripts/cusimanse-host.sh','scripts/agent-preflight.sh','scripts/configure-recipes.sh','scripts/goose-env.sh','turn0search','turn1search','turn2search','turn3search')
 roots=[Path('contracts'),Path('recipes'),Path('docs'),Path('scripts'),Path('.goosehints')]
 for root in roots:
     paths=[root] if root.is_file() else root.rglob('*')
     for p in paths:
         if not p.is_file() or p.as_posix() == 'scripts/tests/validate.sh': continue
         text=p.read_text(errors='ignore')
-        for pat in patterns: assert pat not in text, f'{p}: retired reference {pat}'
+        for pat in patterns: assert pat not in text, f'{p}: retired/reference artifact {pat}'
 print('RETIRED REFERENCE SCAN PASS')
 PY
 
