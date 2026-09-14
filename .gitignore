@@ -11,13 +11,9 @@ credentials/
 id_rsa
 id_ed25519
 
-# Runtime / evidence (keep templates, not captures)
-evidence/**
-!evidence/.gitkeep
-**/evidence/**
-blackboard/*.json
-blackboard/*.jsonl
-!blackboard/.gitkeep
+# Runtime / research artifacts
+runs/**
+!runs/.gitkeep
 *.pcap
 *.pcapng
 *.log
@@ -40,10 +36,5 @@ venv/
 .vscode/
 *.swp
 
-events/
-!events/.gitkeep
-reports/acceptance-scorecard.yaml
-
 # OS / editor
 Thumbs.db
-
