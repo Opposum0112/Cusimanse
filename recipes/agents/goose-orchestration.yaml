@@ -1,8 +1,14 @@
-version: 1
+version: 2
 kind: goose-orchestration
 primary_agent: goose-reference
 model: native-goose
 recipe_source_of_truth: true
+capability_runtime:
+  api: cmd/cusimanse
+  capabilities: [resolve, provision, configure, execute, collect, destroy]
+  requirements_first: true
+  policy_gate: scripts/policyctl
+  execution_boundary: Lima/QEMU + guest OS
 role_definitions:
   source: .agents/agents/
   roles:
@@ -45,8 +51,10 @@ role_definitions:
       purpose: lifecycle checkpoints, hashes, provenance and preservation
 orchestration:
   mechanism: Goose native agents/subagents and recipe/subrecipe delegation
+  lifecycle: [contract, requirements, resolve, plan, policy, provision, instrument, workload, observe, adapt, verify, report, preserve, destroy]
   parallel_allowed: [evidence-analysis, forensics, detection-analysis]
-  sequential_required: [plan, provision, instrument, workload, verify, report, preserve, destroy]
+  sequential_required: [resolve, provision, instrument, workload, verify, report, preserve, destroy]
+  adaptive_loop: observe → analyze → request_declared_capability → execute → observe
   independent_verifier: required
   human_approval: required_for_privileged_destructive_and_skill_promotion
   role_recipes_remain_semantic: true
@@ -64,6 +72,17 @@ mcp:
   registry: recipes/mcp/registry.yaml
   recipe_scoped: true
   security_boundary: false
+gateways:
+  model_gateway: LiteLLM
+  routing_gateway: OmniRoute
+  observability: [Numbat, Phoenix, OpenTelemetry, Aegis, ClawMetry]
+  configuration_source: recipes/host/security-research.yaml
+  secrets_externalized: true
+  agent_may_change_gateway_policy: false
+adapters:
+  source_of_truth: recipes/agents/adapter-matrix.yaml
+  prompt_handoff: prompts/experiments/<experiment>.md
+  recipe_mutation: forbidden
 extensions:
   native_first: true
   external_adapter_extensions: allowed
