@@ -61,7 +61,7 @@ skills/          candidate/validated/promoted skill libraries
 packages/        research packages
 policies/        host/action policy
 blackboard/      durable case metadata
-reports/         generated reports and token history
+reports/         optional report index/export area
 manifest/        source-of-truth manifest
 docs/            architecture and focused guides
 scripts/         small installation/preflight/validation surface
@@ -159,6 +159,56 @@ cusimanse-token-dashboard
 
 Missing optional observability backends are reported as `PARTIAL`/`NOT_DEPLOYED`; they are never silently treated as complete coverage.
 
+## Researcher output: the session artifact and report
+
+The **main output of Cusimanse is the researcher-facing research report plus its preserved evidence package**. The report explains what was tested, what was observed, what was verified and what remains uncertain. The evidence package lets the researcher trace conclusions back to captured artifacts and reproduce the session context.
+
+Every session is rooted at `runs/<session-id>/`. The canonical session artifact structure is:
+
+```text
+runs/<session-id>/
+├── session.yaml                         # immutable session identity + lifecycle/state
+├── evidence/
+│   ├── audit/
+│   │   ├── events.jsonl                 # append-only requested/approved/executed/observed events
+│   │   └── manifest.sha256              # audit integrity manifest
+│   ├── index.yaml                       # evidence inventory and references
+│   └── <captured artifacts>/             # raw workload/telemetry/forensic evidence
+├── provenance/
+│   └── manifest.sha256                  # provenance/integrity manifest
+├── analysis/
+│   └── summary.md                       # evidence-based analysis before final reporting
+├── verification/
+│   └── result.md                        # independent verification result
+├── research-report/
+│   ├── report.md                        # PRIMARY HUMAN-READABLE OUTPUT
+│   └── report.yaml                      # structured report output
+├── preservation/
+│   └── manifest.yaml                    # preserved artifacts and final preservation state
+├── observability/
+│   ├── token-usage.yaml                 # final session token accounting
+│   └── dashboard.yaml                   # final dashboard/status snapshot
+└── learning/                            # only when opt-in learning is used
+    ├── candidates/
+    ├── evaluations/
+    ├── replays/
+    ├── verification/
+    └── promotions/
+```
+
+### What the researcher reads first
+
+1. **`research-report/report.md`** — the primary result and conclusions.
+2. **`verification/result.md`** — whether the important findings were independently verified.
+3. **`analysis/summary.md`** — how the captured evidence was interpreted.
+4. **`evidence/index.yaml`** — where supporting evidence is located.
+5. **`provenance/manifest.sha256` and `preservation/manifest.yaml`** — integrity and preservation state.
+6. **`session.yaml`** — exact experiment identity, selected profiles, lifecycle and reproducibility context.
+
+The raw files under `evidence/` are the supporting record, not a second report. `research-report/report.md` should cite the relevant evidence and distinguish **observed facts, analysis/inference, verification status and limitations**. It must include scope/authorization, environment and recipe context, instrumentation coverage, findings, failed steps, relevant agent actions, versions, reproducibility references and missing/unavailable capabilities. Unverified security claims are not acceptable.
+
+The reporting recipe is authoritative for this structure: `recipes/reporting/default.yaml`. The top-level `reports/` directory is not a competing source of truth; it is only an optional index/export area for historical or presentation copies.
+
 ## Optional learning and skill promotion
 
 Learning is a **post-research, opt-in improvement loop**. It starts after the research report and independent verification when the primary agent identifies a reusable improvement.
@@ -194,12 +244,6 @@ rollback if regression/safety issue appears
 ```
 
 Candidate artifacts live under `runs/<session-id>/learning/`. Candidate skills are staged under `skills/candidate/`; only evidence-backed, replayed, independently verified and human-approved skills are promoted to `skills/validated/`. Base contracts cannot be mutated by the learning loop. Automatic privilege grants and security-policy changes are prohibited.
-
-## Evidence and session state
-
-Each session records identity, selected profiles, approvals, append-only audit, evidence, provenance, analysis, verification, report, preservation, observability and token accounting under `runs/<session-id>/`.
-
-Raw evidence is ground truth. Model output is not evidence. Evidence must be hashed and preserved before disposable compute is destroyed.
 
 ## Validation
 
