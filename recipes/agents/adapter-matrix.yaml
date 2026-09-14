@@ -1,29 +1,58 @@
-version: 1
+version: 2
 kind: primary-agent-adapter-matrix
 purpose: >-
-  Map the agent-neutral Cusimanse experiment recipe and prompt handoff to
-  supported primary agents. Goose is the reference native operator. Other
-  agents use the same contract/recipe through an adapter prompt and retain
-  their own native tools, extensions and orchestration where available.
+  Define the supported handoff from one agent-neutral Cusimanse experiment to
+  each primary agent. Goose is the native reference operator. Other agents use
+  the same contract, Cusimanse configuration and prompt reference without
+  mutating the experiment.
 reference:
   agent: goose
   mode: native-recipe
   command: goose run --recipe <recipe> --interactive
-  native_features:
-    - recipes
-    - subrecipes
-    - custom-agents
-    - summon
-    - skills
-    - MCP/extensions
-    - native delegation
+  capabilities: [recipes, subrecipes, summon, skills, MCP/extensions, delegation]
 adapters:
   opencode:
     command: opencode
     mode: prompt-handoff
-    run: opencode run "$(cat <prompt>)"
-    install: curl -fsSL https://opencode.ai/install | bash
-    native_integration: plugins-and-MCP
-    orchestration: native-agent-capabilities-where-enabled
     prompt_reference: prompts/experiments/
-    status: adapter-defined-runtime
+    native_capabilities: [agents, plugins, MCP]
+    orchestration: native-agent-capabilities
+    install: scripts/install.sh
+    validation: reference-experiment
+  hermes:
+    command: hermes
+    mode: prompt-handoff
+    prompt_reference: prompts/experiments/
+    native_capabilities: [tools, skills, delegation]
+    orchestration: native-agent-capabilities
+    install: scripts/install.sh
+    validation: reference-experiment
+  antigravity:
+    command: agy
+    mode: prompt-handoff
+    prompt_reference: prompts/experiments/
+    native_capabilities: [agents, tools, delegation]
+    orchestration: native-agent-capabilities
+    install: scripts/install.sh
+    validation: reference-experiment
+  pi:
+    command: pi
+    mode: prompt-handoff
+    prompt_reference: prompts/experiments/
+    native_capabilities: [extensions, skills, packages]
+    orchestration: native-agent-capabilities
+    install: scripts/install.sh
+    validation: reference-experiment
+adapter_contract:
+  inputs: [contract, experiment_configuration, prompt_reference]
+  recipe_source_of_truth: true
+  prompt_is_handoff_only: true
+  recipe_mutation: forbidden
+  execution_boundary: Lima/QEMU + guest OS
+  required_outputs: [session.yaml, evidence, verification, research-report]
+  unsupported_capability: record_as_partial
+validation:
+  cli_presence_is_insufficient: true
+  pass_requires_runtime_evidence: true
+  pass_requires_independent_verification: true
+  unvalidated_status: NOT_DEPLOYED
