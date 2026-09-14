@@ -1,370 +1,248 @@
 # 🦝 Cusimanse
 
-> A composable, modular research-contract and YAML-recipe framework. A selected terminal agent executes, operates and orchestrates authorized experiments on disposable compute, then analyzes artifacts and writes a report. Observability covers the agent operation plane for oversight — it is not the isolation boundary.
+> A composable research-contract and YAML-recipe framework for agent-operated security experiments on disposable compute.
 
-Cusimanse turns Markdown research contracts and composable YAML recipes into repeatable, agent-operated research sessions. Contracts define purpose, scope, safety and acceptance. Recipes compose host, VM, tools, instrumentation, agents and reporting. The selected primary agent owns that lifecycle. Lima/QEMU plus VM/OS controls isolate the workload.
+Cusimanse turns Markdown research contracts and declarative YAML recipes into repeatable research sessions. Contracts define purpose, scope, safety, evidence and acceptance. Recipes compose host, VM, workload, tools, instrumentation, agent, observability, routing, reporting and learning. The selected primary terminal agent owns the lifecycle and may use its native multi-agent/subagent capabilities. Lima/QEMU plus VM/OS controls enforce the workload boundary.
 
-**Status:** beta research lab. This is not a production product, certified sandbox or malware-detonation platform. Static validation is not proof of runtime isolation.
-
-**What this repository is today**
-
-- A contract + recipe framework for authorized experiments on disposable compute
-- A working host-install, policy-check and static-validation path
-- Goose as the reference operator; other adapters are declared targets until preflighted with evidence
-- Reference experiments (`go-install-001`, `npm-install-001`) as contracts, recipes and prompts
-- Optional observability for the agent operation plane (traces, process/tool activity, token accounting) when those backends are actually deployed
-- Artifact collection, hashing, independent verification and report generation as the acceptance path
-
-**What it is not**
-
-- Not certified isolation or sandbox-escape resistance
-- Not a claim that CI booted a VM or ran a reference experiment (GitHub Actions is lint and contract checks)
-- Not evidence that every named adapter, skill, MCP server or orchestration tool is running
-- Model output is not evidence. `PASS` requires preserved, hashed artifacts under `runs/<id>/`
-
-A stranger-ready test can stop after host install and project validation. That is a valid result.
+**Status:** beta research lab. This is not a certified sandbox, production security product or malware-detonation platform. Static validation is not proof of runtime isolation.
 
 ![Cusimanse mascot](docs/images/cusimanse-mascot.svg)
 
 ## AI use and usage disclaimer
 
-Cusimanse is an **AI-assisted security research framework**. AI agents and models may be used to plan experiments, delegate specialist analysis, operate declared workflows, interpret telemetry/evidence, generate reports, and propose reusable skills. Model outputs can be incomplete, incorrect, nondeterministic or unsafe if used outside the declared controls.
+Cusimanse is an **AI-assisted security research framework**. AI agents/models may plan experiments, delegate specialist work, operate declared workflows, interpret telemetry/evidence, generate reports and propose reusable skills. AI output may be incomplete, incorrect, nondeterministic or unsafe.
 
-AI is a capability layer, **not a security boundary or an authority to expand scope**. Human researchers remain responsible for authorization, scope, approvals, credentials, safety decisions and final interpretation. Cusimanse does not guarantee that an AI agent, model, skill, MCP tool, orchestration framework or generated output is correct or secure.
-
-Use AI providers and agent tools according to their own terms and privacy policies. Do not place secrets, credentials or sensitive research data into model prompts or telemetry unless the deployment explicitly authorizes and protects them. Review generated commands and findings before execution or publication, and use disposable compute for untrusted workloads.
+AI is a capability layer, **not a security boundary or authority to expand scope**. Humans remain responsible for authorization, scope, approvals, credentials, safety decisions and final interpretation. Do not put secrets, credentials or sensitive research data into prompts or telemetry unless explicitly authorized and protected. Review generated commands/findings before execution or publication and use disposable compute for untrusted workloads.
 
 ## System requirements
 
 | Area | Requirement |
 |---|---|
-| Host OS | Linux or macOS; Windows through WSL2 |
-| CPU | Hardware virtualization recommended; 4+ cores recommended |
+| Host | Linux/macOS; Windows through WSL2 |
+| CPU | 4+ cores recommended; hardware virtualization recommended |
 | RAM | 8 GB minimum; 16 GB+ recommended |
 | Disk | 20 GB minimum; 40–50 GB+ recommended for VM images/evidence |
 | Runtime | Lima + QEMU |
 | Languages | Go, Python 3, Ruby |
 | Utilities | Git, Bash, curl |
 | Agent | At least one supported primary terminal agent |
-| Network | Outbound access only where installation/experiment policy permits |
+| Network | Only where installation/experiment policy permits |
 
-Detailed requirements, package-manager support and preflight behavior: [`docs/system-requirements.md`](docs/system-requirements.md).
+See [`docs/system-requirements.md`](docs/system-requirements.md) for detailed requirements.
 
 ## Architecture
 
 ![Cusimanse architecture](docs/architecture/cusimanse-architecture.svg)
 
-- **Canonical rendering:** [`docs/architecture/cusimanse-architecture.svg`](docs/architecture/cusimanse-architecture.svg)
-- **Canonical editable Mermaid source:** [`docs/architecture/cusimanse-architecture.mmd`](docs/architecture/cusimanse-architecture.mmd)
+- [`docs/architecture/cusimanse-architecture.svg`](docs/architecture/cusimanse-architecture.svg) — canonical rendering
+- [`docs/architecture/cusimanse-architecture.mmd`](docs/architecture/cusimanse-architecture.mmd) — editable Mermaid source
 
-The Mermaid diagram explains the numbered research flow and the control/data planes from contract creation through session closure.
+**Configuration rule:** `recipes/` is the single configuration source of truth. There is no parallel `infra/` configuration tree.
 
 ## Repository structure
 
 ```text
-Cusimanse/
-├── contracts/       # research contracts and reference semantics
-├── recipes/         # executable declarative composition and profiles
-├── experiments/     # reference experiment material/output
-├── .agents/         # agent roles, skills and MCP metadata
-├── skills/          # reviewed/promoted skills
-├── packages/        # research packages
-├── policies/        # host/action policy
-├── blackboard/      # durable case metadata
-├── reports/         # generated reports/token history
-├── manifest/        # package/source-of-truth manifest
-├── docs/            # architecture + focused guides
-├── scripts/         # bootstrap/preflight/validation helpers
-├── cmd/             # policyctl and host tooling
-└── tools/           # research-tool documentation
+contracts/       research contracts and acceptance semantics
+recipes/         declarative execution composition and profiles
+experiments/     reference experiment material
+.agents/         agent roles, skills and MCP metadata
+skills/          candidate/validated/promoted skill libraries
+packages/        research packages
+policies/        host/action policy
+blackboard/      durable case metadata
+reports/         generated reports and token history
+manifest/        source-of-truth manifest
+docs/            architecture and focused guides
+scripts/         small installation/preflight/validation surface
+cmd/             policyctl and host tooling
+tools/           research-tool documentation
 ```
-
-**Documentation rule:** contracts define research semantics, recipes define execution composition, README defines the researcher workflow, and `docs/` contains focused guides plus the canonical architecture. Do not duplicate the end-to-end workflow in another document.
-
-**Configuration rule:** `recipes/` is the source of truth for host tools, VM profiles, agents, orchestration, instrumentation, gateways, observability, policy references and experiments. There is no parallel `infra/` configuration tree.
 
 ## Researcher workflow
 
-### Step 1 — Define the experiment
+### 1. Define an experiment
 
-**Normal host shell, from the Cusimanse repository root.** Use `go-install-001` as the reference pattern:
+Create a Markdown contract and a YAML experiment recipe. Use `go-install-001` and `npm-install-001` as references.
 
 ```text
-contracts/08-go-install-001.md
-        │ what / why / scope / safety / evidence / acceptance
-        ▼
-recipes/experiments/go-install-001.yaml
-        │ composition
-        ├─ workload: recipes/workloads/go-install-001.yaml
-        ├─ host: recipes/host/research-host.yaml
-        ├─ compute: recipes/lima/profiles/security-research.yaml
-        ├─ tools: recipes/tools/security-research.yaml
-        ├─ instrumentation: recipes/instrumentation/*
-        ├─ agent/orchestration: recipes/agents/* + recipes/orchestration/*
-        └─ audit/reporting/observability: recipes/{audit,reporting,observability}/*
+contract → experiment recipe → workload recipe → selected profiles
+                                      ↓
+                              primary agent session
+                                      ↓
+                         native specialist delegation
+                                      ↓
+                              disposable VM
+                                      ↓
+                         evidence → analysis → verification
+                                      ↓
+                              research report
+                                      ↓
+                         optional learning/promotion
 ```
 
-For a new experiment:
+The **recipe is the authoritative experiment input**. Experiment prompts in `docs/prompts/` are adapter-facing handoff artifacts for agents that benefit from a prompt-shaped invocation; they do not create a second configuration system.
 
-1. Create `contracts/<id>.md` with purpose, scope, safety, evidence and acceptance.
-2. Create `recipes/experiments/<id>.yaml` to compose the required profiles.
-3. Create `recipes/workloads/<id>.yaml` with the exact approved commands and **where they execute**.
-4. Select the host/compute/tool/instrumentation/agent/orchestration/policy/routing/reporting/observability recipes.
-5. Create `runs/<session-id>/session.yaml` from `recipes/session/session-state.yaml` and snapshot the selected profiles.
-6. Validate before execution.
+### 2. Install the host
 
-Use the supplied `npm-install-001` as the second test/reference experiment.
-
-### Step 2 — Install and validate the host
-
-**Normal host shell:**
+From the repository root:
 
 ```bash
-cd <CUSIMANSE_REPO_ROOT>
 ./scripts/install.sh
-./scripts/cusimanse-host.sh
-./scripts/agent-preflight.sh
+./scripts/preflight.sh
 ./policyctl validate
-./scripts/tests/validate-project.sh
+./scripts/tests/validate.sh
 ```
 
-The all-inclusive installer prepares the selected host/control-plane capabilities declared by the recipes, including prerequisites, selected agent adapters, control/learning tooling, agent observability, token tooling and model gateways. `recipes/tools/security-research.yaml` declares host/VM tool inventories; VM workload tools are installed or selected inside disposable compute according to the workload recipe. `./scripts/agent-preflight.sh` verifies what is actually deployed. These commands prepare the host; they do not run the experiment workload.
+`install.sh` is the single all-inclusive installation front door. It prepares prerequisites, policyctl, observability and optional model gateways. It does not start an agent, VM or gateway server.
 
-### Step 3 — Select one primary agent
+The script directory intentionally has a small public surface. `prerequisites.sh`, `install-observability.sh` and `install-gateways.sh` are implementation helpers called by `install.sh`.
 
-**Normal host shell:**
+### 3. Select one primary agent
 
-```bash
-command -v goose && goose --help
-```
-
-Choose exactly one adapter from `recipes/agents/adapter-matrix.yaml` and record it in `session.yaml`. Other supported adapters include OpenCode, Grok Build, Antigravity, Pi, Hermes, Prime Agent, Codex and Claude Code. Verify provider-specific command syntax with the installed adapter's help.
-
-### Step 4 — Start the primary agent
-
-Starting the agent remains a **normal host-shell** operation:
+Choose exactly one adapter from `recipes/agents/adapter-matrix.yaml` and record it in the session state. Goose is the reference operator; other adapters remain targets until their provider-specific commands and runtime behavior are preflighted.
 
 ```bash
+goose --help
 goose
 ```
 
-The selected primary agent then becomes the lifecycle operator. Do not start another tool as a competing lifecycle controller.
+The selected agent becomes the lifecycle/operator authority. Do not introduce a competing lifecycle controller.
 
-### Step 5 — Provide the experiment prompt
+### 4. Operate the experiment
 
-**Inside the primary agent**, provide the experiment-specific prompt:
+The primary agent reads the contract, experiment recipe, workload recipe and selected profiles, requests required approvals, provisions the declared Lima/QEMU environment, starts instrumentation, executes the workload, collects evidence, analyzes it, independently verifies findings, writes the report, preserves evidence and destroys disposable compute only after preservation.
 
-- Go: `docs/prompts/go-install-001.md`
-- npm: `docs/prompts/npm-install-001.md`
+The project declares specialist roles such as planner, researcher, runtime analyst, forensics analyst, detection analyst, analysis agent, verifier and report generator. The primary agent may delegate these roles through its **native** multi-agent/subagent capability.
 
-The prompt loads the contract, experiment recipe, session YAML and profiles and instructs the primary agent to validate → plan → request approval → provision → instrument → execute → collect → analyze → verify → report → preserve → finalize → destroy.
+### 5. Experiment prompts
 
-### Step 6 — Multiagentic operation
+Reference prompt adapters remain available:
 
-The primary agent is the single lifecycle authority and delegates declared specialist work:
+- `docs/prompts/go-install-001.md`
+- `docs/prompts/npm-install-001.md`
 
-```text
-Primary agent
-├─ Planner
-├─ Researcher
-├─ Runtime analyst
-├─ Forensics analyst
-├─ Detection analyst
-├─ Analysis agent
-├─ Independent verifier
-└─ Report generator
-```
+They are useful when a terminal agent needs a concise operational handoff. The recipe remains authoritative; the prompt is not a replacement for the recipe.
 
-Optional tools are selected through recipes: **Taskflow** decomposes replayable tasks, **LangGraph** provides state/checkpoints, and **CrewAI** delegates specialist roles. They are coordination layers, not security boundaries.
+### 6. Agent observability
 
-### Agent observability
+`recipes/agent-monitoring/observability.yaml` declares the agent-operation observability stack.
 
-Agent observability is configured by `recipes/agent-monitoring/observability.yaml` and attached to the adapter registry. The all-inclusive `./scripts/install.sh` installs/checks the observability foundation; `./scripts/agent-preflight.sh` verifies deployed capabilities and reports unavailable optional backends as `PARTIAL` rather than silently claiming coverage.
-
-The stack covers:
-
-- **Numbat** — process tree, shell commands, network connections, file activity and agent-tool activity.
+- **Numbat** — process, shell, network, filesystem and agent-tool activity.
 - **Phoenix + OpenTelemetry** — traces, spans, model/tool calls, errors and approvals.
-- **Aegis** — security/governance observability where deployed.
-- **Token dashboard** — per-session model/token accounting and session-end finalization.
+- **Aegis (`antropos17/Aegis`)** — independent OS-level observation of process, file, network and behavioral activity from outside the agent; it is monitor-first and not the isolation boundary.
+- **Token dashboard** — per-session model/token accounting.
 
-Useful host commands:
+Install/check with:
 
 ```bash
 ./scripts/install.sh
-./scripts/agent-preflight.sh
+./scripts/preflight.sh
 cusimanse-token-dashboard
 ```
 
-Configuration is recipe-driven; provider credentials remain outside Git. Observability is not the security boundary. If an optional backend is unavailable, the session/project may be `PARTIAL`; required workload isolation still depends on Lima/QEMU and VM/OS controls.
+Missing optional observability backends are reported as `PARTIAL`/`NOT_DEPLOYED`; they are never silently treated as complete coverage.
 
-### Step 7 — Execute the workload in disposable compute
+## Optional learning and skill promotion
 
-The primary agent provisions the declared Lima/QEMU profile. VM/OS controls enforce the execution boundary. Instrumentation starts before the target workload.
+Learning is a **post-research, opt-in improvement loop**. It starts after the research report and independent verification when the primary agent identifies a reusable improvement.
 
-**Go reference — inside the disposable VM:**
+`recipes/session/learning-workflow.yaml` is authoritative for the learning lifecycle. Learning helpers are installed on the **host/control plane only when selected**; they are not automatically installed in the workload VM.
 
-```bash
-go version
-go install ./packages/labprobe
-```
-
-**npm reference — inside the disposable VM:**
-
-```bash
-node --version
-npm --version
-mkdir -p /tmp/npm-test
-cd /tmp/npm-test && npm init -y
-cd /tmp/npm-test && npm install lodash@4.17.21 --ignore-scripts
-```
-
-These workload commands are declared by their workload recipes and must not be run directly on the research host during an experiment.
-
-### Step 8 — Store evidence and report
-
-Every session writes to `runs/<session-id>/`:
-
-```text
-session.yaml
-  audit/          evidence/        telemetry/       provenance/
-  blackboard/     analysis/        verification/   research-report/
-  preservation/   observability/   learning/
-```
-
-Raw evidence is ground truth. Hash and preserve it before VM destruction. The report references artifacts and distinguishes observation from inference.
-
-### Step 9 — Optional learning and skill promotion
-
-Learning is a **post-research improvement loop**, not part of the normal workload. It starts only after the research report and independent verification, when the primary agent identifies a reusable improvement candidate.
-
-**Where configuration lives:** `recipes/session/learning-workflow.yaml` declares the lifecycle, gates, artifacts and promotion rules. `recipes/skills/registry.yaml` is the skill registry; `skills/` is the reviewed/promoted library. The base research contracts remain immutable.
-
-**When tools are installed:** Taskflow, LangGraph and CrewAI are optional host/control-plane capabilities. They are installed when selected by the host/control-plane profile and prepared by the all-inclusive `./scripts/install.sh`; they are not installed inside the workload VM unless an experiment explicitly declares such a need. `./scripts/agent-preflight.sh` reports whether the selected capability is actually available.
-
-**How a learning run works:**
+Taskflow and LangGraph are optional learning helpers. The normal project architecture does **not** require CrewAI or another competing multi-agent framework because the selected primary agent owns orchestration.
 
 ```text
 research report + verification
-          ↓
-identify reusable improvement
-          ↓
-retrieve prior evidence / reviewed skills
-          ↓
-Taskflow → small replayable tasks
-          ↓
+        ↓
+identify improvement
+        ↓
+retrieve prior evidence / validated skills
+        ↓
+optional Taskflow decomposition
+        ↓
 primary-agent execution
-          ↓
+        ↓
 evaluate → refine candidate
-          ↓
+        ↓
 optional LangGraph state/checkpoints
-          ↓
-replay on preserved/distinct evidence
-          ↓
+        ↓
+replay
+        ↓
 independent verification
-          ↓
+        ↓
 HUMAN APPROVAL
-          ↓
-promote validated skill → skills/ + registry
-          ↓
-rollback if regression/safety issue is found
+        ↓
+skills/validated/ + registry update
+        ↓
+rollback if regression/safety issue appears
 ```
 
-Candidate artifacts are kept under `runs/<session-id>/learning/` (`candidates/`, `evaluations/`, `replays/`, `verification/`, `promotions/`). A skill is **not** added to the library merely because an AI agent generated it: promotion requires evidence, replay, independent verification, provenance and explicit human approval. Automatic privilege grants, security-policy changes and base-contract mutation are prohibited.
+Candidate artifacts live under `runs/<session-id>/learning/`. Candidate skills are staged under `skills/candidate/`; only evidence-backed, replayed, independently verified and human-approved skills are promoted to `skills/validated/`. Base contracts cannot be mutated by the learning loop. Automatic privilege grants and security-policy changes are prohibited.
 
-### Step 10 — Close the session
+## Evidence and session state
 
-The primary agent finalizes evidence/hashes, audit, provenance, verification, report, token accounting, dashboard state and `session.yaml`; only then is disposable compute destroyed. Terminal state is `COMPLETE`, `PARTIAL` or `FAILED`.
+Each session records identity, selected profiles, approvals, append-only audit, evidence, provenance, analysis, verification, report, preservation, observability and token accounting under `runs/<session-id>/`.
 
-## Project validation status
+Raw evidence is ground truth. Model output is not evidence. Evidence must be hashed and preserved before disposable compute is destroyed.
 
-Project validation has three outcomes; the same status is used throughout the validation contract rather than duplicated across multiple documents:
+## Validation
 
-- **PASS** — all required project/static checks pass.
-- **PARTIAL** — required project structure is valid, but optional/declarative capabilities are unavailable or unverified.
-- **FAIL** — a required contract, safety check or validation step fails.
+Validation has three project states:
 
-`NOT_DEPLOYED` describes an unavailable provider/capability and can contribute to `PARTIAL`; it is not itself a fourth project result state.
+- **PASS** — required static/project checks pass.
+- **PARTIAL** — required structure is valid but optional capabilities are unavailable or unverified.
+- **FAIL** — a required contract, safety or validation check fails.
+
+`NOT_DEPLOYED` describes a missing capability; it is not a fourth project state.
 
 ```bash
-./scripts/tests/validate-project.sh
+./scripts/tests/validate.sh
 ```
 
-### Policyctl commands
+The runtime smoke test is separate:
 
-`policyctl` is host-side governance. It is outside the agent control plane and is **not** the sandbox.
+```bash
+./scripts/tests/runtime.sh
+```
+
+A runtime `PASS` requires actual disposable Lima/QEMU execution and evidence/verification. CI/static validation cannot establish runtime PASS.
+
+## Policy and security boundary
+
+`policyctl` is host-side governance and is outside the agent control plane. It is **not** the sandbox.
 
 ```bash
 ./policyctl validate
 ./policyctl check --action credentials --audit-file /tmp/cusimanse-policy-audit.jsonl
 ./policyctl check --action host-root --audit-file /tmp/cusimanse-policy-audit.jsonl
-./policyctl check --action crew-orchestration --audit-file /tmp/cusimanse-policy-audit.jsonl
-./policyctl token-dashboard
+./policyctl check --action vm --audit-file /tmp/cusimanse-policy-audit.jsonl
 ```
 
-Retain policy/audit references in the session state. Never use `policyctl` as a substitute for VM isolation.
+Security boundary order:
 
-## Runtime validation commands
+1. Human authorization and scope.
+2. Contract and recipe constraints.
+3. Primary-agent lifecycle operation.
+4. Host-side policy decisions.
+5. Lima/QEMU + VM/OS isolation.
+6. Instrumentation before workload.
+7. Evidence preservation and hashing.
+8. Independent verification.
 
-### Project/static integration
-
-From the repository root:
-
-```bash
-./scripts/tests/production-validation.sh
-```
-
-This validates project structure, recipes, Go code, policy and integration contracts. It does not prove VM runtime execution.
-
-### Lima/QEMU runtime smoke test
-
-Run on a suitable research host with Lima/QEMU available:
-
-```bash
-export CUSIMANSE_LIMA_PROFILE=recipes/lima/profiles/security-research.yaml
-./scripts/tests/runtime-integration.sh
-```
-
-Verify the generated run:
-
-```bash
-./scripts/verify-run.sh reports/runtime/<run-id>
-```
-
-Runtime `PASS` requires actual disposable-compute execution, instrumentation/evidence, independent verification and a passing verifier. Hosted static CI cannot establish runtime PASS.
-
-## Security boundary
-
-1. Human authorization defines scope.
-2. Contracts and recipes define the permitted experiment.
-3. The selected primary agent operates the approved lifecycle.
-4. `policyctl` provides governance decisions; it is not the sandbox.
-5. Lima/QEMU + VM/OS controls enforce workload isolation.
-6. Instrumentation precedes execution.
-7. Evidence is preserved and hashed before destruction.
-8. Important findings require independent verification.
-
-Agents, skills, MCP, Taskflow, LangGraph, CrewAI and model/harness gateways are coordination/capability layers, not containment boundaries.
+Agents, skills, MCP, learning helpers, observability and model gateways are capability/coordination layers, not containment boundaries.
 
 ## Documentation
 
-- [`manifest/PACKAGE-MANIFEST.json`](manifest/PACKAGE-MANIFEST.json) — architecture and source-of-truth inventory
+- [`manifest/PACKAGE-MANIFEST.json`](manifest/PACKAGE-MANIFEST.json) — architecture/source-of-truth inventory
+- [`contracts/`](contracts/) — canonical research contracts
+- [`recipes/`](recipes/) — declarative source of truth
 - [`docs/architecture/cusimanse-architecture.svg`](docs/architecture/cusimanse-architecture.svg) — canonical architecture
-- [`docs/architecture/cusimanse-architecture.mmd`](docs/architecture/cusimanse-architecture.mmd) — canonical Mermaid workflow/source
-- [`contracts/`](contracts/) — canonical contracts
-- [`recipes/`](recipes/) — declarative configuration and source of truth
-- [`docs/system-requirements.md`](docs/system-requirements.md) — requirements
-- [`docs/agent-shell-runbook.md`](docs/agent-shell-runbook.md) — adapter details
-- [`docs/production-architecture.md`](docs/production-architecture.md) — deployment/security model
-- [`docs/runtime-architecture.md`](docs/runtime-architecture.md) — runtime model
-- [`docs/integration-status.md`](docs/integration-status.md) — validation status
-- [`docs/prompts/`](docs/prompts/) — experiment-specific prompts
-- [`docs/images/cusimanse-mascot.svg`](docs/images/cusimanse-mascot.svg) — project mascot
-- [`docs/images/cusimanse-logo.svg`](docs/images/cusimanse-logo.svg) — project logo
+- [`docs/agent-shell-runbook.md`](docs/agent-shell-runbook.md) — adapter/run details
+- [`docs/prompts/`](docs/prompts/) — experiment-specific agent handoffs
+- [`scripts/README.md`](scripts/README.md) — script surface and responsibilities
 
 ## Responsible use
 
-Use Cusimanse only against systems and software you own or are explicitly authorized to test. Untrusted workloads belong in disposable compute. Human researchers remain responsible for authorization, scope, approvals, safety and final interpretation.
+Use Cusimanse only against systems and software you own or are explicitly authorized to test. Untrusted workloads belong in disposable compute. Humans remain responsible for authorization, scope, approvals, safety and final interpretation.
 
 ## License
 
