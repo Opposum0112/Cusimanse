@@ -1,41 +1,60 @@
-version: 2
+version: 3
 id: learning-workflow
 kind: learning-and-skill-improvement-contract
-purpose: Evidence-bounded optional improvement after a research run.
+purpose: Evidence-bounded optional improvement after a completed research run.
 
 when:
-  default: after research report and verification
+  default: after research report and independent verification
   trigger: primary-agent identifies a reusable improvement candidate
   not_part_of: workload execution unless explicitly declared
+  enabled_by: experiment_or_session_learning_selection
 
 where:
-  control_plane: primary-agent
-  execution: disposable-compute-when-replay-requires_execution
+  control_plane: selected-primary-agent
+  execution: disposable-compute-when-replay-requires-execution
   artifacts: runs/<session-id>/learning/
-  promotion_target: skills/
+  candidate_library: skills/candidate/
+  promotion_target: skills/validated/
 
-tools:
+installation:
+  default: none
+  policy: >-
+    Learning helpers are never installed merely because the repository contains a
+    learning recipe. Install a selected helper on the host/control plane only when
+    the learning stage is enabled. Never install learning helpers in the workload VM
+    unless the experiment explicitly declares that requirement.
+  preflight: scripts/preflight.sh
+  installer: scripts/install.sh
+
+helpers:
   taskflow:
-    purpose: split the improvement into replayable tasks
-    installed: host/control-plane profile when selected
+    recipe: recipes/orchestration/taskflow.yaml
+    purpose: split a learning improvement into replayable tasks
+    selected: false
+    installed_scope: host-control-plane
   langgraph:
-    purpose: optional state/checkpoints for the learning graph
-    installed: host/control-plane profile when selected
-  crewai:
-    purpose: optional specialist delegation
-    installed: host/control-plane profile when selected
-  security_boundary: false
+    recipe: recipes/orchestration/langgraph.yaml
+    purpose: optional state and checkpoints for the learning graph
+    selected: false
+    installed_scope: host-control-plane
+
+operator_model:
+  primary_agent: lifecycle_and_learning_authority
+  native_subagents: preferred_for_specialist_delegation
+  competing_orchestrator: prohibited
 
 workflow:
-  - retrieve: use prior sessions, evidence and reviewed skills
-  - taskflow: define small replayable improvement tasks
-  - execute: run candidate through primary agent; use disposable compute if execution is required
+  - retrieve: use prior sessions, evidence and validated skills
+  - propose: primary agent creates a candidate improvement
+  - taskflow: optionally decompose the candidate into replayable tasks
+  - execute: run candidate through the primary agent; use disposable compute if execution is required
   - evaluate: compare result with contract acceptance and safety requirements
-  - refine: create candidate skill/recipe change without mutating base contract
+  - refine: write candidate under runs/<session-id>/learning/candidates/
+  - optional_langgraph: use state/checkpoints only when selected
   - replay: repeat on preserved or distinct evidence
   - independent_verification: challenge the candidate result independently
   - human_approval: approve or reject promotion
-  - promote: publish only approved validated version
+  - promote: copy only the approved candidate into skills/validated and update registry
   - rollback: revert if regression or safety issue is discovered
 
 outputs:
@@ -52,6 +71,7 @@ promotion_rules:
   replay_required: true
   independent_verification_required: true
   provenance_required: true
+  target_requires_validated_status: true
   automatic_privilege_grant: false
   automatic_security_policy_change: false
   base_contract_mutation: false
