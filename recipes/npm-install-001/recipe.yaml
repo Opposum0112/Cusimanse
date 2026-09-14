@@ -1,26 +1,27 @@
-version: "1.0.0"
+version: "1.1.0"
 title: "Cusimanse npm installation experiment"
 description: "Run the approved npm installation workload in a disposable Lima VM, collect instrumentation evidence, verify findings and produce the researcher report."
 instructions: |
   Act as the primary Goose operator.
-  1. Read contracts/npm-install-001.md.
-  2. Run ./scripts/preflight.sh.
-  3. Review scope and ask for approval before privileged or destructive actions.
-  4. Create the disposable VM from recipes/lima/security-research.yaml.
-  5. Start recipes/instrumentation/security-research.yaml collectors before the workload.
-  6. Run exactly:
+  1. Read contracts/npm-install-001.md and create/update runs/<session-id>/session.yaml from recipes/session/session-state.yaml.
+  2. Run ./scripts/preflight.sh on the host.
+  3. Review scope and ask the researcher for approval before privileged or destructive actions.
+  4. Provision the disposable VM from recipes/lima/security-research.yaml.
+  5. Start every collector declared by recipes/instrumentation/security-research.yaml before the workload.
+  6. Execute the workload defined by this recipe inside the VM; the researcher does not manually run the workload commands on the host.
+     Workload commands:
        node --version
        npm --version
        mkdir -p /tmp/npm-test
        cd /tmp/npm-test
        npm init -y
        npm install lodash@4.17.21 --ignore-scripts
-  7. Store command output and collected observations under runs/<session-id>/evidence/.
-  8. Delegate evidence analysis and independent verification to the listed subrecipes.
+  7. Store command output and collected observations under runs/<session-id>/evidence/ and update session.yaml checkpoints.
+  8. Delegate evidence analysis, forensics and independent verification to the declared specialist subrecipes/Skills as appropriate.
   9. Generate runs/<session-id>/research-report/report.md and report.yaml.
-  10. Preserve hashes/provenance and destroy the VM.
+  10. Preserve hashes/provenance, finalize observability records, and destroy the VM only after preservation.
   Model output is analysis, never evidence. Material findings must cite observable artifacts.
-prompt: "Run the npm installation experiment from contracts/npm-install-001.md and complete the full lifecycle."
+prompt: "Run the npm installation experiment from contracts/npm-install-001.md and complete the full lifecycle. Execute the recipe-defined workload yourself inside the disposable VM; do not ask the researcher to run workload commands manually."
 extensions:
   - type: builtin
     name: developer
