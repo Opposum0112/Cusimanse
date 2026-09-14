@@ -1,0 +1,6 @@
+version: 1
+name: evidence-analysis
+description: "Analyze collected research evidence without changing execution scope"
+capabilities: ["collect"]
+required_tools: ["jq", "yq"]
+managed_by: cmd/cusimanse
