@@ -4,7 +4,7 @@
 
 **Declarative, agent-neutral security research with AI agents.** A YAML experiment recipe is the source of truth for the contract, Lima VM, instrumentation, workload, evidence, verification, report and learning settings. **Goose is the reference primary operator**; other validated primary agents can use the same recipe through their adapter/prompt path.
 
-![Cusimanse architecture](docs/images/cusimanse-architecture.svg)
+![Cusimanse architecture](docs/architecture/cusimanse-architecture.svg)
 
 ## Researcher workflow
 
@@ -367,7 +367,7 @@ scripts/
 ├── tools.sh                       host-tool inventory/access
 └── tests/                         validation and runtime integration
 docs/architecture/                canonical SVG + Mermaid architecture
-docs/images/                      mascot/logo and architecture artwork
+docs/images/                      mascot/logo and branding
 packages/labprobe/                 reference Go workload
 runs/                              per-session evidence and reports
 ```
