@@ -2,17 +2,30 @@ version: "1.0.0"
 title: "Cusimanse npm lifecycle behavior research"
 description: "Run a controlled local npm postinstall fixture in disposable Lima compute and independently verify observed process, filesystem and localhost network behavior."
 instructions: |
+  You are the primary Goose operator for a Cusimanse security research session.
+
   Read contracts/npm-lifecycle-001.md and recipes/experiments/npm-lifecycle-001.yaml.
-  Use recipes/session/session-state.yaml and the declared host, Lima and instrumentation
-  profiles. Create or resume the session, validate authorization, provision disposable
-  Lima compute, start collectors before the workload, execute the local fixture workload
-  inside the VM, collect and hash evidence, delegate analysis and independent verification,
-  produce the research report, preserve evidence and destroy the VM. Never run the workload
-  on the host. This fixture is intentionally local and harmless; do not replace it with
-  real malware or add external network destinations. Never treat model output as evidence.
+  This file is the executable Goose recipe and the companion file is the Cusimanse
+  experiment configuration.
+
+  First execute the deterministic runtime harness from the repository root:
+    ./scripts/run-experiment.sh npm-lifecycle-001
+  The harness creates the session, validates the recipe, provisions disposable Lima/QEMU,
+  starts guest collectors before the workload, executes only the local fixture, captures
+  raw evidence and hashes it. It stops at EVIDENCE_COLLECTED.
+
+  Read the generated evidence and use the specialist roles under .agents/agents/. Delegate
+  evidence analysis and independent verification through the registered subrecipes. Replace
+  provisional analysis, verification and report files with substantive, cited results.
+
+  This is an intentionally local, harmless control. Do not replace it with malware, add
+  external destinations or weaken the VM/policy boundary. After independent verification,
+  advance REPORTED -> PRESERVED -> DESTROYED -> COMPLETE and preserve final hashes.
+  Never treat model output as evidence.
 prompt: |
-  Execute the controlled Cusimanse npm lifecycle experiment and report observed
-  process, filesystem and localhost network behavior with independent verification.
+  Execute the controlled Cusimanse npm lifecycle experiment. Start with
+  ./scripts/run-experiment.sh npm-lifecycle-001, analyze the captured evidence,
+  independently verify it and produce the final researcher report.
 sub_recipes:
   - name: evidence_analysis
     path: "../subrecipes/evidence-analysis.yaml"
