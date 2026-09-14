@@ -1,5 +1,5 @@
 {
-  "manifest_version": 11,
+  "manifest_version": 12,
   "branch": "goose-refactor",
   "source_of_truth": {
     "contracts": "contracts/",
@@ -18,7 +18,7 @@
   "experiments": {
     "go-install-001": {"goose_recipe":"recipes/go-install-001/recipe.yaml","configuration":"recipes/experiments/go-install-001.yaml","contract":"contracts/go-install-001.md","prompt":"prompts/experiments/go-install-001.md"},
     "npm-install-001": {"goose_recipe":"recipes/npm-install-001/recipe.yaml","configuration":"recipes/experiments/npm-install-001.yaml","contract":"contracts/npm-install-001.md","prompt":"prompts/experiments/npm-install-001.md"},
-    "npm-lifecycle-001": {"goose_recipe":"recipes/npm-lifecycle-001/recipe.yaml","configuration":"recipes/experiments/npm-lifecycle-001.yaml","contract":"contracts/npm-lifecycle-001.md"}
+    "npm-lifecycle-001": {"goose_recipe":"recipes/npm-lifecycle-001/recipe.yaml","configuration":"recipes/experiments/npm-lifecycle-001.yaml","contract":"contracts/npm-lifecycle-001.md","prompt":"prompts/experiments/npm-lifecycle-001.md"}
   },
   "host": {
     "inventory":"recipes/host/security-research.yaml","installer":"scripts/install.sh","windows_installer":"scripts/install.ps1","access":"scripts/tools.sh","preflight":"scripts/preflight.sh","session_helper":"scripts/session.sh","experiment_runner":"scripts/run-experiment.sh","idempotent":true,"platforms":["linux","macos","windows-wsl2"]
@@ -30,5 +30,6 @@
   "execution_boundary":"Lima/QEMU + guest OS",
   "container":"optional",
   "learning":{"recipe":"recipes/session/learning-workflow.yaml","default_enabled":false,"candidate_library":"skills/candidate/","validated_library":"skills/validated/","human_approval_required":true},
+  "threat_model":{"reference":"npm-lifecycle-001","coverage":["process","syscall","filesystem","network","controlled-package-lifecycle"],"limitations":"reference experiments are pipeline/evidence demonstrations, not comprehensive adversarial evaluations"},
   "validation":{"static":"scripts/tests/validate.sh","runtime":"scripts/tests/runtime.sh","runtime_pass_requires":["actual disposable VM execution","independent verification"],"ci_does_not_require_lima":true}
 }
