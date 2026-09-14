@@ -1,37 +1,13 @@
 {
-  "manifest_version": 13,
+  "manifest_version": 14,
   "branch": "goose-refactor",
-  "source_of_truth": {
-    "contracts": "contracts/",
-    "goose_recipes": "recipes/*/recipe.yaml",
-    "experiments": "recipes/experiments/*.yaml",
-    "session_state": "recipes/session/session-state.yaml",
-    "prompts": "prompts/experiments/",
-    "roles": ".agents/agents/",
-    "skills": "recipes/skills/registry.yaml",
-    "mcp": "recipes/mcp/registry.yaml",
-    "adapters": "recipes/agents/adapter-matrix.yaml",
-    "adapter_validation": "recipes/agents/adapter-validation.yaml",
-    "host": "recipes/host/security-research.yaml"
-  },
-  "reference_operator": "goose",
-  "primary_agents": ["goose", "opencode", "hermes", "antigravity", "pi"],
-  "experiments": {
-    "go-install-001": {"goose_recipe":"recipes/go-install-001/recipe.yaml","configuration":"recipes/experiments/go-install-001.yaml","contract":"contracts/go-install-001.md","prompt":"prompts/experiments/go-install-001.md"},
-    "npm-install-001": {"goose_recipe":"recipes/npm-install-001/recipe.yaml","configuration":"recipes/experiments/npm-install-001.yaml","contract":"contracts/npm-install-001.md","prompt":"prompts/experiments/npm-install-001.md"},
-    "npm-lifecycle-001": {"goose_recipe":"recipes/npm-lifecycle-001/recipe.yaml","configuration":"recipes/experiments/npm-lifecycle-001.yaml","contract":"contracts/npm-lifecycle-001.md","prompt":"prompts/experiments/npm-lifecycle-001.md"}
-  },
-  "host": {
-    "inventory":"recipes/host/security-research.yaml","installer":"scripts/install.sh","windows_installer":"scripts/install.ps1","access":"scripts/tools.sh","preflight":"scripts/preflight.sh","session_helper":"scripts/session.sh","experiment_runner":"scripts/run-experiment.sh","idempotent":true,"platforms":["linux","macos","windows-wsl2"]
-  },
-  "mandatory_host_services":{"gateways":"recipes/gateway/mandatory.yaml","observability":"recipes/observability/mandatory.yaml"},
-  "pinned_components":{"goose":"1.50.0","numbat":"0.2.0","omniroute":"3.8.50","pi":"0.74.0","aegis_commit":"b42d4c08c2fe6ed497173cefad173f3f8d21a936"},
-  "goose_native":["recipes","subrecipes","Summon","Skills","MCP/extensions","native delegation"],
-  "external_skill_registry":"https://github.com/mukul975/Anthropic-Cybersecurity-Skills",
+  "source_of_truth": {"contracts":"contracts/","experiments":"recipes/experiments/*.yaml","capability_registry":"recipes/profiles/registry.yaml","host_profiles":"recipes/profiles/host/","workload_profiles":"recipes/profiles/workload/","go_capability_api":"cmd/cusimanse/","goose_recipes":"recipes/*/recipe.yaml","session_state":"recipes/session/session-state.yaml","roles":".agents/agents/","skills":"recipes/skills/registry.yaml","mcp":"recipes/mcp/registry.yaml","adapters":"recipes/agents/adapter-matrix.yaml","host":"recipes/host/security-research.yaml","policy":"policies/host-policy.yaml"},
+  "reference_operator":"goose",
+  "agent_model":{"role":"primary operator","allowed":["resolve","provision","configure","execute","collect","destroy","analyze","adapt_within_declared_scope"],"forbidden":["create_trusted_profiles","mutate_infrastructure_recipes","expand_policy_scope","execute_untrusted_workload_on_host"]},
+  "capability_api":{"implementation":"Go","entrypoint":"cmd/cusimanse","capabilities":["resolve","provision","configure","execute","collect","destroy","run"],"resolver":"recipes/profiles/registry.yaml","initial_provider":"Lima/QEMU","policy_gate":"scripts/policyctl"},
   "execution_boundary":"Lima/QEMU + guest OS",
-  "container":"optional",
+  "profile_resolution":{"requirements_first":true,"fail_on_no_match":true,"fail_on_ambiguous_match":true,"agent_may_select":true,"agent_may_create_profiles":false},
+  "runtime":{"compatibility_wrapper":"scripts/run-experiment.sh","session_helper":"scripts/session.sh","evidence_hashed_before_destroy":true,"final_report_is_agent_owned":true},
   "learning":{"recipe":"recipes/session/learning-workflow.yaml","default_enabled":false,"candidate_library":"skills/candidate/","validated_library":"skills/validated/","human_approval_required":true},
-  "threat_model":{"reference":"npm-lifecycle-001","coverage":["process","syscall","filesystem","network","controlled-package-lifecycle"],"limitations":"reference experiments are pipeline/evidence demonstrations, not comprehensive adversarial evaluations"},
-  "runtime":{"session_helper":"scripts/session.sh","runner":"scripts/run-experiment.sh","collectors_started_before_workload":true,"evidence_hashed_before_destroy":true,"final_report_is_agent_owned":true},
-  "validation":{"static":"scripts/tests/validate.sh","runtime":"scripts/tests/runtime.sh","adapter_status":"recipes/agents/adapter-validation.yaml","runtime_pass_requires":["actual disposable VM execution","independent verification"],"ci_does_not_require_lima":true}
+  "validation":{"static":"scripts/tests/validate.sh","runtime":"scripts/tests/runtime.sh","runtime_pass_requires":["actual disposable VM execution when requested","independent verification"],"ci_does_not_require_lima":true}
 }

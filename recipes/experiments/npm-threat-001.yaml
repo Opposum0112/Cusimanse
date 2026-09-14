@@ -1,28 +1,22 @@
 kind: cusimanse-experiment
-version: 2
+version: 3
 id: npm-threat-001
 purpose: Exercise controlled package lifecycle behavior and localhost-only network observation in disposable Lima compute.
 contract: contracts/npm-threat-001.md
-profiles:
-  host: recipes/profiles/host/linux-lima.yaml
-  workload: recipes/profiles/workload/npm-threat.yaml
+requirements:
+  execution: disposable
+  os: linux
+  workload: npm-threat
+  network: localhost-only
+  instrumentation: [process, syscall, filesystem, network]
 policy:
   enforcement: scripts/policyctl
   policy_file: policies/host-policy.yaml
   mount_denylist: policies/mount-denylist.yaml
   permission_tiers: policies/permission-tiers.yaml
-  required_checks: [vm, network, credentials, mounts]
-host:
-  recipe: recipes/host/security-research.yaml
-compute:
-  recipe: recipes/lima/security-research.yaml
-instrumentation:
-  recipe: recipes/instrumentation/security-research.yaml
+  required_checks: [vm, network, mounts]
 session:
   state: recipes/session/session-state.yaml
-workload:
-  execution: disposable-lima-vm
-  profile: recipes/profiles/workload/npm-threat.yaml
 threat_model:
   coverage: [controlled-malicious-postinstall, process-observation, syscall-observation, filesystem-observation, localhost-network-observation, package-lifecycle-execution]
   limitations: [local-fixture-only, localhost-only-network-attempt, no-external-network, no-real-malware, does-not-test-agent-escape]

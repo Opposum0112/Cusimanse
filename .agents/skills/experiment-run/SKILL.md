@@ -1,12 +1,13 @@
 ---
 name: experiment-run
-description: Run a Cusimanse experiment safely in disposable Lima compute.
+description: Operate a Cusimanse experiment through the Go capability API in disposable compute.
 ---
 # Experiment run
-1. Read the contract and selected Goose recipe.
-2. Run `./scripts/preflight.sh`.
-3. Create the VM from `recipes/lima/security-research.yaml`.
-4. Start the collectors from `recipes/instrumentation/security-research.yaml` before the workload.
-5. Execute only the commands declared by the contract.
-6. Store raw evidence under `runs/<session-id>/evidence/`.
-7. Preserve hashes and provenance before destroying the VM.
+1. Read the research contract and experiment YAML.
+2. Resolve requirements with `go run ./cmd/cusimanse resolve <experiment>`.
+3. Obtain explicit researcher approval before approval-gated provisioning.
+4. Run `go run ./cmd/cusimanse --approved run <experiment>` to provision, instrument, execute, collect and hash.
+5. Analyze only preserved evidence under `runs/<session-id>/evidence/`.
+6. Independently verify findings, preserve final artifacts, then destroy disposable compute.
+
+The agent operates declared capabilities. It may select and compose registered profiles, but must not create or mutate infrastructure profiles, VM definitions or instrumentation from model output.

@@ -1,38 +1,17 @@
 version: "1.0.0"
 title: "Cusimanse controlled npm threat research"
-description: "Run a controlled adversarial npm lifecycle fixture in disposable Lima compute and preserve observable evidence without executing untrusted code on the host."
+description: "Run the controlled adversarial-like npm lifecycle fixture through the Go capability API without executing untrusted code on the host."
 instructions: |
   You are the primary Goose operator for a Cusimanse threat-model session.
-
   Read contracts/npm-threat-001.md and recipes/experiments/npm-threat-001.yaml before execution.
-  This recipe is the Goose handoff; the companion YAML is the Cusimanse experiment definition.
-
-  Before provisioning or executing anything, run:
-    ./scripts/policyctl validate
-    ./scripts/policyctl check vm
-    ./scripts/policyctl check network
-    ./scripts/policyctl check credentials
-    ./scripts/policyctl check mounts
-  For approval-required decisions, obtain the explicit researcher approval and record it with:
-    ./scripts/policyctl require <action> --approved
-  Do not bypass a deny decision.
-
-  Execute ./scripts/run-experiment.sh npm-threat-001 only after policy checks and required approval.
-  The deterministic harness creates the session, provisions disposable Lima/QEMU, starts guest
-  collectors before the workload, installs the local controlled fixture, captures lifecycle,
-  syscall, filesystem and localhost-network evidence, and hashes the evidence.
-
-  Analyze only preserved evidence. Independently verify observations before producing the report.
-  The fixture is adversarial-like but local and harmless: its postinstall writes a marker and
-  attempts one localhost connection. Do not modify it to contact external systems or execute on host.
-
-  Complete the session only after independent verification, final artifact hashing, preservation,
-  VM destruction and required DESTROYED/COMPLETE checkpoints. Record unavailable capabilities as
-  PARTIAL/NOT_DEPLOYED and never weaken the policy or isolation boundary.
+  Resolve with: go run ./cmd/cusimanse resolve npm-threat-001
+  After explicit researcher approval, operate with: go run ./cmd/cusimanse --approved run npm-threat-001
+  The fixture is local and harmless. Do not add external destinations or execute it on the host.
+  Delegate evidence analysis, independent verification and reporting through registered specialist roles.
+  Preserve final evidence and provenance before destroying disposable compute.
 prompt: |
-  Validate and enforce the Cusimanse policy with scripts/policyctl, obtain required approval,
-  then execute npm-threat-001 inside disposable Lima compute, analyze preserved evidence,
-  independently verify findings, report, preserve artifacts and complete lifecycle safely.
+  Operate npm-threat-001 through the Go capability API, analyze preserved evidence, independently
+  verify findings, report, preserve artifacts and complete the lifecycle safely.
 sub_recipes:
   - name: evidence_analysis
     path: "../subrecipes/evidence-analysis.yaml"
@@ -40,8 +19,3 @@ sub_recipes:
     path: "../subrecipes/verification.yaml"
   - name: report
     path: "../subrecipes/report.yaml"
-extensions:
-  - type: builtin
-    name: developer
-    timeout: 300
-    bundled: true

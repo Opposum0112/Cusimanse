@@ -1,7 +1,13 @@
 kind: workload-profile
-version: 1
+version: 2
 id: npm-threat
 purpose: Deterministic controlled npm threat-model fixture workload.
+requirements:
+  execution: disposable
+  os: linux
+  workload: npm-threat
+  network: localhost-only
+  instrumentation: [process, syscall, filesystem, network]
 runtime: disposable-lima-vm
 runtime_handler: npm-threat
 instrumentation: recipes/instrumentation/security-research.yaml

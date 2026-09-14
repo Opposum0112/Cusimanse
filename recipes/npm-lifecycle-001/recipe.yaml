@@ -1,31 +1,16 @@
 version: "1.0.0"
 title: "Cusimanse npm lifecycle behavior research"
-description: "Run a controlled local npm postinstall fixture in disposable Lima compute and independently verify observed process, filesystem and localhost network behavior."
+description: "Run the controlled local npm postinstall fixture through the Go capability API and preserve observable evidence."
 instructions: |
   You are the primary Goose operator for a Cusimanse security research session.
-
-  Read contracts/npm-lifecycle-001.md and recipes/experiments/npm-lifecycle-001.yaml.
-  This file is the executable Goose recipe and the companion file is the Cusimanse
-  experiment configuration.
-
-  First execute the deterministic runtime harness from the repository root:
-    ./scripts/run-experiment.sh npm-lifecycle-001
-  The harness creates the session, validates the recipe, provisions disposable Lima/QEMU,
-  starts guest collectors before the workload, executes only the local fixture, captures
-  raw evidence and hashes it. It stops at EVIDENCE_COLLECTED.
-
-  Read the generated evidence and use the specialist roles under .agents/agents/. Delegate
-  evidence analysis and independent verification through the registered subrecipes. Replace
-  provisional analysis, verification and report files with substantive, cited results.
-
-  This is an intentionally local, harmless control. Do not replace it with malware, add
-  external destinations or weaken the VM/policy boundary. After independent verification,
-  advance REPORTED -> PRESERVED -> DESTROYED -> COMPLETE and preserve final hashes.
-  Never treat model output as evidence.
+  Read contracts/npm-lifecycle-001.md and recipes/experiments/npm-lifecycle-001.yaml before execution.
+  Resolve with: go run ./cmd/cusimanse resolve npm-lifecycle-001
+  After explicit researcher approval, operate with: go run ./cmd/cusimanse --approved run npm-lifecycle-001
+  Keep the fixture local and harmless. Do not add external destinations or weaken the VM boundary.
+  Delegate evidence analysis and independent verification, then preserve artifacts before destruction.
 prompt: |
-  Execute the controlled Cusimanse npm lifecycle experiment. Start with
-  ./scripts/run-experiment.sh npm-lifecycle-001, analyze the captured evidence,
-  independently verify it and produce the final researcher report.
+  Operate npm-lifecycle-001 through the Go capability API, analyze and independently verify the
+  captured evidence, report and preserve the final research artifacts.
 sub_recipes:
   - name: evidence_analysis
     path: "../subrecipes/evidence-analysis.yaml"
@@ -33,8 +18,3 @@ sub_recipes:
     path: "../subrecipes/verification.yaml"
   - name: report
     path: "../subrecipes/report.yaml"
-extensions:
-  - type: builtin
-    name: developer
-    timeout: 300
-    bundled: true

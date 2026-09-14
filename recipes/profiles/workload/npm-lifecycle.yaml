@@ -1,7 +1,13 @@
 kind: workload-profile
-version: 1
+version: 2
 id: npm-lifecycle
 purpose: Deterministic local npm postinstall fixture workload.
+requirements:
+  execution: disposable
+  os: linux
+  workload: npm-lifecycle
+  network: localhost-only
+  instrumentation: [process, syscall, filesystem, network]
 runtime: disposable-lima-vm
 runtime_handler: npm-lifecycle
 instrumentation: recipes/instrumentation/security-research.yaml

@@ -1,7 +1,12 @@
 kind: workload-profile
-version: 1
+version: 2
 id: go-install
 purpose: Deterministic Go install and harmless local binary workload.
+requirements:
+  execution: disposable
+  os: linux
+  workload: go
+  instrumentation: [process, syscall, filesystem, network]
 runtime: disposable-lima-vm
 runtime_handler: go-install
 instrumentation: recipes/instrumentation/security-research.yaml

@@ -1,24 +1,25 @@
 # Recipes
 
-Cusimanse deliberately separates the **Goose recipe** from the **Cusimanse experiment configuration**.
+Cusimanse separates the **Goose recipe** from the **Cusimanse experiment configuration**.
 
 ```text
 recipes/<experiment>/recipe.yaml
-    ↓ valid Goose recipe: title + description + instructions/prompt
+    ↓ valid Goose handoff
 recipes/experiments/<experiment>.yaml
-    ↓ experiment-specific composition and threat-model metadata
-contract + host/VM/instrumentation/session/agent registries
+    ↓ research requirements + policy + research metadata
+recipes/profiles/registry.yaml
+    ↓ compatible capabilities
+cmd/cusimanse
+    ↓ resolve → provision → execute → collect
+Lima/QEMU disposable compute
 ```
 
 Reference commands:
 
 ```bash
-goose recipe validate recipes/go-install-001/recipe.yaml
-goose recipe validate recipes/npm-install-001/recipe.yaml
-goose run --recipe recipes/go-install-001/recipe.yaml --interactive
-goose run --recipe recipes/npm-install-001/recipe.yaml --interactive
+goose recipe validate recipes/npm-threat-001/recipe.yaml
+go run ./cmd/cusimanse resolve npm-threat-001
+go run ./cmd/cusimanse --approved run npm-threat-001
 ```
 
-The Goose recipe is the native agent handoff. The companion experiment configuration is the authoritative Cusimanse composition; it is read by the agent and is not itself passed to `goose run --recipe`.
-
-Prompt references under `prompts/experiments/` are handoff aids for Goose or other primary agents. They never replace the contract or experiment configuration.
+The researcher declares requirements, not infrastructure. The Goose recipe tells the selected agent how to operate the experiment. The Go capability runtime is the single implementation for profile resolution and experiment execution.

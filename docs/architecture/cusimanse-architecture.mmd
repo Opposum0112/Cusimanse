@@ -1,116 +1,27 @@
 flowchart TB
-    subgraph CP[1. Control & Declaration Plane]
-        R[Researcher]
-        C[Research Contract<br/>purpose • scope • authorization • acceptance]
-        E[Cusimanse Experiment Configuration<br/>workload • profiles • policy • evidence]
-        HP[Host Profile<br/>platform • compute • fixed runtime policy]
-        WP[Workload Profile<br/>runtime handler • fixture • instrumentation]
-        GR[Goose Recipe<br/>title • description • instructions/prompt]
-        PR[Prompt Reference<br/>cross-agent handoff only]
-        R --> C --> E
-        E --> HP
-        E --> WP
-        E --> GR
-        E --> PR
-    end
-
-    subgraph AP[2. Agent & Orchestration Plane]
-        A{Selected Primary Agent}
-        G[Goose Reference Operator<br/>native recipes • Skills • Summon • MCP]
-        AD[Validated Adapter Layer<br/>OpenCode • Hermes • Antigravity • Pi]
-        ROLES[Semantic Specialist Roles<br/>planner • researcher • runtime • forensics<br/>detection • verifier • report]
-        TOOLS[Agent Capabilities<br/>developer tools • plugins • MCP • skills]
-        A -->|reference| G
-        A -->|adapter| AD
-        G --> ROLES
-        AD --> ROLES
-        G --> TOOLS
-        AD --> TOOLS
-    end
-    GR --> A
-    PR --> A
-    A -. selects profiles, never provisions .-> HP
-    A -. selects workload intent, never generates runtime .-> WP
-
-    subgraph PP[3. Policy Control Plane]
-        PC[policyctl<br/>show • validate • check • require • enforce • audit]
-        HPOL[host-policy.yaml<br/>host • privilege • VM • network • Git • orchestration]
-        MD[mount-denylist.yaml<br/>forbidden host paths]
-        PT[permission-tiers.yaml<br/>read • write • network • credentials • privileged]
-        DEC{Policy decision}
-        AUDIT[Auditable policy decision JSONL]
-        HPOL --> PC
-        MD --> PC
-        PT --> PC
-        PC --> DEC
-        DEC --> AUDIT
-    end
-    A --> PC
-    HP --> PC
-
-    subgraph EP[4. Execution & Security Plane — containment boundary]
-        PLAN[Plan + explicit approval checkpoint]
-        VM[Lima / QEMU Disposable VM<br/>guest OS = execution / isolation boundary]
-        FIXED[Deterministic Runtime<br/>profile resolver + fixed handlers<br/>no agent-generated provisioning/instrumentation]
-        INST[Declared Guest Instrumentation<br/>selected by workload profile]
-        WORK[Profile-defined Workload<br/>Go • npm • controlled threat fixtures]
-        DESTROY[Destroy / clean up VM]
-        PLAN --> VM --> FIXED --> INST --> WORK --> DESTROY
-    end
-    DEC -->|allow / approved| PLAN
-    DEC -->|deny / missing approval| BLOCK[STOP — do not execute]
-    HP --> FIXED
-    WP --> FIXED
-
-    subgraph EVP[5. Evidence, Verification & Research Plane]
-        EV[Evidence bundle<br/>session.yaml • events • raw observations]
-        HASH[Integrity + provenance<br/>SHA-256 hashes • immutable index]
-        ANALYZE[Specialist analysis<br/>runtime • forensics • detection]
-        VERIFY[Independent verification<br/>separate from primary analysis]
-        REPORT[Research report<br/>findings • evidence • limitations]
-        PRESERVE[Preserve provenance + artifacts]
-        EV --> HASH --> ANALYZE --> VERIFY --> REPORT --> PRESERVE
-    end
-    WORK --> EV
-    DESTROY --> PRESERVE
-
-    subgraph IP[6. Integration & Extension Plane]
-        HOST[Host capabilities<br/>platform-aware preflight]
-        GW[Model gateways<br/>OmniRoute → LiteLLM<br/>localhost / environment credentials]
-        OBS[Observability<br/>Numbat • Aegis • Phoenix / OTel • ClawMetry]
-        SKILLS[Skill registry<br/>candidate → replay → verify → human approval]
-        MCP[MCP registry<br/>scoped extensions • environment-only credentials]
-        HOST --> A
-        GW --> A
-        OBS -. observes .-> EV
-        SKILLS -. extends .-> TOOLS
-        MCP -. extends .-> TOOLS
-    end
-
-    subgraph LP[7. Optional Learning Loop]
-        LEARN{learning.enabled?}
-        RETRIEVE[Retrieve prior evidence / skills]
-        REPLAY[Propose → execute → evaluate → refine → replay]
-        APPROVE[Independent verification + human approval]
-        PROMOTE[Promote candidate → skills/validated]
-        DONE[Complete]
-        LEARN -->|No| DONE
-        LEARN -->|Yes| RETRIEVE --> REPLAY --> APPROVE --> PROMOTE --> DONE
-    end
-    REPORT --> LEARN
-
-    CU[Optional Container Use<br/>additional environment only]
-    CU -.-> VM
-
-    classDef control fill:#eef5ff,stroke:#356aa0,color:#10243e,stroke-width:1.5px;
-    classDef agent fill:#f4efff,stroke:#7450a5,color:#241536,stroke-width:1.5px;
-    classDef policy fill:#fff1f1,stroke:#a33,color:#3a1111,stroke-width:2px;
-    classDef exec fill:#fff3df,stroke:#b06d18,color:#3a2309,stroke-width:2px;
-    classDef evidence fill:#edf8ef,stroke:#438451,color:#16361d,stroke-width:1.5px;
-    classDef integration fill:#f4f4f4,stroke:#666,color:#222,stroke-width:1.5px;
-    class R,C,E,HP,WP,GR,PR control;
-    class A,G,AD,ROLES,TOOLS agent;
-    class PC,HPOL,MD,PT,DEC,AUDIT,BLOCK policy;
-    class PLAN,VM,FIXED,INST,WORK,DESTROY exec;
-    class EV,HASH,ANALYZE,VERIFY,REPORT,PRESERVE evidence;
-    class HOST,GW,OBS,SKILLS,MCP,CU integration;
+  R[Researcher] --> C[Research Contract\nMarkdown: purpose • scope • authorization • acceptance]
+  C --> E[Experiment Requirements\nYAML: workload • OS • isolation • network • instrumentation]
+  E --> A[Primary Agent / Goose\nplan • select • provision • execute • observe • adapt]
+  A -->|resolve| REG[Capability Registry\nversioned profiles]
+  REG --> HP[Host Profile\nLinux + Lima/QEMU capabilities]
+  REG --> WP[Workload Profile\nfixed handler + fixture]
+  A -->|request capability| CAP[Go Capability API\nresolve • provision • execute • collect • destroy]
+  CAP -->|policy gate| PC[policyctl\nvalidate • check • require • audit]
+  PC -->|allow / approved| CAP
+  PC -->|deny| STOP[STOP]
+  CAP --> VM[Lima / QEMU Disposable VM\nexecution + isolation boundary]
+  HP --> CAP
+  WP --> CAP
+  CAP --> INST[Declared Instrumentation\nprocess • syscall • filesystem • network]
+  INST --> VM
+  VM --> WORK[Workload Handler\nGo • npm • controlled fixtures]
+  WORK --> EV[Evidence Bundle\nraw observations + audit events]
+  EV --> HASH[Session / Provenance\nSHA-256 + manifest]
+  HASH --> ANALYZE[Specialist Roles + Skills\nruntime • forensics • detection]
+  ANALYZE --> VERIFY[Independent Verifier]
+  VERIFY --> REPORT[Research Report]
+  REPORT --> PRESERVE[Preserve artifacts]
+  PRESERVE --> DESTROY[Destroy VM]
+  DESTROY --> A
+  EXT[Pluggable Providers\nLima • future QEMU/WSL2/container] -.-> CAP
+  SK[Skills / MCP / Gateways / Observability] -.-> A

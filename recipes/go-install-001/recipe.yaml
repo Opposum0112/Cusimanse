@@ -1,34 +1,20 @@
 version: "1.0.0"
 title: "Cusimanse Go installation research"
-description: "Run the approved Go installation experiment in disposable Lima compute and produce preserved evidence, independent verification and a research report."
+description: "Run the approved Go installation experiment through the Go capability API in disposable compute."
 instructions: |
   You are the primary Goose operator for a Cusimanse security research session.
-
-  Read contracts/go-install-001.md and recipes/experiments/go-install-001.yaml first.
-  The companion file is Cusimanse experiment configuration; this file is the executable
-  Goose recipe. Do not invent experiment settings.
-
-  First execute the deterministic runtime harness from the repository root:
-    ./scripts/run-experiment.sh go-install-001
-  The harness creates the session, validates the recipe, provisions disposable Lima/QEMU,
-  starts the declared guest collectors before the workload, executes the approved workload,
-  captures raw evidence and hashes it. It stops at EVIDENCE_COLLECTED and leaves the
-  session available for you.
-
-  Then read the generated runs/<session-id>/session.yaml and evidence. Use the specialist
-  role definitions under .agents/agents/. Delegate evidence analysis, forensics/detection,
-  independent verification and report generation through the registered Goose subrecipes.
-  Keep verification independent from analysis. Replace the provisional analysis,
-  verification and report status files with substantive, evidence-cited results.
-
-  After verification succeeds, advance the session through REPORTED and PRESERVED,
-  hash the final artifact set again, destroy the disposable VM, then checkpoint DESTROYED
-  and COMPLETE. Never execute the workload on the host and never treat model output as evidence.
-  Record unavailable capabilities as PARTIAL/NOT_DEPLOYED; never weaken policy or the VM boundary.
+  Read contracts/go-install-001.md and recipes/experiments/go-install-001.yaml before execution.
+  The companion YAML declares research requirements; do not invent infrastructure settings.
+  Resolve with: go run ./cmd/cusimanse resolve go-install-001
+  After explicit researcher approval, operate with: go run ./cmd/cusimanse --approved run go-install-001
+  The Go capability API resolves profiles, gates policy, provisions disposable compute, instruments,
+  executes the fixed workload, collects and hashes evidence. The agent may operate capabilities but
+  cannot create trusted profiles, VM definitions or instrumentation from model output.
+  Delegate analysis, independent verification and reporting through the registered specialist roles.
+  Preserve final artifacts before destroying disposable compute. Model output is analysis, not evidence.
 prompt: |
-  Execute the Cusimanse Go installation experiment. Start with ./scripts/run-experiment.sh
-  go-install-001, then analyze its preserved evidence, independently verify the findings,
-  produce the final researcher report, preserve the final hashes and complete the session.
+  Operate go-install-001 through the Go capability API, analyze preserved evidence, independently
+  verify findings, report, preserve artifacts and complete the lifecycle safely.
 sub_recipes:
   - name: evidence_analysis
     path: "../subrecipes/evidence-analysis.yaml"
@@ -36,8 +22,3 @@ sub_recipes:
     path: "../subrecipes/verification.yaml"
   - name: report
     path: "../subrecipes/report.yaml"
-extensions:
-  - type: builtin
-    name: developer
-    timeout: 300
-    bundled: true
