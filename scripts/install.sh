@@ -4,6 +4,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
 HOST_RECIPE="$ROOT/recipes/host/security-research.yaml"
 BIN="$HOME/.local/bin"; CFG="$HOME/.config/cusimanse"; DATA="$HOME/.local/share/cusimanse"; VENV="$DATA/venv"
+AEGIS_VERSION="b42d4c08c2fe6ed497173cefad173f3f8d21a936"
 mkdir -p "$BIN" "$CFG" "$DATA"
 log(){ printf '[cusimanse] %s\n' "$*"; }
 fail(){ printf '[cusimanse] ERROR: %s\n' "$*" >&2; exit 1; }
@@ -52,8 +53,8 @@ ln -sf "$VENV/bin/litellm" "$BIN/litellm"; ln -sf "$VENV/bin/clawmetry" "$BIN/cl
 if ! have numbat; then GOBIN="$BIN" go install github.com/perplexityai/numbat/cmd/numbat@v0.2.0; fi
 if ! have omniroute; then npm install -g omniroute@3.8.50; fi
 have numbat || fail 'Numbat installation failed'; have omniroute || fail 'OmniRoute installation failed'; have clawmetry || fail 'ClawMetry installation failed'
-if [ ! -d "$AEGIS/.git" ]; then git clone --depth 1 https://github.com/antropos17/Aegis "$AEGIS"; else git -C "$AEGIS" fetch --depth 1 origin main >/dev/null 2>&1 || true; fi
-(cd "$AEGIS" && npm ci)
+if [ ! -d "$AEGIS/.git" ]; then git clone https://github.com/antropos17/Aegis "$AEGIS"; fi
+(cd "$AEGIS" && git fetch --depth 1 origin "$AEGIS_VERSION" && git checkout --detach "$AEGIS_VERSION" && npm ci)
 cat > "$BIN/cusimanse-aegis" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
@@ -106,4 +107,4 @@ case ",$selection," in *,opencode,*) have opencode || install_remote_script 'htt
 case ",$selection," in *,hermes,*) have hermes || install_remote_script 'https://hermes-agent.nousresearch.com/install.sh';; esac
 case ",$selection," in *,antigravity,*) have agy || install_remote_script 'https://antigravity.google/cli/install.sh';; esac
 case ",$selection," in *,pi,*) have pi || npm install -g @earendil-works/pi-coding-agent@0.74.0;; esac
-log "Goose ${GOOSE_VERSION}, Numbat v0.2.0, OmniRoute 3.8.50 and Pi 0.74.0 selected; host installation/configuration complete."
+log "Goose ${GOOSE_VERSION}, Numbat v0.2.0, OmniRoute 3.8.50, Aegis ${AEGIS_VERSION} and Pi 0.74.0 selected; host installation/configuration complete."
