@@ -37,7 +37,7 @@ Cusimanse is a **declarative research-contract, YAML-recipe and agent-operation 
 | Contract | Purpose, scope, authorization, acceptance | `contracts/` |
 | Requirements | OS, isolation, workload, network, instrumentation | `recipes/experiments/` |
 | Capability registry | Reusable host/workload capabilities | `recipes/profiles/registry.yaml` |
-| Go capability API | Resolve, provision, configure, execute, collect, destroy | `cmd/cusimanse/` |
+| Go capability API | Resolve, provision, configure, execute, collect, destroy; operational install/validation/test entrypoints | `cmd/cusimanse/` |
 | Roles/Skills | Specialist behavior and least-scope delegation | `recipes/agents/role-skill-registry.json` |
 | Policy | Declarative authority and enforcement | `policies/host-policy.yaml` + Go runtime + `scripts/policyctl` |
 | Agent | Plan, select, operate, observe, adapt, analyze | Goose + specialist roles |
@@ -98,39 +98,44 @@ requirements:
 
 Do not put VM commands, package installation, host mounts or model-generated infrastructure into experiment configuration.
 
-### 3. Start Goose
+### 3. Install and diagnose through Go
+
+After the one-time bootstrap path has provided Go, the Go CLI is the normal operational interface:
+
+```bash
+go run ./cmd/cusimanse install
+cusimanse validate
+cusimanse preflight
+cusimanse test
+cusimanse integration-test
+cusimanse doctor
+```
+
+The `install` command deliberately keeps `scripts/install.sh` as the bootstrap adapter because a fresh machine may not have Go yet. It then builds the Go CLI into `~/.local/bin/cusimanse`. `validate`, `preflight`, `test`, `integration-test`, `doctor` and `observability` are exposed through the Go CLI and currently delegate to the corresponding audited helpers. This is an incremental migration boundary: helper logic should move into native Go once equivalent coverage is established, rather than duplicating two implementations.
+
+### 4. Start Goose
 
 ```bash
 goose run --recipe ./recipes/npm-threat-001/recipe.yaml --interactive
 ```
 
-### 4. Resolve before execution
+### 5. Resolve before execution
 
 ```bash
-go run ./cmd/cusimanse resolve npm-threat-001
+cusimanse resolve npm-threat-001
 ```
 
-### 5. Approve and operate
+### 6. Approve and operate
 
 ```bash
-go run ./cmd/cusimanse --approved run npm-threat-001
+cusimanse --approved run npm-threat-001
 ```
 
 The lifecycle is `resolve → policy → provision → instrument → execute → collect → verify → report → preserve → destroy`.
 
-### 6. Analyze, verify and report
+### 7. Analyze, verify and report
 
 The primary agent delegates runtime, forensics and detection analysis. The `verifier` independently checks evidence and conclusions. The `report-generator` creates the final report from requirements, preserved evidence, specialist analysis, verification and observability metadata.
-
-```text
-observe → analyze → request declared capability → execute → observe
-                         ↓
-                 independent verifier
-                         ↓
-              report-generator role
-                         ↓
-                 report → preserve → destroy
-```
 
 ## Host toolchain
 
@@ -167,35 +172,29 @@ The authoritative inventory is `recipes/host/security-research.yaml`. It separat
 
 ### Installation and inspection
 
+Bootstrap remains:
+
 ```bash
 ./scripts/install.sh
-./scripts/preflight.sh
-./scripts/tools.sh list
-./scripts/tools.sh versions
-./scripts/tools.sh config
-./scripts/tools.sh path
-./scripts/tools.sh check
-./scripts/tools.sh observability
-./scripts/observability.sh status
 ```
 
-The installer is idempotent, installs Go explicitly, configures gateways/observability, and fails before experiments when required host capabilities are unavailable. Remote installers are downloaded to temporary files and syntax-checked before execution.
+Normal operation after Go is available:
+
+```bash
+cusimanse install
+cusimanse validate
+cusimanse preflight
+cusimanse test
+cusimanse integration-test
+cusimanse doctor
+cusimanse observability status
+```
+
+Legacy helper commands remain supported and auditable while their implementation is migrated behind the Go API. The installer is idempotent, installs Go explicitly, configures gateways/observability, and fails before experiments when required host capabilities are unavailable.
 
 ## Gateway configuration
 
-`recipes/gateway/mandatory.yaml` defines localhost-only OmniRoute and LiteLLM endpoints:
-
-```text
-Agent / Goose
-     ↓
-LiteLLM :4000
-     ↓
-OmniRoute :20128
-     ↓
-configured model provider(s)
-```
-
-Configuration is generated under `~/.config/cusimanse/`; secrets remain in environment variables and are never written to Git-tracked recipes.
+`recipes/gateway/mandatory.yaml` defines localhost-only OmniRoute and LiteLLM endpoints.
 
 ## Observability and reports
 
@@ -214,18 +213,11 @@ Cusimanse separates **agent observability** from **experiment evidence**:
 For each run, preserve token/cost-oriented telemetry in `runs/<session-id>/observability/token-usage.yaml` when available. Never store API keys in telemetry artifacts.
 
 ```bash
-./scripts/tools.sh numbat
-./scripts/observability.sh numbat
-./scripts/observability.sh phoenix
-./scripts/observability.sh clawmetry
-./scripts/observability.sh report <session-id>
+cusimanse observability status
+cusimanse observability report <session-id>
 ```
 
-See [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md) for correlation fields, access details and the report workflow.
-
-### Report generation
-
-`report-generator` is a first-class role and `report-generation` is a first-class Skill. It has no execution or policy mutation authority. It consumes requirements, evidence, specialist analysis, independent verification and relevant observability metadata and writes `runs/<session-id>/research-report/report.md` and `report.yaml`.
+See `docs/OBSERVABILITY.md` for correlation fields, access details and the report workflow.
 
 ## Agent adapters and prompt handoff
 
@@ -245,18 +237,17 @@ Every prompt follows: read contract → validate scope → resolve → approval 
 
 ```bash
 ./scripts/install.sh
-./scripts/preflight.sh
-./scripts/tools.sh check
-./scripts/tests/validate.sh
-./scripts/tests/runtime.sh
-./scripts/tests/integration.sh
+cusimanse preflight
+cusimanse validate
+cusimanse test
+cusimanse integration-test
 ```
 
 Run a reference experiment:
 
 ```bash
-go run ./cmd/cusimanse resolve npm-threat-001
-go run ./cmd/cusimanse --approved run npm-threat-001
+cusimanse resolve npm-threat-001
+cusimanse --approved run npm-threat-001
 ```
 
 Compatibility wrapper:
@@ -267,7 +258,7 @@ Compatibility wrapper:
 
 ## Go capability API
 
-The Go runtime is the agent-facing execution boundary:
+The Go runtime is the agent-facing execution boundary and now exposes operational lifecycle/maintenance commands:
 
 ```text
 resolve
@@ -281,7 +272,28 @@ capability skill list
 capability role list
 capability skill upsert
 capability role upsert
+install
+validate
+preflight
+test
+integration-test
+doctor
+observability
 ```
+
+Operational API mapping:
+
+| Go command | Current implementation | Purpose |
+|---|---|---|
+| `install` | bootstrap helper + Go build | install/configure host and build CLI |
+| `validate` | validation helper | static contracts, manifests, generated consumers, policy and recipe checks |
+| `preflight` | preflight helper | host capabilities, mandatory services/configuration and profiles |
+| `test` | runtime test helper | Go tests, lifecycle/evidence checks and profile resolution |
+| `integration-test` | integration helper | cross-layer repository/control-plane validation; optional VM smoke path |
+| `doctor` | validate + preflight | single diagnostic gate |
+| `observability ...` | observability helper | status/report access |
+
+This is intentionally a **single operational API with compatibility adapters**, not two competing implementations. The next hardening step is to migrate the deterministic validation/preflight logic into Go packages and retain shell only for OS/package-manager bootstrap and unavoidable external tools.
 
 Examples:
 
@@ -289,8 +301,10 @@ Examples:
 go run ./cmd/cusimanse capability list
 go run ./cmd/cusimanse capability skill list
 go run ./cmd/cusimanse capability role list
-go run ./cmd/cusimanse capability skill upsert --name runtime-analysis --description 'Analyze runtime behavior' --capabilities collect --tools jq,yq
-go run ./cmd/cusimanse capability role upsert --name runtime-analyst --description 'Analyze runtime behavior' --skills runtime-analysis --capabilities execute,collect
+go run ./cmd/cusimanse validate
+cusimanse preflight
+cusimanse test
+cusimanse integration-test
 ```
 
 Role/Skill upserts update the source-of-truth registry and regenerate role YAML, Skill YAML and role/Skill bindings deterministically. They do not grant infrastructure authority or change policy.
@@ -299,58 +313,11 @@ Role/Skill upserts update the source-of-truth registry and regenerate role YAML,
 
 The managed source of truth is `recipes/agents/role-skill-registry.json`; generated role/Skill YAML lives under `.agents/agents/` and `recipes/skills/`. The generated binding contract is `recipes/agents/role-skill-bindings.yaml`.
 
-| Role | Focus | Skills |
-|---|---|---|
-| Planner | scope and lifecycle planning | `experiment-run` |
-| Researcher | execution and evidence interpretation | `experiment-run`, `evidence-analysis` |
-| Runtime analyst | runtime/process/syscall/network behavior | `experiment-run`, `evidence-analysis` |
-| Forensics analyst | filesystem/process/timeline analysis | `forensics`, `evidence-analysis` |
-| Detection analyst | indicators and findings | `evidence-analysis` |
-| Verifier | integrity and reproducibility | `verification`, `evidence-analysis` |
-| Report generator | requirements-traceable reporting | `report-generation`, `evidence-analysis`, `verification` |
-
 ### Learning loop
 
-Learning is **disabled by default**. It is a controlled experience-to-Skill loop:
-
-```text
-verified experience
-      ↓
-retrieve existing validated skills
-      ↓
-propose candidate skill + preconditions
-      ↓
-authorized disposable replay
-      ↓
-evaluate + independently verify
-      ↓
-human approval
-      ↓
-skills/validated/
-```
-
-Commands:
-
-```bash
-./scripts/learningctl status <session-id>
-./scripts/learningctl candidate <session-id> <candidate-id> <file>
-./scripts/learningctl promote <session-id> <candidate-id> --approved
-```
-
-Promotion requires preserved evidence, replay and independent verification. Learned Skills cannot mutate contracts, trusted profiles, policy scope or the execution boundary.
+Learning is **disabled by default** and requires independent verification plus human approval before promotion.
 
 ## Profiles and requirements
-
-```text
-recipes/profiles/
-├── registry.yaml
-├── host/linux-lima.yaml
-└── workload/
-    ├── go-install.yaml
-    ├── npm-install.yaml
-    ├── npm-lifecycle.yaml
-    └── npm-threat.yaml
-```
 
 The registry is deterministic, permits agent selection and forbids agent-created profiles. Resolution fails closed on no match or ambiguity. Host profiles forbid model-generated provisioning/instrumentation; workload profiles use fixed handlers and cannot be modified by the agent.
 
@@ -358,49 +325,9 @@ The registry is deterministic, permits agent selection and forbids agent-created
 
 The policy definition remains declarative in `policies/host-policy.yaml`. The current Go runtime owns the capability lifecycle and invokes `scripts/policyctl` as its enforcement/approval compatibility helper. Therefore `policyctl` is still required for the current implementation, but it is **not a second policy authority**.
 
-```bash
-./scripts/policyctl validate
-./scripts/policyctl check vm
-./scripts/policyctl check network
-./scripts/policyctl check credentials
-./scripts/policyctl check mounts
-./scripts/policyctl audit
-```
-
-The intended future migration is a native Go evaluator over the same declarative policy file, followed by removal of the shell dependency after equivalent tests and independent verification. This branch deliberately does not claim that migration is complete.
-
-The security boundary remains:
-
-```text
-authorization + policy
-        ↓
-Go capability API
-        ↓
-Lima/QEMU disposable VM
-        ↓
-workload + declared instrumentation
-```
-
-Gateways, MCP, Skills, model adapters and observability improve agent operation and visibility but cannot replace containment.
+The intended future migration is a native Go evaluator over the same declarative policy file, followed by removal of the shell dependency after equivalent tests and independent verification.
 
 ## Evidence and reproducibility
-
-```text
-runs/<session-id>/
-├── session.yaml
-├── evidence/
-│   ├── audit/events.jsonl
-│   └── index.yaml
-├── provenance/manifest.sha256
-├── analysis/summary.md
-├── verification/result.md
-├── research-report/report.md
-├── research-report/report.yaml
-├── observability/token-usage.yaml
-├── observability/dashboard.yaml
-├── learning/
-└── preservation/manifest.yaml
-```
 
 Evidence is hashed and provenance preserved before destruction. Model output is analysis, not raw evidence. Final conclusions require independent verification.
 
@@ -420,7 +347,7 @@ The npm threat fixture is local and harmless, not real malware, and does not rec
 ### Static validation
 
 ```bash
-./scripts/tests/validate.sh
+cusimanse validate
 ```
 
 Validates Go, recipes, manifests, role/Skill generated consumers, report generation, learning rules, observability configuration, policy, architecture assets and executable shell scripts.
@@ -428,19 +355,19 @@ Validates Go, recipes, manifests, role/Skill generated consumers, report generat
 ### Runtime/control-plane validation
 
 ```bash
-./scripts/tests/runtime.sh
+cusimanse test
 ```
 
 Runs Go tests, policy checks, lifecycle/evidence checks and capability resolution. Optional VM smoke test:
 
 ```bash
-CUSIMANSE_RUN_VM_TEST=1 ./scripts/tests/runtime.sh
+CUSIMANSE_RUN_VM_TEST=1 cusimanse test
 ```
 
 ### Integration validation
 
 ```bash
-./scripts/tests/integration.sh
+cusimanse integration-test
 ```
 
 The integration test covers host inventory → gateways/observability → adapters/prompts → Goose recipes → role/Skill management → learning contract → capability resolution → policy → session lifecycle → evidence hashing. VM mode validates the Lima recipe, checks guest Go/Node/npm/instrumentation and destroys the disposable VM.
@@ -461,22 +388,12 @@ CI does not claim a disposable-VM pass unless VM mode actually runs.
 ```text
 Cusimanse/
 ├── .agents/                    # agent roles and Skills
-├── cmd/cusimanse/              # Go capability API/runtime
+├── cmd/cusimanse/              # Go capability API/runtime + operational API
 ├── contracts/                  # research contracts
 ├── prompts/experiments/        # agent-neutral prompt handoffs
 ├── policies/                   # declarative policy
-├── recipes/
-│   ├── experiments/            # researcher requirements
-│   ├── profiles/               # capability registry + profiles
-│   ├── agents/                 # Goose orchestration + role/Skill registry
-│   ├── gateway/                # mandatory model gateway
-│   ├── observability/          # mandatory host observability
-│   ├── host/                   # host tool inventory
-│   ├── session/                # lifecycle + learning contract
-│   ├── subrecipes/             # delegated research tasks
-│   ├── lima/                   # disposable VM recipe
-│   └── instrumentation/        # guest telemetry recipe
-├── scripts/                    # installer, helpers, lifecycle, learning and tests
+├── recipes/                    # requirements, profiles, agents, gateways, observability, session and VM recipes
+├── scripts/                    # bootstrap/compatibility helpers and tests
 ├── docs/architecture/          # Mermaid source + rendered architecture
 ├── docs/OBSERVABILITY.md       # observability/report access guide
 ├── manifest/                   # package/source-of-truth manifest
