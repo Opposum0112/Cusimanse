@@ -20,7 +20,7 @@ policy:
   authorization_owner: policyctl-and-vm-os-controls
   gateway_is_security_boundary: false
 installation:
-  install_script: scripts/cusimanse-host.sh
+  install_script: scripts/install.sh
   stage: observability_governance
 validation:
   required: true
