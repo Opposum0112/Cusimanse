@@ -1,15 +1,31 @@
-version: 1
+version: 2
 id: default-reporting
 kind: reporting
-agent: goose
-inputs: [evidence/, reports/goose/]
+purpose: Produce the researcher-facing report from the session evidence and verification record.
+inputs:
+  - runs/<session-id>/evidence/
+  - runs/<session-id>/analysis/summary.md
+  - runs/<session-id>/verification/result.md
+  - runs/<session-id>/provenance/manifest.sha256
 outputs:
-  markdown: reports/goose/final-report.md
-  yaml: reports/goose/final-report.yaml
+  session_report:
+    markdown: runs/<session-id>/research-report/report.md
+    structured: runs/<session-id>/research-report/report.yaml
+  optional_index_copy:
+    directory: reports/
+    purpose: historical/report index only
 rules:
   cite_evidence: true
   distinguish_observed_from_inferred: true
   include_versions: true
   include_failed_steps: true
   include_agent_actions: true
+  include_scope_and_authorization: true
+  include_environment_and_recipe: true
+  include_instrumentation_coverage: true
+  include_findings_and_evidence: true
+  include_limitations_and_missing_capabilities: true
+  include_verification_result: true
+  include_reproducibility_reference: true
   no_unverified_security_claims: true
+  model_output_is_not_evidence: true
