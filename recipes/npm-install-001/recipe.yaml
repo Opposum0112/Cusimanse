@@ -1,42 +1,33 @@
-version: 1
-id: npm-install-001
 title: Cusimanse npm installation experiment
-description: Run the pinned npm installation workload in disposable Lima compute and produce evidence, verification and report.
-contract: contracts/npm-install-001.md
-workload:
-  commands:
-    - node --version
-    - npm --version
-    - mkdir -p /tmp/npm-test
-    - cd /tmp/npm-test && npm init -y
-    - cd /tmp/npm-test && npm install lodash@4.17.21 --ignore-scripts
-  execution: primary-agent-inside-disposable-vm
-host:
-  recipe: recipes/host/security-research.yaml
-compute:
-  recipe: recipes/lima/security-research.yaml
-instrumentation:
-  recipe: recipes/instrumentation/security-research.yaml
-session:
-  state: recipes/session/session-state.yaml
-prompt_reference: prompts/experiments/npm-install-001.md
-agent:
-  reference: goose
-  adapters: recipes/agents/adapter-matrix.yaml
+description: Run the pinned npm installation workload in disposable Lima compute and produce evidence, verification and report artifacts.
+instructions: |
+  Operate the Cusimanse npm experiment using the companion configuration at
+  recipes/experiments/npm-install-001.yaml and contract contracts/npm-install-001.md.
+  Read the experiment configuration and session-state contract before acting.
+  Create or resume the session, validate authorization and approvals, provision
+  the declared Lima/QEMU VM, start every collector declared by the instrumentation
+  profile before the workload, execute the declared workload inside the VM, collect
+  and hash evidence, perform specialist analysis and independent verification,
+  write the research report, preserve the evidence and only then destroy the VM.
+  Never treat model output as evidence. Record unavailable capabilities as
+  PARTIAL/NOT_DEPLOYED rather than silently changing the experiment. Use native
+  Goose delegation and the semantic roles under .agents/agents/ when specialist
+  work is required.
+
+# Cusimanse metadata; the Goose-required fields above are the executable recipe contract.
+cusimanse:
+  version: 2
+  experiment: recipes/experiments/npm-install-001.yaml
+  contract: contracts/npm-install-001.md
+  prompt_reference: prompts/experiments/npm-install-001.md
+  session_state: recipes/session/session-state.yaml
+  roles: .agents/agents/
   orchestration: recipes/agents/goose-orchestration.yaml
-  role_delegation:
-    planner: .agents/agents/planner.md
-    researcher: .agents/agents/researcher.md
-    runtime_analyst: .agents/agents/runtime-analyst.md
-    forensics_analyst: .agents/agents/forensics-analyst.md
-    detection_analyst: .agents/agents/detection-analyst.md
-    verifier: .agents/agents/verifier.md
-    report_generator: .agents/agents/report-generator.md
-subrecipes:
-  - recipes/subrecipes/evidence-analysis.yaml
-  - recipes/subrecipes/verification.yaml
-  - recipes/subrecipes/report.yaml
-gateways: recipes/gateway/mandatory.yaml
-observability: recipes/observability/mandatory.yaml
-skills: recipes/skills/registry.yaml
-mcp: recipes/mcp/registry.yaml
+  subrecipes:
+    - recipes/subrecipes/evidence-analysis.yaml
+    - recipes/subrecipes/verification.yaml
+    - recipes/subrecipes/report.yaml
+  gateways: recipes/gateway/mandatory.yaml
+  observability: recipes/observability/mandatory.yaml
+  skills: recipes/skills/registry.yaml
+  mcp: recipes/mcp/registry.yaml
