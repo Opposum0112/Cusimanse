@@ -2,10 +2,14 @@ id: default-agent-chain
 kind: orchestration
 session_state: recipes/session/session-state.yaml
 learning_workflow: recipes/session/learning-workflow.yaml
+model: >-
+  The selected primary agent is the only project lifecycle authority. It may use
+  its native multi-agent/subagent capabilities to delegate the declared specialist
+  roles. Cusimanse does not require a competing orchestration framework.
 stages:
   - id: plan
     agent: planner
-    action: read recipe and produce execution plan
+    action: read contract and recipe and produce execution plan
     checkpoint_session: true
   - id: review
     agent: reviewer
@@ -48,19 +52,17 @@ stages:
     agent: executor
     action: destroy compute only after evidence preservation
     checkpoint_session: true
-optional_role_orchestration:
-  crewai:
-    recipe: recipes/orchestration/crewai.yaml
-    entrypoint: after-plan-before-execution
-    purpose: coordinate specialist research roles without replacing selected primary-agent lifecycle authority
+optional_state_and_task_helpers:
   langgraph:
     recipe: recipes/orchestration/langgraph.yaml
-    entrypoint: stateful-checkpointing
-    purpose: optional stateful graph execution without replacing primary-agent lifecycle authority
+    entrypoint: learning-only-when-selected
+    purpose: optional stateful learning checkpoints; never lifecycle authority
   taskflow:
     recipe: recipes/orchestration/taskflow.yaml
-    entrypoint: task-decomposition
-    purpose: optional task decomposition and replayable checkpoints
+    entrypoint: learning-only-when-selected
+    purpose: optional replayable learning task decomposition; never lifecycle authority
 policy:
   fail_closed: true
   require_explicit_apply: true
+  competing_orchestrator: deny
+  primary_agent_native_orchestration: preferred
