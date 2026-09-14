@@ -1,22 +1,24 @@
+version: 1
 title: Cusimanse Go installation experiment
-description: Run the approved Go installation workload in disposable Lima compute and produce evidence, verification and report artifacts.
+description: Run the approved Go installation experiment in disposable Lima compute, collect evidence, verify results, and produce the researcher report.
 instructions: |
-  Operate the Cusimanse Go experiment using the companion configuration at
-  recipes/experiments/go-install-001.yaml and contract contracts/go-install-001.md.
-  Read the experiment configuration and session-state contract before acting.
-  Create or resume the session, validate authorization and approvals, provision
-  the declared Lima/QEMU VM, start every collector declared by the instrumentation
-  profile before the workload, execute the declared workload inside the VM, collect
-  and hash evidence, perform specialist analysis and independent verification,
-  write the research report, preserve the evidence and only then destroy the VM.
-  Never treat model output as evidence. Record unavailable capabilities as
-  PARTIAL/NOT_DEPLOYED rather than silently changing the experiment. Use native
-  Goose delegation and the semantic roles under .agents/agents/ when specialist
-  work is required.
+  You are the primary operator for this Cusimanse experiment.
 
-# Cusimanse metadata; the Goose-required fields above are the executable recipe contract.
+  Read contracts/go-install-001.md and recipes/experiments/go-install-001.yaml first. The companion experiment configuration is the authoritative Cusimanse configuration; this file is the executable Goose recipe wrapper.
+
+  Create or resume the session using recipes/session/session-state.yaml. Validate authorization and approvals. Provision the declared Lima/QEMU VM and start every collector declared by the instrumentation profile before executing the workload.
+
+  Execute only inside the disposable VM:
+    go version
+    go install ./packages/labprobe
+    labprobe
+
+  Preserve raw evidence, generate hashes and provenance, delegate analysis/verification/reporting through the declared subrecipes and semantic roles, and write the required session artifacts. Preserve evidence before destroying the VM.
+
+  Never treat model output as evidence. Never run the workload on the host. Never change the contract or companion experiment configuration during execution. Record unavailable capabilities as PARTIAL/NOT_DEPLOYED.
+
+# Only Goose schema fields above are executable recipe fields. Cusimanse metadata is namespaced to avoid pretending it is part of Goose's native recipe schema.
 cusimanse:
-  version: 2
   experiment: recipes/experiments/go-install-001.yaml
   contract: contracts/go-install-001.md
   prompt_reference: prompts/experiments/go-install-001.md
