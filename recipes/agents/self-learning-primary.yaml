@@ -1,5 +1,5 @@
 id: self-learning-primary
-version: 2.0
+version: 3.0
 kind: primary-agent-contract
 mode: terminal-first
 supported_adapters:
@@ -15,7 +15,12 @@ supported_adapters:
   - devin
 selected_adapter: null
 installation_status: NOT_DEPLOYED
+orchestration:
+  lifecycle_authority: selected-primary-agent
+  specialist_delegation: native-agent-capabilities
+  competing_orchestrator: false
 learning:
+  enabled: opt_in
   retrieve_before_create: true
   create_candidate_after_evidence: true
   refine_on_failure: true
@@ -23,13 +28,15 @@ learning:
   require_distinct_artifact: true
   require_independent_verification: true
   require_human_approval: true
+  candidate_library: skills/candidate/
+  validated_library: skills/validated/
 capabilities:
   - session_state
   - skills
-  - subagents
+  - native_subagents
   - mcp
   - terminal_execution
-  - optional_role_orchestration
+  - optional_learning_helpers
 boundaries:
   agent_is_not_security_boundary: true
   generated_code_is_untrusted: true
