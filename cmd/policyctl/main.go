@@ -52,16 +52,15 @@ func loadPolicy(path string) (Policy, error) {
 
 func decisionFor(action string, p Policy) (string, error) {
 	m := map[string]string{
-		"credentials":        "host.credentials",
-		"mounts":             "host.unrestricted_mounts",
-		"host-mounts":        "host.unrestricted_mounts",
-		"host-root":          "privileged.host_filesystem",
-		"sudo":               "privileged.sudo",
-		"vm":                 "virtualization.disposable_vm",
-		"network":            "network.localhost_services",
-		"git-write":          "git.write",
-		"push":               "git.write",
-		"crew-orchestration": "orchestration.crewai",
+		"credentials": "host.credentials",
+		"mounts":      "host.unrestricted_mounts",
+		"host-mounts": "host.unrestricted_mounts",
+		"host-root":   "privileged.host_filesystem",
+		"sudo":        "privileged.sudo",
+		"vm":          "virtualization.disposable_vm",
+		"network":     "network.localhost_services",
+		"git-write":   "git.write",
+		"push":        "git.write",
 	}
 	key, ok := m[strings.ToLower(strings.TrimSpace(action))]
 	if !ok {
@@ -80,8 +79,6 @@ func decisionFor(action string, p Policy) (string, error) {
 		v = p.Network[parts[1]]
 	case "git":
 		v = p.Git[parts[1]]
-	case "orchestration":
-		v = p.Orchestration[parts[1]]
 	}
 	if v == "" {
 		return "", fmt.Errorf("no policy value for %q", action)
@@ -136,7 +133,7 @@ func validate(args []string) {
 func check(args []string) {
 	fs := flag.NewFlagSet("check", flag.ExitOnError)
 	f := fs.String("file", defaultPolicy, "policy YAML file")
-	a := fs.String("action", "", "host/security/orchestration action")
+	a := fs.String("action", "", "host/security action")
 	audit := fs.String("audit-file", defaultAudit, "append-only policy decision JSONL")
 	jsonOut := fs.Bool("json", true, "emit JSON")
 	fs.Parse(args)
@@ -216,5 +213,5 @@ func tokenDashboard(args []string) {
 }
 
 func usage() {
-	fmt.Println("policyctl — host/security policy interface\nUsage: policyctl <show|validate|check|token-dashboard>\n  check --action <credentials|mounts|host-root|vm|network|git-write|sudo|crew-orchestration>")
+	fmt.Println("policyctl — host/security policy interface\nUsage: policyctl <show|validate|check|token-dashboard>\n  check --action <credentials|mounts|host-root|vm|network|git-write|sudo>")
 }
