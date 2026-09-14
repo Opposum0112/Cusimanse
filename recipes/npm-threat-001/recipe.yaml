@@ -5,26 +5,34 @@ instructions: |
   You are the primary Goose operator for a Cusimanse threat-model session.
 
   Read contracts/npm-threat-001.md and recipes/experiments/npm-threat-001.yaml before execution.
-  The companion file is the Cusimanse experiment configuration; this file is the executable
-  Goose recipe. Do not invent experiment settings or broaden the network scope.
+  This recipe is the Goose handoff; the companion YAML is the Cusimanse experiment definition.
 
-  Execute ./scripts/run-experiment.sh npm-threat-001. The deterministic harness creates the
-  session, validates the recipe, provisions disposable Lima/QEMU, starts the declared guest
+  Before provisioning or executing anything, run:
+    ./scripts/policyctl validate
+    ./scripts/policyctl check vm
+    ./scripts/policyctl check network
+    ./scripts/policyctl check credentials
+    ./scripts/policyctl check mounts
+  For approval-required decisions, obtain the explicit researcher approval and record it with:
+    ./scripts/policyctl require <action> --approved
+  Do not bypass a deny decision.
+
+  Execute ./scripts/run-experiment.sh npm-threat-001 only after policy checks and required approval.
+  The deterministic harness creates the session, provisions disposable Lima/QEMU, starts guest
   collectors before the workload, installs the local controlled fixture, captures lifecycle,
   syscall, filesystem and localhost-network evidence, and hashes the evidence.
 
-  Analyze only preserved evidence. Independently verify the observations before producing the
-  report. The fixture is intentionally adversarial-like but local and harmless: its postinstall
-  writes a marker and attempts one localhost connection. Do not modify it to contact external
-  systems or execute on the host.
+  Analyze only preserved evidence. Independently verify observations before producing the report.
+  The fixture is adversarial-like but local and harmless: its postinstall writes a marker and
+  attempts one localhost connection. Do not modify it to contact external systems or execute on host.
 
   Complete the session only after independent verification, final artifact hashing, preservation,
-  VM destruction and the required DESTROYED/COMPLETE checkpoints. Record unavailable capabilities
-  as PARTIAL/NOT_DEPLOYED and never weaken the isolation or policy boundary.
+  VM destruction and required DESTROYED/COMPLETE checkpoints. Record unavailable capabilities as
+  PARTIAL/NOT_DEPLOYED and never weaken the policy or isolation boundary.
 prompt: |
-  Execute the controlled npm threat-model experiment with ./scripts/run-experiment.sh npm-threat-001,
-  analyze preserved evidence, independently verify findings, produce the research report and complete
-  the lifecycle without executing the fixture on the host.
+  Validate and enforce the Cusimanse policy with scripts/policyctl, obtain required approval,
+  then execute npm-threat-001 inside disposable Lima compute, analyze preserved evidence,
+  independently verify findings, report, preserve artifacts and complete lifecycle safely.
 sub_recipes:
   - name: evidence_analysis
     path: "../subrecipes/evidence-analysis.yaml"
