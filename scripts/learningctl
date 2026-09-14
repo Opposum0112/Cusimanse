@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+usage(){ cat <<'EOF'
+learningctl — guarded skill learning workflow
+
+  scripts/learningctl status SESSION
+  scripts/learningctl candidate SESSION CANDIDATE FILE
+  scripts/learningctl promote SESSION CANDIDATE --approved
+
+Promotion requires preserved evidence, replay, independent verification and
+explicit approval. The helper never changes policy, profiles or contracts.
+EOF
+}
+fail(){ echo "learningctl: $*" >&2; exit 2; }
+status(){ sid="$1"; [ -n "$sid" ] || fail 'session required'; base="$ROOT/runs/$sid/learning"; [ -d "$base" ] || fail "learning artifacts missing: $base"; find "$base" -maxdepth 3 -type f -print | sort; }
+candidate(){ sid="$1"; cid="$2"; src="$3"; [ -s "$src" ] || fail 'candidate file missing'; base="$ROOT/runs/$sid/learning/candidates"; mkdir -p "$base"; cp -- "$src" "$base/$cid.yaml"; echo "candidate preserved: $base/$cid.yaml"; }
+promote(){ sid="$1"; cid="$2"; [ "${3:-}" = '--approved' ] || fail 'promotion requires --approved'; base="$ROOT/runs/$sid/learning"; [ -s "$base/candidates/$cid.yaml" ] || fail 'candidate missing'; find "$base/replays" -type f -print -quit 2>/dev/null | grep -q . || fail 'replay artifact required'; find "$base/verification" -type f -print -quit 2>/dev/null | grep -q . || fail 'independent verification artifact required'; [ -s "$ROOT/runs/$sid/evidence/audit/manifest.sha256" ] || fail 'preserved evidence hash required'; mkdir -p "$ROOT/skills/validated"; cp -- "$base/candidates/$cid.yaml" "$ROOT/skills/validated/$cid.yaml"; printf 'PROMOTED %s from session %s\n' "$cid" "$sid"; }
+case "${1:-}" in status) shift; status "$@";; candidate) shift; candidate "$@";; promote) shift; promote "$@";; *) usage; exit 2;; esac
