@@ -37,7 +37,7 @@ node_major="$(node -p 'process.versions.node.split(".")[0]')"; [ "$node_major" -
 
 python3 -m venv "$VENV"
 "$VENV/bin/pip" install --upgrade pip
-"$VENV/bin/pip" install --upgrade litellm 'arize-phoenix' opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp clawmetry
+"$VENV/bin/pip" install --upgrade litellm arize-phoenix opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp clawmetry
 ln -sf "$VENV/bin/litellm" "$BIN/litellm"
 ln -sf "$VENV/bin/clawmetry" "$BIN/clawmetry"
 GOBIN="$BIN" go install github.com/perplexityai/numbat/cmd/numbat@latest
@@ -84,6 +84,7 @@ EOF
 cat > "$CFG/goose.env" <<'EOF'
 export GOOSE_PROVIDER=openai
 export OPENAI_HOST=http://127.0.0.1:4000
+export OPENAI_BASE_PATH=v1/chat/completions
 export OPENAI_API_KEY=${LITELLM_API_KEY:-}
 export GOOSE_RECIPE_PATH="$PWD/recipes"
 EOF
