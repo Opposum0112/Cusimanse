@@ -1,5 +1,5 @@
 {
-  "manifest_version": 10,
+  "manifest_version": 11,
   "branch": "goose-refactor",
   "source_of_truth": {
     "contracts": "contracts/",
@@ -36,6 +36,7 @@
     "access": "scripts/tools.sh",
     "preflight": "scripts/preflight.sh",
     "session_helper": "scripts/session.sh",
+    "experiment_runner": "scripts/run-experiment.sh",
     "idempotent": true,
     "platforms": ["linux", "macos", "windows-wsl2"]
   },
