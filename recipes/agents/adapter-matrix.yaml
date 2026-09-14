@@ -1,4 +1,4 @@
-version: 2
+version: 3
 kind: primary-agent-adapter-matrix
 purpose: >-
   Define the supported handoff from one agent-neutral Cusimanse experiment to
@@ -10,6 +10,14 @@ reference:
   mode: native-recipe
   command: goose run --recipe <recipe> --interactive
   capabilities: [recipes, subrecipes, summon, skills, MCP/extensions, delegation]
+  operator_sequence:
+    - "cusimanse preflight"
+    - "cusimanse validate"
+    - "goose recipe validate <recipe>"
+    - "cusimanse resolve <experiment>"
+    - "cusimanse --approved run <experiment> <session-id>"
+    - "cusimanse observability report <session-id>"
+    - "cusimanse integration-test"
 adapters:
   opencode:
     command: opencode
@@ -18,6 +26,7 @@ adapters:
     native_capabilities: [agents, plugins, MCP]
     orchestration: native-agent-capabilities
     install: scripts/install.sh
+    invocation: "opencode <prompt-reference-or-project-session>"
     validation: reference-experiment
   hermes:
     command: hermes
@@ -26,6 +35,7 @@ adapters:
     native_capabilities: [tools, skills, delegation]
     orchestration: native-agent-capabilities
     install: scripts/install.sh
+    invocation: "hermes <prompt-reference-or-project-session>"
     validation: reference-experiment
   antigravity:
     command: agy
@@ -34,6 +44,7 @@ adapters:
     native_capabilities: [agents, tools, delegation]
     orchestration: native-agent-capabilities
     install: scripts/install.sh
+    invocation: "agy <prompt-reference-or-project-session>"
     validation: reference-experiment
   pi:
     command: pi
@@ -42,6 +53,7 @@ adapters:
     native_capabilities: [extensions, skills, packages]
     orchestration: native-agent-capabilities
     install: scripts/install.sh
+    invocation: "pi <prompt-reference-or-project-session>"
     validation: reference-experiment
 adapter_contract:
   inputs: [contract, experiment_configuration, prompt_reference]
@@ -51,6 +63,8 @@ adapter_contract:
   execution_boundary: Lima/QEMU + guest OS
   required_outputs: [session.yaml, evidence, verification, research-report]
   unsupported_capability: record_as_partial
+  operator_authority: "Only the Go capability API and declared policy may authorize execution."
+  adapter_rule: "An adapter may plan and delegate, but must invoke Cusimanse for capability execution."
 validation:
   cli_presence_is_insufficient: true
   pass_requires_runtime_evidence: true
