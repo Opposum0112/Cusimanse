@@ -5,19 +5,37 @@ cd "$ROOT"
 export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
 
 fail(){ echo "INTEGRATION FAIL: $*" >&2; exit 1; }
+command -v go >/dev/null 2>&1 || fail 'go missing'
 command -v goose >/dev/null 2>&1 || fail 'goose missing'
 command -v yq >/dev/null 2>&1 || fail 'yq missing'
 [ -x scripts/policyctl ] || fail 'policyctl not executable'
+[ -x scripts/tools.sh ] || fail 'tools.sh not executable'
 
 ./scripts/policyctl validate >/dev/null
+./scripts/tools.sh list >/dev/null
+./scripts/tools.sh config >/dev/null
+./scripts/tools.sh path >/dev/null
 for action in credentials mounts vm network git-write; do
   ./scripts/policyctl check "$action" --audit "${TMPDIR:-/tmp}/cusimanse-policy-integration-$$.jsonl" >/dev/null
 done
 
-for recipe in recipes/*/recipe.yaml; do goose recipe validate "$recipe" >/dev/null; done
+# Validate the declared host inventory, gateway/observability contracts and adapter matrix.
+yq -e '.common.commands | length > 0' recipes/host/security-research.yaml >/dev/null || fail 'common host inventory missing'
+yq -e '.guest.commands | length > 0' recipes/host/security-research.yaml >/dev/null || fail 'guest inventory missing'
+yq -e '.components.omniroute.bind == "127.0.0.1:20128" and .components.litellm.bind == "127.0.0.1:4000"' recipes/gateway/mandatory.yaml >/dev/null || fail 'gateway localhost configuration mismatch'
+yq -e '.components.numbat and .components.aegis and .components.phoenix and .components.opentelemetry and .components.clawmetry' recipes/observability/mandatory.yaml >/dev/null || fail 'observability inventory incomplete'
+yq -e '.reference.agent == "goose" and (.adapters | keys | length) == 4' recipes/agents/adapter-matrix.yaml >/dev/null || fail 'agent adapter matrix incomplete'
+for prompt in prompts/experiments/*.md; do grep -q 'Read first:' "$prompt" || fail "prompt missing read-first contract: $prompt"; done
 
+for recipe in recipes/*/recipe.yaml; do goose recipe validate "$recipe" >/dev/null; done
+for recipe in recipes/subrecipes/*.yaml; do goose recipe validate "$recipe" >/dev/null; done
+for experiment in go-install-001 npm-install-001 npm-lifecycle-001 npm-threat-001; do
+  go run ./cmd/cusimanse resolve "$experiment" >/dev/null || fail "capability resolution failed: $experiment"
+done
+
+audit="${TMPDIR:-/tmp}/cusimanse-policy-integration-$$.jsonl"
 sid="integration-contract-$$"
-trap 'rm -rf "runs/$sid" "${TMPDIR:-/tmp}/cusimanse-policy-integration-$$.jsonl"' EXIT
+trap 'rm -rf "runs/$sid" "$audit"' EXIT
 ./scripts/session.sh create npm-threat-001 goose "$sid" >/dev/null
 ./scripts/session.sh checkpoint "$sid" VALIDATED >/dev/null
 ./scripts/session.sh checkpoint "$sid" PREFLIGHTED >/dev/null
@@ -33,15 +51,15 @@ test -s "runs/$sid/evidence/audit/events.jsonl" || fail 'audit events missing'
 test -s "runs/$sid/evidence/audit/manifest.sha256" || fail 'evidence hash missing'
 test -s "runs/$sid/provenance/manifest.sha256" || fail 'provenance hash missing'
 
-echo 'INTEGRATION PASS: policyctl → Goose recipe → session lifecycle → evidence hashing'
+echo 'INTEGRATION PASS: host inventory → gateways/observability → adapters/prompts → policyctl → Goose → capability resolution → session/evidence hashing'
 
 if [ "${CUSIMANSE_RUN_VM_TEST:-0}" = 1 ]; then
   command -v limactl >/dev/null 2>&1 || fail 'limactl missing for VM integration'
   name="cusimanse-integration-$$"
-  trap 'limactl delete --force "$name" >/dev/null 2>&1 || true; rm -rf "runs/$sid" "${TMPDIR:-/tmp}/cusimanse-policy-integration-$$.jsonl"' EXIT
+  trap 'limactl delete --force "$name" >/dev/null 2>&1 || true; rm -rf "runs/$sid" "$audit"' EXIT
   limactl validate recipes/lima/security-research.yaml >/dev/null
   limactl start --name="$name" recipes/lima/security-research.yaml >/dev/null
-  limactl shell "$name" -- bash -lc 'go version && node --version && npm --version && strace -V >/dev/null'
+  limactl shell "$name" -- bash -lc 'go version && node --version && npm --version && strace -V >/dev/null && tcpdump --version >/dev/null'
   limactl delete --force "$name" >/dev/null
   echo 'INTEGRATION PASS: disposable Lima/QEMU smoke test'
 fi
