@@ -5,6 +5,7 @@ cd "$ROOT"
 usage(){ echo "usage: $0 create <experiment-id> <agent> [session-id] | checkpoint <session-id> <state> | hash <session-id> | verify-layout <session-id>"; }
 [ "$#" -ge 1 ] || { usage; exit 2; }
 command -v yq >/dev/null 2>&1 || { echo 'session: yq is required' >&2; exit 1; }
+hash_cmd(){ if command -v sha256sum >/dev/null 2>&1; then echo sha256sum; elif command -v shasum >/dev/null 2>&1; then echo 'shasum -a 256'; else echo ''; fi; }
 create(){
   local experiment="$1" agent="$2" sid="${3:-$(date -u +%Y%m%dT%H%M%SZ)-${experiment}}" dir="runs/$sid"
   mkdir -p "$dir"/evidence/audit "$dir"/{provenance,analysis,verification,research-report,preservation,observability,learning/{candidates,evaluations,replays,verification,promotions}}
@@ -18,9 +19,11 @@ selected_primary_agent: $agent
 state: CREATED
 stage_history: []
 EOF
-  printf '%s\n' "created $dir/session.yaml"
   printf '%s\n' '{"event":"session_created","state":"CREATED"}' > "$dir/evidence/audit/events.jsonl"
-  printf '%s\n' "$sid"
+  printf '%s\n' 'status: NOT_STARTED' > "$dir/observability/token-usage.yaml"
+  printf '%s\n' 'status: NOT_STARTED' > "$dir/observability/dashboard.yaml"
+  printf '%s\n' 'status: NOT_PRESERVED' > "$dir/preservation/manifest.yaml"
+  printf '%s\n' "created $dir/session.yaml" "$sid"
 }
 checkpoint(){
   local sid="$1" state="$2" file="runs/$sid/session.yaml"
@@ -29,10 +32,11 @@ checkpoint(){
   printf '%s\n' "{\"event\":\"checkpoint\",\"state\":\"$state\"}" >> "runs/$sid/evidence/audit/events.jsonl"
 }
 hash(){
-  local sid="$1" dir="runs/$sid"
+  local sid="$1" dir="runs/$sid" h
   [ -d "$dir" ] || { echo "session not found: $sid" >&2; exit 1; }
-  (cd "$dir" && find evidence -type f ! -path 'evidence/audit/manifest.sha256' -print0 | sort -z | xargs -0 sha256sum > evidence/audit/manifest.sha256)
-  (cd "$dir" && find . -type f ! -path './evidence/audit/manifest.sha256' -print0 | sort -z | xargs -0 sha256sum > provenance/manifest.sha256)
+  h="$(hash_cmd)"; [ -n "$h" ] || { echo 'session: sha256 implementation unavailable' >&2; exit 1; }
+  (cd "$dir" && find evidence -type f ! -path 'evidence/audit/manifest.sha256' -print0 | sort -z | while IFS= read -r -d '' f; do eval "$h \"$f\""; done > evidence/audit/manifest.sha256)
+  (cd "$dir" && find . -type f ! -path './evidence/audit/manifest.sha256' -print0 | sort -z | while IFS= read -r -d '' f; do eval "$h \"$f\""; done > provenance/manifest.sha256)
 }
 verify_layout(){
   local sid="$1" dir="runs/$sid"
