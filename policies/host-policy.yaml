@@ -1,0 +1,29 @@
+version: 2
+host:
+  credentials: deny
+  unrestricted_mounts: deny
+  untrusted_host_execution: deny
+privileged:
+  default: approval-required
+  sudo: approval-required
+  host_filesystem: deny
+  network_reconfiguration: approval-required
+virtualization:
+  disposable_vm: approval-required
+  lima: allow
+  qemu: allow
+network:
+  public_mcp: deny
+  public_gateway: deny
+  localhost_services: allow
+git:
+  read: allow
+  write: approval-required
+  push: approval-required
+orchestration:
+  competing_orchestrator: deny
+  primary_agent_native_orchestration: allow
+  learning_helpers: approval-required
+evidence:
+  preserve_before_destroy: required
+  hashing: required
