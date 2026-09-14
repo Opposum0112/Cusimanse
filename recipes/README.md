@@ -1,8 +1,16 @@
 # Recipes
 
-Experiment recipes are the authoritative executable configuration for Cusimanse.
+Cusimanse deliberately separates the **Goose recipe** from the **Cusimanse experiment configuration**.
 
-Reference experiments:
+```text
+recipes/<experiment>/recipe.yaml
+    ↓ valid Goose recipe: title + description + instructions/prompt
+recipes/experiments/<experiment>.yaml
+    ↓ experiment-specific composition and threat-model metadata
+contract + host/VM/instrumentation/session/agent registries
+```
+
+Reference commands:
 
 ```bash
 goose recipe validate recipes/go-install-001/recipe.yaml
@@ -11,8 +19,6 @@ goose run --recipe recipes/go-install-001/recipe.yaml --interactive
 goose run --recipe recipes/npm-install-001/recipe.yaml --interactive
 ```
 
-A recipe points to the contract, host/VM/instrumentation profiles, session state,
-agent adapter matrix, Goose orchestration, skills, MCP, gateways and observability.
+The Goose recipe is the native agent handoff. The companion experiment configuration is the authoritative Cusimanse composition; it is read by the agent and is not itself passed to `goose run --recipe`.
 
-Prompt references under `prompts/experiments/` are handoff aids for Goose or other
-primary agents. They never replace or duplicate recipe configuration.
+Prompt references under `prompts/experiments/` are handoff aids for Goose or other primary agents. They never replace the contract or experiment configuration.
