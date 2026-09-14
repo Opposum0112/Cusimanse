@@ -6,7 +6,7 @@
 
 ![Cusimanse architecture](docs/architecture/cusimanse-architecture.svg)
 
-> **Architecture at a glance:** Contract → experiment configuration → Goose recipe / adapter handoff → primary agent → policyctl + approval → disposable Lima/QEMU VM → guest instrumentation → workload → evidence → independent verification → report → preservation.
+> **Architecture at a glance:** Contract → experiment configuration → host/workload profiles → Goose recipe / adapter handoff → primary agent → policyctl + approval → deterministic profile-selected runtime → disposable Lima/QEMU VM → declared instrumentation → workload → evidence → independent verification → report → preservation.
 
 ## Table of contents
 
@@ -15,6 +15,7 @@
 - [Quick start](#quick-start)
 - [Policy control and enforcement](#policy-control-and-enforcement)
 - [Experiment model](#experiment-model)
+- [Profiles and deterministic runtime](#profiles-and-deterministic-runtime)
 - [Execution lifecycle](#execution-lifecycle)
 - [Goose and specialist roles](#goose-and-specialist-roles)
 - [Role-to-skill matrix](#role-to-skill-matrix)
@@ -36,10 +37,12 @@ Cusimanse is a **declarative research-contract and YAML-recipe framework for age
 | Layer | Responsibility | Source of truth |
 |---|---|---|
 | Research contract | Why, authorization, scope, acceptance and constraints | `contracts/` |
-| Experiment configuration | Workload, compute, policy, instrumentation, evidence and integrations | `recipes/experiments/` |
+| Experiment configuration | Profile composition, policy, evidence and integrations | `recipes/experiments/` |
+| Host profile | Platform/capability selection and fixed runtime boundary | `recipes/profiles/host/` |
+| Workload profile | Reusable workload identity and deterministic runtime handler | `recipes/profiles/workload/` |
 | Policy enforcement | Allow, deny, approval-required decisions and audit | `scripts/policyctl` + `policies/` |
 | Agent handoff | How the selected agent receives the experiment | Goose recipe / adapter |
-| Execution | Where commands run and are observed | Lima/QEMU guest + runtime |
+| Execution | Where commands run and are observed | Lima/QEMU guest + deterministic runtime |
 | Research output | Evidence, verification, report and provenance | `runs/<session-id>/` |
 
 **Goose is the reference native operator.** Other agents remain adapter targets and do not get separate experiment definitions.
@@ -50,21 +53,25 @@ The architecture is layered so the agent, gateway, observability stack, Skills a
 
 ### 1. Control and declaration plane
 
-The researcher defines intent in a contract. Cusimanse composes workload, compute, policy, instrumentation, evidence requirements and integrations.
+The researcher defines intent in a contract. Cusimanse composes host and workload profiles with policy, evidence requirements and integrations.
 
 ### 2. Agent and orchestration plane
 
 One selected primary agent owns the lifecycle. Goose uses native recipes, Skills, delegation and MCP/extensions. Specialist roles are semantic responsibilities, not a competing runtime.
 
-### 3. Policy and execution plane
+### 3. Policy control plane
 
-`policyctl` is the explicit policy control interface. It validates policy, evaluates actions, records decisions, and requires explicit approval for approval-gated operations. It is separate from the containment boundary: the disposable Lima/QEMU guest contains workload execution.
+`policyctl` is the explicit policy control interface. It validates policy, evaluates actions, records decisions, and requires explicit approval for approval-gated operations.
 
-### 4. Evidence and research plane
+### 4. Execution and security plane
+
+The deterministic runtime resolves version-controlled profiles into a fixed execution path. The disposable Lima/QEMU guest remains the workload containment boundary.
+
+### 5. Evidence and research plane
 
 Raw observations become an evidence bundle with audit events, hashes and provenance. Specialist analysis is followed by independent verification, reporting and preservation.
 
-### 5. Integration and extension plane
+### 6. Integration and extension plane
 
 Host capabilities, model gateways, observability, Skills and MCP extend the system. They do not replace the VM boundary. Learning remains gated by replay, independent verification and human approval.
 
@@ -105,11 +112,13 @@ CUSIMANSE_RUN_VM_TEST=1 ./scripts/tests/runtime.sh
 
 ### 3. Select and run an experiment
 
-Each reference experiment has two definitions:
+Each reference experiment has a research configuration plus reusable profiles:
 
 ```text
-recipes/<experiment>/recipe.yaml       # valid Goose-native handoff
-recipes/experiments/<experiment>.yaml  # Cusimanse experiment composition
+recipes/experiments/<experiment>.yaml       # composition
+recipes/profiles/host/<profile>.yaml        # host/runtime boundary
+recipes/profiles/workload/<profile>.yaml    # workload/runtime handler
+recipes/<experiment>/recipe.yaml            # valid Goose-native handoff
 ```
 
 ```bash
@@ -118,16 +127,7 @@ goose run --recipe ./recipes/npm-install-001/recipe.yaml --interactive
 goose run --recipe ./recipes/npm-threat-001/recipe.yaml --interactive
 ```
 
-The agent must use policy controls before provisioning or executing a workload.
-
-### 4. Review the run
-
-```bash
-cat runs/<session-id>/research-report/report.md
-cat runs/<session-id>/verification/result.md
-cat runs/<session-id>/evidence/index.yaml
-cat runs/<session-id>/session.yaml
-```
+The agent selects profiles and operates the experiment, but cannot turn model output into an ad-hoc host provisioning or instrumentation system.
 
 ## Policy control and enforcement
 
@@ -139,33 +139,7 @@ policies/mount-denylist.yaml    # paths never mounted into experiment VMs
 policies/permission-tiers.yaml  # read / write / network / credential / privileged tiers
 ```
 
-The canonical interface is `scripts/policyctl`:
-
-```bash
-# Inspect and validate
-./scripts/policyctl show
-./scripts/policyctl validate
-
-# Evaluate and audit
-./scripts/policyctl check vm
-./scripts/policyctl check network
-./scripts/policyctl check credentials
-./scripts/policyctl check mounts
-./scripts/policyctl check git-write
-
-# Enforce: approval-required fails closed without explicit approval
-./scripts/policyctl require vm
-./scripts/policyctl require vm --approved
-./scripts/policyctl enforce git-write
-./scripts/policyctl enforce git-write --approved
-
-# Review decisions
-./scripts/policyctl audit
-```
-
-Controls include credentials, unrestricted mounts, host-root access, sudo, disposable VM/Lima/QEMU, localhost network, public MCP/gateway access, Git read/write/push, learning helpers, untrusted host execution and host network reconfiguration.
-
-`policyctl` returns distinct states for invalid policy/action, denial, and approval-required operations. A deny is never converted into an allow by the agent. Decisions are written to an auditable JSONL file. Policyctl is a decision layer; Lima/QEMU remains the workload containment boundary.
+The canonical interface is `scripts/policyctl`. It returns distinct states for invalid policy/action, denial, and approval-required operations. A deny is never converted into an allow by the agent. Decisions are written to an auditable JSONL file. Policyctl is a decision layer; Lima/QEMU remains the workload containment boundary.
 
 ## Experiment model
 
@@ -173,10 +147,10 @@ Controls include credentials, unrestricted mounts, host-root access, sudo, dispo
 Research Contract
       ↓
 Experiment Configuration
-      ├── compute / Lima
-      ├── workload
+      ├── host profile
+      ├── workload profile
       ├── policy → policyctl
-      ├── guest instrumentation
+      ├── declared instrumentation
       ├── evidence requirements
       ├── specialist roles → role-specific Skills
       └── integrations
@@ -187,16 +161,51 @@ Selected Primary Agent
       ↓
 policyctl validation / checks / approval
       ↓
+Deterministic profile-selected runtime
+      ↓
 Disposable VM execution
 ```
 
 - **Contract:** why, scope, authorization, acceptance and security constraints.
-- **Experiment configuration:** concrete research composition.
+- **Host profile:** reusable platform/capability declaration selecting the fixed host/VM runtime path.
+- **Workload profile:** reusable workload declaration selecting a fixed runtime handler and declared instrumentation.
+- **Experiment configuration:** concrete research composition that references profiles rather than embedding infrastructure generation logic.
 - **Policy:** allowed, denied and approval-gated operations.
 - **Goose recipe:** valid Goose-native instructions for operating the experiment.
 - **Role:** semantic responsibility assigned to a specialist agent/subagent.
 - **Skill:** reusable procedure/capability selected by a role; it does not replace policy or VM containment.
-- **Prompt reference:** convenience handoff for non-Goose agents.
+
+## Profiles and deterministic runtime
+
+Host and workload profiles make the runtime **parameterized without making it agent-generated**.
+
+```text
+                 Experiment
+                /           \
+               ▼             ▼
+        Host Profile     Workload Profile
+        platform/VM      handler/fixture
+        fixed runtime    instrumentation
+               \             /
+                ▼           ▼
+              Profile Resolver
+                     │
+               Policy Gate
+                     │
+                     ▼
+          Deterministic Runtime
+          ├── provision fixed VM recipe
+          ├── configure declared instrumentation
+          ├── execute fixed workload handler
+          ├── collect/hash evidence
+          └── teardown
+```
+
+The reference host profile is `recipes/profiles/host/linux-lima.yaml`. Reusable workload profiles currently cover Go install, pinned npm install, npm lifecycle, and the controlled npm threat fixture.
+
+**The agent may select profiles and analyze evidence. It must not generate the canonical host provisioning script, VM definition, or instrumentation setup from model output.** `scripts/run-experiment.sh` resolves the declared profiles and accepts only registered deterministic workload handlers.
+
+This gives Cusimanse reproducibility: the same contract, profile versions, recipe and runtime version resolve to the same execution topology and declared instrumentation, independent of which compatible agent performs the operation.
 
 ## Execution lifecycle
 
@@ -205,11 +214,11 @@ CREATE
   ↓
 VALIDATE → PREFLIGHT → PLAN
   ↓
-POLICY CHECKS → APPROVAL (when required)
+SELECT PROFILES → POLICY CHECKS → APPROVAL
   ↓
-PROVISION VM → START INSTRUMENTATION
+RESOLVE FIXED RUNTIME → PROVISION VM → START DECLARED INSTRUMENTATION
   ↓
-EXECUTE WORKLOAD → COLLECT + HASH EVIDENCE
+EXECUTE FIXED WORKLOAD HANDLER → COLLECT + HASH EVIDENCE
   ↓
 ANALYZE → INDEPENDENT VERIFY → REPORT
   ↓
@@ -218,7 +227,7 @@ PRESERVE → DESTROY VM
 COMPLETE / PARTIAL / FAILED
 ```
 
-`scripts/session.sh` implements lifecycle/checkpoint and evidence/provenance mechanics. `scripts/run-experiment.sh` provides deterministic VM/evidence execution. `scripts/policyctl` is the policy gate and audit interface.
+`scripts/session.sh` implements lifecycle/checkpoint and evidence/provenance mechanics. `scripts/run-experiment.sh` provides deterministic profile-selected VM/evidence execution. `scripts/policyctl` is the policy gate and audit interface.
 
 ## Goose and specialist roles
 
@@ -259,13 +268,15 @@ CLI presence, documentation or schema compatibility is **not** runtime validatio
 The host performs platform-aware setup and preflight. Linux-specific forensic commands are guest instrumentation requirements, not universal host requirements.
 
 ```text
-Host recipe → installer → host preflight
-                         ↓
-                    Lima / QEMU
-                         ↓
-                    Linux guest
-                  ↙      ↓       ↘
-             process   syscall   filesystem/network
+Host Profile → fixed host recipe → host preflight
+                              ↓
+                         Lima / QEMU
+                              ↓
+                         Linux guest
+                              ↓
+                 Workload Profile → declared instrumentation
+                              ↓
+                           workload
 ```
 
 Apple Silicon can use native arm64 Lima/QEMU. Full Windows experiments use WSL2. Native Windows without WSL2 remains an agent-only fallback.
@@ -286,11 +297,6 @@ role → selects least-scope Skills → invokes tools/MCP through those Skills
 ```
 
 The role assignments above intentionally use the repository's current reusable Skills (`experiment-run`, `evidence-analysis`, `forensics`, `verification`). New specialist Skills can be added to `.agents/skills/` and promoted through the existing candidate/validated workflow.
-
-```text
-candidate → provenance/scope review → execute → evaluate → replay
-→ independent verification → human approval → skills/validated
-```
 
 MCP credentials remain environment-only and MCP cannot expand the VM/OS security boundary.
 
@@ -335,7 +341,7 @@ Package substitution/supply-chain compromise, explicit network-policy violation,
 ./scripts/tests/validate.sh
 ```
 
-Validates project structure, Goose recipes, experiment composition, policy files, `policyctl`, adapter declarations, registries, executable script bits and retired-reference invariants.
+Validates project structure, Goose recipes, experiment composition, host/workload profiles, deterministic handler restrictions, policy files, `policyctl`, adapter declarations, registries, executable script bits and retired-reference invariants.
 
 ### Functional control-plane validation
 
@@ -373,16 +379,24 @@ Research contract
 Policy + policyctl + approval
       │ allowed / denied / approval-gated actions
       ▼
+Host + Workload Profiles
+      │ fixed runtime resolution
+      ▼
+Deterministic Runtime
+      │
+      ▼
 Disposable Lima/QEMU guest
       │ workload containment
       ▼
-Guest instrumentation
+Declared guest instrumentation
       │ observations
       ▼
 Evidence → independent verification → report → preservation
 ```
 
 **Not the containment boundary:** agent adapters, Goose Skills, MCP, model gateways, observability services or optional Container Use.
+
+**Not the canonical infrastructure generator:** the agent/model. Agents select and operate declared profiles; the deterministic runtime resolves them through fixed handlers and version-controlled recipes.
 
 Policy control is a fail-closed decision layer, not a substitute for VM isolation. Credentials, unrestricted mounts, untrusted host execution and unauthorized external network access remain outside the intended experiment scope.
 
@@ -393,7 +407,12 @@ Cusimanse/
 ├── .agents/                    # specialist roles and agent skills
 ├── contracts/                  # research intent, authorization and acceptance
 ├── policies/                   # executable policy, mount and permission definitions
-├── recipes/                    # experiment, agent, host, instrumentation and integration declarations
+├── recipes/
+│   ├── experiments/            # experiment composition
+│   ├── profiles/               # reusable host + workload profiles
+│   ├── host/                   # host capability/toolchain recipe
+│   ├── lima/                   # fixed disposable VM recipe
+│   └── instrumentation/        # declared guest collector profile
 ├── prompts/                    # cross-agent handoff prompts
 ├── scripts/                    # installation, policy, preflight and runtime mechanics
 ├── docs/architecture/          # editable Mermaid + rendered architecture
@@ -403,4 +422,4 @@ Cusimanse/
 
 ## Design principle
 
-> **Declare once. Validate policy. Operate with the selected agent. Execute only inside disposable compute. Observe before, during and after the workload. Preserve evidence. Verify independently. Learn only with replay and human approval.**
+> **Declare once. Select reusable profiles. Validate policy. Operate with the selected agent. Resolve only through deterministic runtime handlers. Execute only inside disposable compute. Observe before, during and after the workload. Preserve evidence. Verify independently. Learn only with replay and human approval.**
