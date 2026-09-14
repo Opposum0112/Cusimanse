@@ -1,8 +1,5 @@
 flowchart TB
-    %% ------------------------------------------------------------------
-    %% CONTROL / DECLARATION PLANE
-    %% ------------------------------------------------------------------
-    subgraph CP[Control & Declaration Plane]
+    subgraph CP[1. Control & Declaration Plane]
         R[Researcher]
         C[Research Contract<br/>purpose • scope • authorization • acceptance]
         E[Cusimanse Experiment Configuration<br/>workload • compute • policy • instrumentation • evidence]
@@ -13,14 +10,11 @@ flowchart TB
         E --> PR
     end
 
-    %% ------------------------------------------------------------------
-    %% AGENT / ORCHESTRATION PLANE
-    %% ------------------------------------------------------------------
-    subgraph AP[Agent & Orchestration Plane]
+    subgraph AP[2. Agent & Orchestration Plane]
         A{Selected Primary Agent}
         G[Goose Reference Operator<br/>native recipes • Skills • Summon • MCP]
         AD[Validated Adapter Layer<br/>OpenCode • Hermes • Antigravity • Pi]
-        ROLES[Semantic Specialist Roles<br/>planner • researcher • runtime analyst<br/>forensics • detection • verifier • report]
+        ROLES[Semantic Specialist Roles<br/>planner • researcher • runtime • forensics<br/>detection • verifier • report]
         TOOLS[Agent Capabilities<br/>developer tools • plugins • MCP • skills]
         A -->|reference| G
         A -->|adapter| AD
@@ -29,35 +23,36 @@ flowchart TB
         G --> TOOLS
         AD --> TOOLS
     end
-
     GR --> A
     PR --> A
 
-    %% ------------------------------------------------------------------
-    %% EXECUTION / SECURITY PLANE
-    %% ------------------------------------------------------------------
-    subgraph EP[Execution & Security Plane — containment boundary]
-        PLAN[Plan + approval checkpoint]
-        VM[Lima / QEMU Disposable VM<br/>guest OS is the execution boundary]
-        INST[Guest Instrumentation Profile<br/>process • syscall • filesystem • network]
-        WORK[Recipe-defined Workload<br/>Go • npm • controlled threat fixtures]
-        POL[Policy enforcement<br/>scope • network • filesystem • tool authorization]
-        DESTROY[Destroy / clean up VM]
-        PLAN --> VM
-        VM --> INST
-        VM --> POL
-        INST --> WORK
-        POL --> WORK
-        WORK --> DESTROY
+    subgraph PP[3. Policy Control Plane]
+        PC[policyctl<br/>show • validate • check • require • enforce • audit]
+        HP[host-policy.yaml<br/>host • privilege • VM • network • Git • orchestration]
+        MD[mount-denylist.yaml<br/>forbidden host paths]
+        PT[permission-tiers.yaml<br/>read • write • network • credentials • privileged]
+        DEC{Policy decision}
+        AUDIT[Auditable policy decision JSONL]
+        HP --> PC
+        MD --> PC
+        PT --> PC
+        PC --> DEC
+        DEC --> AUDIT
     end
+    A --> PC
 
-    ROLES --> PLAN
-    TOOLS --> PLAN
+    subgraph EP[4. Execution & Security Plane — containment boundary]
+        PLAN[Plan + explicit approval checkpoint]
+        VM[Lima / QEMU Disposable VM<br/>guest OS = execution / isolation boundary]
+        INST[Guest Instrumentation<br/>process • syscall • filesystem • network]
+        WORK[Recipe-defined Workload<br/>Go • npm • controlled threat fixtures]
+        DESTROY[Destroy / clean up VM]
+        PLAN --> VM --> INST --> WORK --> DESTROY
+    end
+    DEC -->|allow / approved| PLAN
+    DEC -->|deny / missing approval| BLOCK[STOP — do not execute]
 
-    %% ------------------------------------------------------------------
-    %% EVIDENCE / VERIFICATION PLANE
-    %% ------------------------------------------------------------------
-    subgraph EVP[Evidence, Verification & Research Plane]
+    subgraph EVP[5. Evidence, Verification & Research Plane]
         EV[Evidence bundle<br/>session.yaml • events • raw observations]
         HASH[Integrity + provenance<br/>SHA-256 hashes • immutable index]
         ANALYZE[Specialist analysis<br/>runtime • forensics • detection]
@@ -66,53 +61,46 @@ flowchart TB
         PRESERVE[Preserve provenance + artifacts]
         EV --> HASH --> ANALYZE --> VERIFY --> REPORT --> PRESERVE
     end
-
     WORK --> EV
     DESTROY --> PRESERVE
 
-    %% ------------------------------------------------------------------
-    %% INTEGRATION / EXTENSION PLANE
-    %% ------------------------------------------------------------------
-    subgraph IP[Integration & Extension Plane]
+    subgraph IP[6. Integration & Extension Plane]
         HOST[Host capabilities<br/>platform-aware preflight]
-        GW[Model gateways<br/>OmniRoute → LiteLLM<br/>localhost / credentials from environment]
-        OBS[Observability<br/>Numbat • Aegis • Phoenix / OpenTelemetry • ClawMetry]
-        SKILLS[Skill registry<br/>candidate → replay → verify → human approval → validated]
+        GW[Model gateways<br/>OmniRoute → LiteLLM<br/>localhost / environment credentials]
+        OBS[Observability<br/>Numbat • Aegis • Phoenix / OTel • ClawMetry]
+        SKILLS[Skill registry<br/>candidate → replay → verify → human approval]
         MCP[MCP registry<br/>scoped extensions • environment-only credentials]
         HOST --> A
         GW --> A
         OBS -. observes .-> EV
-        SKILLS -. extends agent .-> TOOLS
-        MCP -. extends agent .-> TOOLS
+        SKILLS -. extends .-> TOOLS
+        MCP -. extends .-> TOOLS
     end
 
-    %% ------------------------------------------------------------------
-    %% LEARNING LOOP
-    %% ------------------------------------------------------------------
-    LEARN{learning.enabled?}
-    RETRIEVE[Retrieve prior evidence / skills]
-    PROPOSE[Propose → execute → evaluate → refine]
-    REPLAY[Replay candidate]
-    APPROVE[Independent verification + human approval]
-    PROMOTE[Promote to skills/validated]
+    subgraph LP[7. Optional Learning Loop]
+        LEARN{learning.enabled?}
+        RETRIEVE[Retrieve prior evidence / skills]
+        REPLAY[Propose → execute → evaluate → refine → replay]
+        APPROVE[Independent verification + human approval]
+        PROMOTE[Promote candidate → skills/validated]
+        DONE[Complete]
+        LEARN -->|No| DONE
+        LEARN -->|Yes| RETRIEVE --> REPLAY --> APPROVE --> PROMOTE --> DONE
+    end
     REPORT --> LEARN
-    LEARN -->|No| DONE[Complete]
-    LEARN -->|Yes| RETRIEVE --> PROPOSE --> REPLAY --> APPROVE --> PROMOTE --> DONE
 
-    %% Optional environment is deliberately not a security boundary.
     CU[Optional Container Use<br/>additional environment only]
     CU -.-> VM
 
     classDef control fill:#eef5ff,stroke:#356aa0,color:#10243e,stroke-width:1.5px;
     classDef agent fill:#f4efff,stroke:#7450a5,color:#241536,stroke-width:1.5px;
+    classDef policy fill:#fff1f1,stroke:#a33,color:#3a1111,stroke-width:2px;
     classDef exec fill:#fff3df,stroke:#b06d18,color:#3a2309,stroke-width:2px;
     classDef evidence fill:#edf8ef,stroke:#438451,color:#16361d,stroke-width:1.5px;
     classDef integration fill:#f4f4f4,stroke:#666,color:#222,stroke-width:1.5px;
-    classDef boundary fill:#ffe9e9,stroke:#a33,color:#3a1111,stroke-width:2.5px;
-
     class R,C,E,GR,PR control;
     class A,G,AD,ROLES,TOOLS agent;
-    class PLAN,VM,INST,WORK,POL,DESTROY exec;
+    class PC,HP,MD,PT,DEC,AUDIT,BLOCK policy;
+    class PLAN,VM,INST,WORK,DESTROY exec;
     class EV,HASH,ANALYZE,VERIFY,REPORT,PRESERVE evidence;
     class HOST,GW,OBS,SKILLS,MCP,CU integration;
-    class VM,POL boundary;
