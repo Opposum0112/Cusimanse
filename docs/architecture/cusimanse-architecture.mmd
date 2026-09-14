@@ -1,27 +1,31 @@
 flowchart TB
   R[Researcher] --> C[Research Contract\nMarkdown: purpose • scope • authorization • acceptance]
   C --> E[Experiment Requirements\nYAML: workload • OS • isolation • network • instrumentation]
-  E --> A[Primary Agent / Goose\nplan • select • provision • execute • observe • adapt]
-  A -->|resolve| REG[Capability Registry\nversioned profiles]
+  E --> A[Primary Agent / Goose\nplan • select • delegate • observe]
+  A --> OP[Operator Command Surface\nGoose recipe + Cusimanse CLI + adapter handoff]
+  OP -->|validate| VAL[Validation / Preflight]
+  VAL -->|ready| RES[Go Capability API\nresolve • provision • configure • execute • collect • destroy]
+  RES --> REG[Capability Registry\nversioned profiles]
   REG --> HP[Host Profile\nLinux + Lima/QEMU capabilities]
   REG --> WP[Workload Profile\nfixed handler + fixture]
-  A -->|request capability| CAP[Go Capability API\nresolve • provision • execute • collect • destroy]
-  CAP -->|policy gate| PC[policyctl\nvalidate • check • require • audit]
-  PC -->|allow / approved| CAP
+  RES -->|policy gate| PC[Declarative Policy\npolicies/host-policy.yaml\npolicyctl compatibility enforcement]
+  PC -->|allow / approved| RES
   PC -->|deny| STOP[STOP]
-  CAP --> VM[Lima / QEMU Disposable VM\nexecution + isolation boundary]
-  HP --> CAP
-  WP --> CAP
-  CAP --> INST[Declared Instrumentation\nprocess • syscall • filesystem • network]
+  RES --> VM[Lima / QEMU Disposable VM\nexecution + isolation boundary]
+  HP --> RES
+  WP --> RES
+  RES --> INST[Declared Instrumentation\nprocess • syscall • filesystem • network]
   INST --> VM
   VM --> WORK[Workload Handler\nGo • npm • controlled fixtures]
   WORK --> EV[Evidence Bundle\nraw observations + audit events]
   EV --> HASH[Session / Provenance\nSHA-256 + manifest]
   HASH --> ANALYZE[Specialist Roles + Skills\nruntime • forensics • detection]
   ANALYZE --> VERIFY[Independent Verifier]
-  VERIFY --> REPORT[Research Report]
+  VERIFY --> REPORT[Report Generator\nresearch-report/report.md + .yaml]
   REPORT --> PRESERVE[Preserve artifacts]
   PRESERVE --> DESTROY[Destroy VM]
-  DESTROY --> A
-  EXT[Pluggable Providers\nLima • future QEMU/WSL2/container] -.-> CAP
-  SK[Skills / MCP / Gateways / Observability] -.-> A
+  DESTROY --> OBS[Observability / audit correlation]
+  OBS --> A
+  EXT[Pluggable Providers\nLima • future QEMU/WSL2/container] -.-> RES
+  AD[Agent Adapters\nGoose native • OpenCode • Hermes • Antigravity • Pi] -.-> OP
+  SK[Skills / MCP / Gateways / Phoenix / OTel / Numbat / Aegis / ClawMetry] -.-> A
