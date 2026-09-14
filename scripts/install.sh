@@ -31,7 +31,6 @@ elif [ "$OS" = Linux ]; then
 else
   fail 'Use WSL2 for full Cusimanse experiments or the PowerShell native-agent fallback'
 fi
-
 NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"; [ "$NODE_MAJOR" -ge 22 ] || fail 'Node.js 22+ required'
 GOOSE_VERSION="${CUSIMANSE_GOOSE_VERSION:-1.50.0}"
 if ! have goose; then
@@ -95,7 +94,6 @@ export OPENAI_BASE_PATH=v1/chat/completions
 export OPENAI_API_KEY=${LITELLM_API_KEY:-}
 EOF
 for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do if [ -f "$rc" ] && ! grep -Fq 'Cusimanse PATH' "$rc"; then printf '\n# Cusimanse PATH\nexport PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"\n' >> "$rc"; fi; done
-
 selection="${CUSIMANSE_INSTALL_ADAPTERS:-}"
 if [ -z "$selection" ] && [ -t 0 ]; then
   printf '%s\n' 'Optional adapters:' '  1) none' '  2) OpenCode' '  3) Hermes' '  4) Antigravity' '  5) Pi' '  6) all'
@@ -107,6 +105,5 @@ install_remote_script(){ local url="$1"; local tmp; tmp="$(mktemp)"; curl -fsSL 
 case ",$selection," in *,opencode,*) have opencode || install_remote_script 'https://opencode.ai/install';; esac
 case ",$selection," in *,hermes,*) have hermes || install_remote_script 'https://hermes-agent.nousresearch.com/install.sh';; esac
 case ",$selection," in *,antigravity,*) have agy || install_remote_script 'https://antigravity.google/cli/install.sh';; esac
-case ",$selection," in *,pi,*) have pi || npm install -g @mariozechner/pi-coding-agent;; esac
-
-log "Goose ${GOOSE_VERSION}, Numbat v0.2.0 and OmniRoute 3.8.50 selected; host installation/configuration complete."
+case ",$selection," in *,pi,*) have pi || npm install -g @earendil-works/pi-coding-agent@0.74.0;; esac
+log "Goose ${GOOSE_VERSION}, Numbat v0.2.0, OmniRoute 3.8.50 and Pi 0.74.0 selected; host installation/configuration complete."
