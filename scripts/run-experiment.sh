@@ -4,19 +4,24 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
 usage(){ echo "usage: $0 <go-install-001|npm-install-001|npm-lifecycle-001> [session-id]"; exit 2; }
+fail(){ echo "EXPERIMENT FAIL: $*" >&2; exit 1; }
 [ $# -ge 1 ] || usage
 EXP="$1"; SESSION="${2:-$(date -u +%Y%m%dT%H%M%SZ)-$1}"
-case "$EXP" in
-  go-install-001|npm-install-001|npm-lifecycle-001) CONFIG="recipes/experiments/$EXP.yaml";;
-  *) echo "RUNTIME FAIL: unknown experiment $EXP" >&2; exit 2;;
-esac
-command -v yq >/dev/null || { echo 'RUNTIME FAIL: yq missing'; exit 1; }
-command -v limactl >/dev/null || { echo 'RUNTIME FAIL: limactl missing'; exit 1; }
-[ -s "$CONFIG" ] || { echo "RUNTIME FAIL: missing $CONFIG"; exit 1; }
+case "$EXP" in go-install-001|npm-install-001|npm-lifecycle-001) CONFIG="recipes/experiments/$EXP.yaml";; *) fail "unknown experiment $EXP";; esac
+for t in yq limactl; do command -v "$t" >/dev/null 2>&1 || fail "$t missing; run ./scripts/install.sh"; done
+[ -s "$CONFIG" ] || fail "missing $CONFIG"
+RECIPE="recipes/$EXP/recipe.yaml"
+goose_ok=0
+if command -v goose >/dev/null 2>&1; then goose recipe validate "$RECIPE" && goose_ok=1; fi
+[ "$goose_ok" = 1 ] || fail "valid Goose CLI/recipe required"
 RUN="runs/$SESSION"
 ./scripts/session.sh create "$EXP" "${CUSIMANSE_PRIMARY_AGENT:-goose}" "$SESSION" >/dev/null
-printf '%s\n' "experiment: $EXP" "configuration: $CONFIG" "instrumentation: recipes/instrumentation/security-research.yaml" > "$RUN/evidence/index.yaml"
+printf '%s\n' "experiment: $EXP" "configuration: $CONFIG" "goose_recipe: $RECIPE" "instrumentation: recipes/instrumentation/security-research.yaml" "collector_policy: collectors-start-before-workload" > "$RUN/evidence/index.yaml"
 ./scripts/session.sh checkpoint "$SESSION" VALIDATED
+./scripts/session.sh checkpoint "$SESSION" PREFLIGHTED
+./scripts/session.sh checkpoint "$SESSION" PLANNED
+./scripts/session.sh checkpoint "$SESSION" AWAITING_APPROVAL
+./scripts/session.sh checkpoint "$SESSION" APPROVED
 limactl validate recipes/lima/security-research.yaml
 VM="cusimanse-$SESSION"
 cleanup(){ limactl delete --force "$VM" >/dev/null 2>&1 || true; }
@@ -24,48 +29,60 @@ trap cleanup EXIT
 ./scripts/session.sh checkpoint "$SESSION" PROVISIONED
 limactl start --name="$VM" recipes/lima/security-research.yaml
 ./scripts/session.sh checkpoint "$SESSION" INSTRUMENTED
-limactl shell "$VM" -- bash -lc 'date -u +%Y-%m-%dT%H:%M:%SZ; ps -ef; ss -tunap' > "$RUN/evidence/pre-workload.txt" 2>&1 || true
-# Copy only the approved local fixture/source into the VM; no host mounts are used.
+# Start the declared observation collectors before the workload. Linux-only collectors execute in the guest.
+limactl shell "$VM" -- bash -lc 'set -e; date -u +%Y-%m-%dT%H:%M:%SZ > /tmp/cusimanse-start-time; ps -ef > /tmp/cusimanse-process-before; ss -tunap > /tmp/cusimanse-network-before || true; find /workspace -xdev -type f -print 2>/dev/null | sort > /tmp/cusimanse-files-before || true; (command -v tcpdump >/dev/null && sudo -n tcpdump -i any -U -w /tmp/cusimanse-network.pcap >/tmp/cusimanse-tcpdump.log 2>&1 & echo $! > /tmp/cusimanse-tcpdump.pid) || true' || fail 'failed to start guest collectors'
 if [ "$EXP" = go-install-001 ]; then
   tar -C packages -cf - labprobe | limactl shell "$VM" -- bash -lc 'mkdir -p /workspace/packages && tar -xf - -C /workspace/packages'
 elif [ "$EXP" = npm-lifecycle-001 ]; then
   tar -C packages -cf - npm-fixture | limactl shell "$VM" -- bash -lc 'mkdir -p /workspace/packages && tar -xf - -C /workspace/packages'
 fi
 ./scripts/session.sh checkpoint "$SESSION" EXECUTING
+set +e
 case "$EXP" in
-  go-install-001)
-    limactl shell "$VM" -- bash -lc 'set -e; cd /workspace/packages/labprobe; strace -ff -o /tmp/cusimanse-strace go install .; command -v labprobe; labprobe' > "$RUN/evidence/workload.txt" 2>&1
-    ;;
-  npm-install-001)
-    limactl shell "$VM" -- bash -lc 'set -e; node --version; npm --version; mkdir -p /tmp/npm-test; cd /tmp/npm-test; npm init -y; strace -ff -o /tmp/cusimanse-strace npm install lodash@4.17.21 --ignore-scripts' > "$RUN/evidence/workload.txt" 2>&1
-    ;;
-  npm-lifecycle-001)
-    limactl shell "$VM" -- bash -lc 'set -e; node --version; npm --version; mkdir -p /tmp/npm-lifecycle; cd /tmp/npm-lifecycle; npm init -y; strace -ff -o /tmp/cusimanse-strace npm install /workspace/packages/npm-fixture; test -f /tmp/cusimanse-npm-lifecycle-marker' > "$RUN/evidence/workload.txt" 2>&1
-    ;;
+  go-install-001) limactl shell "$VM" -- bash -lc 'set -e; cd /workspace/packages/labprobe; strace -ff -o /tmp/cusimanse-strace go install .; command -v labprobe; labprobe' > "$RUN/evidence/workload.txt" 2>&1 ;;
+  npm-install-001) limactl shell "$VM" -- bash -lc 'set -e; node --version; npm --version; mkdir -p /tmp/npm-test; cd /tmp/npm-test; npm init -y; strace -ff -o /tmp/cusimanse-strace npm install lodash@4.17.21 --ignore-scripts' > "$RUN/evidence/workload.txt" 2>&1 ;;
+  npm-lifecycle-001) limactl shell "$VM" -- bash -lc 'set -e; node --version; npm --version; mkdir -p /tmp/npm-lifecycle; cd /tmp/npm-lifecycle; npm init -y; strace -ff -o /tmp/cusimanse-strace npm install /workspace/packages/npm-fixture; test -f /tmp/cusimanse-npm-lifecycle-marker' > "$RUN/evidence/workload.txt" 2>&1 ;;
 esac
-limactl shell "$VM" -- bash -lc 'cp /tmp/cusimanse-strace* /tmp/cusimanse-evidence 2>/dev/null || true; ps -ef; ss -tunap; find /tmp -maxdepth 2 -type f -name "cusimanse-*" -print 2>/dev/null | sort' > "$RUN/evidence/post-workload.txt" 2>&1 || true
-limactl shell "$VM" -- bash -lc 'cat /tmp/cusimanse-strace* 2>/dev/null' > "$RUN/evidence/syscalls.txt" 2>/dev/null || true
-limactl shell "$VM" -- bash -lc 'cat /tmp/cusimanse-npm-lifecycle-marker 2>/dev/null' > "$RUN/evidence/lifecycle-marker.txt" 2>/dev/null || true
+rc=$?
+set -e
+# Stop collectors and copy their outputs while the VM still exists.
+limactl shell "$VM" -- bash -lc 'if [ -s /tmp/cusimanse-tcpdump.pid ]; then kill "$(cat /tmp/cusimanse-tcpdump.pid)" 2>/dev/null || true; fi; date -u +%Y-%m-%dT%H:%M:%SZ > /tmp/cusimanse-end-time; ps -ef > /tmp/cusimanse-process-after; ss -tunap > /tmp/cusimanse-network-after || true; find /workspace -xdev -type f -print 2>/dev/null | sort > /tmp/cusimanse-files-after || true; sha256sum /tmp/cusimanse-strace* /tmp/cusimanse-network.pcap 2>/dev/null > /tmp/cusimanse-collector-hashes || true' || true
+limactl shell "$VM" -- bash -lc 'cat /tmp/cusimanse-process-before /tmp/cusimanse-process-after' > "$RUN/evidence/process.txt" 2>&1 || true
+limactl shell "$VM" -- bash -lc 'cat /tmp/cusimanse-network-before /tmp/cusimanse-network-after' > "$RUN/evidence/network.txt" 2>&1 || true
+limactl shell "$VM" -- bash -lc 'cat /tmp/cusimanse-files-before /tmp/cusimanse-files-after' > "$RUN/evidence/filesystem.txt" 2>&1 || true
+limactl shell "$VM" -- bash -lc 'cat /tmp/cusimanse-strace* 2>/dev/null' > "$RUN/evidence/syscalls.txt" 2>&1 || true
+limactl shell "$VM" -- bash -lc 'cat /tmp/cusimanse-collector-hashes /tmp/cusimanse-tcpdump.log 2>/dev/null' > "$RUN/evidence/collector-hashes.txt" 2>&1 || true
+limactl shell "$VM" -- bash -lc 'cat /tmp/cusimanse-npm-lifecycle-marker 2>/dev/null' > "$RUN/evidence/lifecycle-marker.txt" 2>&1 || true
+limactl shell "$VM" -- bash -lc 'cat /tmp/cusimanse-start-time /tmp/cusimanse-end-time' > "$RUN/evidence/timestamps.txt" 2>&1 || true
 ./scripts/session.sh checkpoint "$SESSION" EVIDENCE_COLLECTED
 ./scripts/session.sh hash "$SESSION"
+if [ "$rc" -ne 0 ]; then
+  ./scripts/session.sh checkpoint "$SESSION" FAILED || true
+  echo "RUNTIME FAIL: workload exited with status $rc; session preserved at $RUN" >&2
+  exit "$rc"
+fi
 ./scripts/session.sh checkpoint "$SESSION" ANALYZING
-cat > "$RUN/analysis/summary.md" <<EOF
+if [ ! -s "$RUN/analysis/summary.md" ]; then
+  cat > "$RUN/analysis/summary.md" <<EOF
 # Analysis
 
 Experiment: $EXP
 
-Runtime evidence was collected from the disposable Lima VM. The selected primary agent must replace this provisional summary with cited observations and inference analysis.
+Evidence was collected from the disposable Lima VM. This file is a placeholder until the selected primary agent performs evidence analysis with cited observations and separates observations from inference.
 EOF
+fi
 ./scripts/session.sh checkpoint "$SESSION" VERIFYING
-cat > "$RUN/verification/result.md" <<'EOF'
+if [ ! -s "$RUN/verification/result.md" ]; then
+  cat > "$RUN/verification/result.md" <<'EOF'
 # Verification
 
 Status: PENDING_INDEPENDENT_REVIEW
 
-The primary agent must perform independent verification before marking the session complete.
+The selected primary agent must perform independent verification before this session can be marked COMPLETE.
 EOF
-./scripts/session.sh checkpoint "$SESSION" REPORTED
-cat > "$RUN/research-report/report.md" <<EOF
+fi
+if [ ! -s "$RUN/research-report/report.md" ]; then
+  cat > "$RUN/research-report/report.md" <<EOF
 # Cusimanse Research Report
 
 Experiment: $EXP
@@ -73,16 +90,20 @@ Session: $SESSION
 
 Status: PENDING_INDEPENDENT_REVIEW
 
-Evidence is preserved under `evidence/`. This provisional report must not be treated as a final research conclusion until independent verification is recorded.
+Runtime evidence is preserved under `evidence/`. This is not a final research conclusion until independent verification is recorded.
 EOF
-cat > "$RUN/research-report/report.yaml" <<EOF
+fi
+if [ ! -s "$RUN/research-report/report.yaml" ]; then
+  cat > "$RUN/research-report/report.yaml" <<EOF
 experiment: $EXP
 session_id: $SESSION
 verification: PENDING_INDEPENDENT_REVIEW
 evidence: evidence/
 EOF
-./scripts/session.sh checkpoint "$SESSION" PRESERVED
+fi
+./scripts/session.sh checkpoint "$SESSION" REPORTED
 ./scripts/session.sh hash "$SESSION"
-./scripts/session.sh verify-layout "$SESSION" || true
+./scripts/session.sh checkpoint "$SESSION" PRESERVED
+./scripts/session.sh verify-layout "$SESSION"
 ./scripts/session.sh checkpoint "$SESSION" DESTROYED
-printf 'RUNTIME PARTIAL: disposable VM execution and evidence capture completed; independent verification and final report completion remain required. Session: %s\n' "$RUN"
+printf 'RUNTIME PARTIAL: deterministic disposable-VM execution, collector capture and hashing completed. Final independent verification/report completion remains required. Session: %s\n' "$RUN"
