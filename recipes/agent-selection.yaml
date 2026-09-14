@@ -1,9 +1,10 @@
-version: 3
+version: 4
 id: agent-selection
 kind: bootstrap-contract
 selection:
   prompt: Select one primary Cusimanse operator shell
   exactly_one: true
+  reference_operator: goose
   options:
     - goose
     - opencode
@@ -38,6 +39,8 @@ execution:
   lifecycle: selected_primary_agent_shell
   host_scripts: bootstrap-validation-configuration-only
   native_cli_required: true
+  recipe_input_required: true
+  reference_operator: goose
   reference_contract: recipes/agents/primary-agent.yaml
   shell_contract: recipes/agents/primary-shell.yaml
 state:
