@@ -1,29 +1,21 @@
-# Blackboard Schema
+# Evidence and handoff model
 
-The blackboard is the shared state contract between specialist agents and the research report/evidence pipeline.
+Cusimanse does not require a blackboard service. Goose subagents/subrecipes have isolated sessions, so durable handoff is done through explicit files in the experiment run directory.
 
 ```text
-blackboard/
-├── state.json
-├── plan.json
-├── tasks.jsonl
-├── findings.jsonl
-├── decisions.jsonl
-├── research.json
-├── security-review.json
-├── routing.json
-└── evidence-index.json
+experiments/<experiment>/runs/<run-id>/
+├── evidence/
+├── analysis.md
+├── verification.md
+└── report.md
 ```
 
 ## Rules
 
-- Prefer append-only event files.
+- Pass evidence paths explicitly to subrecipes.
 - Never overwrite raw evidence.
-- Findings must reference evidence.
-- Verification changes status, not history.
-- Agent handoffs should be artifact-based.
-- Raw evidence and provenance are retained before compute destruction.
+- Findings must reference observable artifacts.
+- Verification reviews the evidence independently.
+- Preserve the evidence directory before considering the run complete.
 
-## Core artifacts
-
-`state.json` contains current workflow state. `plan.json` contains objective, hypothesis, success criteria, compute profile and evidence plan. `tasks.jsonl` records one task per line. `findings.jsonl` records claims and evidence references. `decisions.jsonl` records important routing, policy and architecture decisions. `evidence-index.json` maps evidence artifacts to source, collection method, timestamps and hashes.
+This filesystem model replaces the previous custom shared-state service and keeps the project within Goose-native primitives.
