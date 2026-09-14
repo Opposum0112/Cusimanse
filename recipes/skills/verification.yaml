@@ -1,0 +1,6 @@
+version: 1
+name: verification
+description: "Independently verify evidence integrity and reproducibility"
+capabilities: ["collect"]
+required_tools: ["sha256sum", "jq", "yq"]
+managed_by: cmd/cusimanse
