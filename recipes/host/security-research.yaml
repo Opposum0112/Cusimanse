@@ -1,22 +1,30 @@
 kind: host-toolchain
+version: 2
+purpose: >-
+  Declarative inventory for every host tool Cusimanse installs and uses. The
+  installer implements this inventory; the recipe is the source of truth for
+  required commands, configuration locations and researcher access.
 required:
-  - git
-  - bash
-  - curl
-  - python3
-  - ruby
-  - node
-  - npm
-  - go
-  - limactl
-  - qemu-system-x86_64
-  - goose
-  - jq
-  - yq
-  - rg
-  - litellm
-  - omniroute
-  - numbat
-  - clawmetry
-  - phoenix
-  - aegis
+  core: [git, bash, curl, python3, ruby, node, npm, go, jq, yq, rg]
+  execution: [limactl, qemu-system-x86_64, goose]
+  workload_tools: [strace, tcpdump, ss, ip, dig, getent, lsof, find, stat, sha256sum, inotifywait, file, ps, pgrep]
+  gateways: [litellm, omniroute]
+  observability: [numbat, clawmetry, phoenix, aegis]
+configuration:
+  root: ~/.config/cusimanse/
+  gateway: ~/.config/cusimanse/litellm.yaml
+  gateway_environment: ~/.config/cusimanse/omniroute.env
+  observability_environment: ~/.config/cusimanse/observability.env
+  goose_environment: ~/.config/cusimanse/goose.env
+  aegis_checkout: ~/.local/share/cusimanse/aegis/
+  python_environment: ~/.local/share/cusimanse/venv/
+access:
+  path_prepend: "$HOME/.local/bin:$HOME/go/bin"
+  command: ./scripts/tools.sh
+  direct_commands: true
+  secrets_not_printed: true
+installation:
+  entrypoint: ./scripts/install.sh
+  idempotent: true
+  configure_from_recipe: true
+  fail_if_required_tool_unavailable: true
