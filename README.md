@@ -2,17 +2,18 @@
 
 ![Cusimanse mascot and logo](docs/images/cusimanse-mascot-logo.svg)
 
-**Declarative, agent-neutral security research on disposable compute.** Cusimanse separates research intent, experiment composition, agent operation, execution containment, instrumentation, evidence, and verification so the same experiment can be operated by different agents without duplicating the security workflow.
+**Declarative, agent-neutral security research on disposable compute.** Cusimanse separates research intent, experiment composition, agent operation, policy enforcement, execution containment, instrumentation, evidence, and verification.
 
 ![Cusimanse architecture](docs/architecture/cusimanse-architecture.svg)
 
-> **Architecture at a glance:** Contract → experiment configuration → Goose recipe / adapter handoff → primary agent → policy + disposable Lima/QEMU VM → guest instrumentation → workload → evidence → independent verification → report → preservation.
+> **Architecture at a glance:** Contract → experiment configuration → Goose recipe / adapter handoff → primary agent → policyctl + approval → disposable Lima/QEMU VM → guest instrumentation → workload → evidence → independent verification → report → preservation.
 
 ## Table of contents
 
 - [What Cusimanse is](#what-cusimanse-is)
 - [Architecture](#architecture)
 - [Quick start](#quick-start)
+- [Policy control and enforcement](#policy-control-and-enforcement)
 - [Experiment model](#experiment-model)
 - [Execution lifecycle](#execution-lifecycle)
 - [Goose and specialist roles](#goose-and-specialist-roles)
@@ -22,7 +23,7 @@
 - [Skills and MCP](#skills-and-mcp)
 - [Evidence and reproducibility](#evidence-and-reproducibility)
 - [Threat-model coverage](#threat-model-coverage)
-- [Validation](#validation)
+- [Validation and integration tests](#validation-and-integration-tests)
 - [Platform support](#platform-support)
 - [Safety boundary](#safety-boundary)
 - [Repository map](#repository-map)
@@ -31,51 +32,49 @@
 
 Cusimanse is a **declarative research-contract and YAML-recipe framework for agent-operated security experiments on disposable compute**.
 
-The design has five important separations:
-
 | Layer | Responsibility | Source of truth |
 |---|---|---|
-| Research contract | Why the experiment exists, authorization, scope and acceptance | Contract Markdown/YAML |
-| Experiment configuration | Workload, compute, policy, instrumentation, evidence and integrations | `recipes/experiments/*.yaml` |
-| Agent handoff | How the selected agent receives the experiment | Goose recipe or prompt adapter |
-| Execution | Where commands actually run and how they are observed | Lima/QEMU guest + runtime |
+| Research contract | Why, authorization, scope, acceptance and constraints | `contracts/` |
+| Experiment configuration | Workload, compute, policy, instrumentation, evidence and integrations | `recipes/experiments/` |
+| Policy enforcement | Allow, deny, approval-required decisions and audit | `scripts/policyctl` + `policies/` |
+| Agent handoff | How the selected agent receives the experiment | Goose recipe / adapter |
+| Execution | Where commands run and are observed | Lima/QEMU guest + runtime |
 | Research output | Evidence, verification, report and provenance | `runs/<session-id>/` |
 
-**Goose is the reference native operator.** OpenCode, Hermes, Antigravity and Pi are adapter targets; they do not get separate experiment definitions.
+**Goose is the reference native operator.** Other agents remain adapter targets and do not get separate experiment definitions.
 
 ## Architecture
 
-The architecture is intentionally layered rather than treating the agent, gateway, observability stack, or MCP as the security boundary.
+The architecture is layered so the agent, gateway, observability stack, Skills and MCP are not confused with the workload security boundary.
 
 ### 1. Control and declaration plane
 
-The researcher defines intent in a contract. Cusimanse then composes the concrete experiment: workload, disposable compute, policy, instrumentation, evidence requirements and integrations.
-
-A valid Goose recipe is a **Goose-native handoff**, not a replacement for the Cusimanse experiment configuration. The prompt library serves the same handoff purpose for non-Goose agents.
+The researcher defines intent in a contract. Cusimanse composes workload, compute, policy, instrumentation, evidence requirements and integrations.
 
 ### 2. Agent and orchestration plane
 
-One selected primary agent owns the lifecycle. Goose uses its native recipe, Skills, Summon/delegation and MCP/extension mechanisms. Specialist roles are semantic responsibilities—planner, researcher, runtime analyst, forensics analyst, detection analyst, verifier and report generator—not a second orchestration engine.
+One selected primary agent owns the lifecycle. Goose uses native recipes, Skills, delegation and MCP/extensions. Specialist roles are semantic responsibilities, not a competing runtime.
 
-### 3. Execution and security plane
+### 3. Policy and execution plane
 
-The workload runs inside disposable Lima/QEMU compute. Policy gates scope, authorization, network/filesystem behavior and privileged or destructive actions. Guest instrumentation starts before the workload and records the observations needed for research.
+`policyctl` is the explicit policy control interface. It validates policy, evaluates actions, records decisions, and requires explicit approval for approval-gated operations. It is separate from the containment boundary: the disposable Lima/QEMU guest contains workload execution.
 
 ### 4. Evidence and research plane
 
-Raw observations become an evidence bundle with audit events, hashes and provenance. Specialist analysis is followed by an **independent verifier**, then the report and preservation metadata are produced before the VM is destroyed.
+Raw observations become an evidence bundle with audit events, hashes and provenance. Specialist analysis is followed by independent verification, reporting and preservation.
 
 ### 5. Integration and extension plane
 
-Host capabilities, model gateways, observability, Skills and MCP extend the system. They do **not** replace the VM containment boundary. Optional learning is gated by replay, independent verification and human approval.
+Host capabilities, model gateways, observability, Skills and MCP extend the system. They do not replace the VM boundary. Learning remains gated by replay, independent verification and human approval.
 
-The editable source for the main architecture is `docs/architecture/cusimanse-architecture.mmd`; the rendered diagram is `docs/architecture/cusimanse-architecture.svg`.
+Editable architecture sources:
+
+- `docs/architecture/cusimanse-architecture.mmd`
+- `docs/architecture/cusimanse-architecture.svg`
 
 ## Quick start
 
 ### 1. Prepare the host
-
-Linux, macOS with Lima, or WSL2:
 
 ```bash
 ./scripts/install.sh
@@ -87,13 +86,12 @@ Windows bootstrap:
 powershell -ExecutionPolicy Bypass -File scripts/install.ps1
 ```
 
-The installer is platform-aware and idempotent. Native Windows without WSL2 is an **agent-only fallback**, not a full Cusimanse experiment host.
-
 ### 2. Check readiness
 
 ```bash
 ./scripts/preflight.sh
 ./scripts/tools.sh check
+./scripts/policyctl validate
 ./scripts/tests/validate.sh
 ./scripts/tests/runtime.sh
 ```
@@ -104,31 +102,14 @@ For a real disposable-VM smoke test:
 CUSIMANSE_RUN_VM_TEST=1 ./scripts/tests/runtime.sh
 ```
 
-### 3. Select an experiment
+### 3. Select and run an experiment
 
-Reference experiments intentionally use two separate files:
-
-```text
-recipes/<experiment>/recipe.yaml       # Goose-native handoff
-recipes/experiments/<experiment>.yaml  # Cusimanse composition
-```
-
-Current examples:
+Each reference experiment has two definitions:
 
 ```text
-recipes/go-install-001/recipe.yaml
-recipes/experiments/go-install-001.yaml
-
-recipes/npm-install-001/recipe.yaml
-recipes/experiments/npm-install-001.yaml
-
-recipes/npm-threat-001/recipe.yaml
-recipes/experiments/npm-threat-001.yaml
+recipes/<experiment>/recipe.yaml       # valid Goose-native handoff
+recipes/experiments/<experiment>.yaml  # Cusimanse experiment composition
 ```
-
-The Goose recipe contains the official recipe shape—`title`, `description`, and `instructions`/`prompt`. The companion Cusimanse YAML carries experiment-specific configuration.
-
-### 4. Run through Goose
 
 ```bash
 goose run --recipe ./recipes/go-install-001/recipe.yaml --interactive
@@ -136,23 +117,56 @@ goose run --recipe ./recipes/npm-install-001/recipe.yaml --interactive
 goose run --recipe ./recipes/npm-threat-001/recipe.yaml --interactive
 ```
 
-The researcher starts the selected agent. The agent operates the lifecycle and executes the recipe-defined workload inside disposable compute; the researcher does not manually execute the workload on the host.
+The agent must use policy controls before provisioning or executing a workload.
 
-### 5. Review the run
+### 4. Review the run
 
 ```bash
 cat runs/<session-id>/research-report/report.md
 cat runs/<session-id>/verification/result.md
-cat runs/<session-id>/analysis/summary.md
 cat runs/<session-id>/evidence/index.yaml
 cat runs/<session-id>/session.yaml
 ```
 
-`research-report/report.md` is the primary researcher-facing output.
+## Policy control and enforcement
+
+Policy is executable control-plane state, not documentation-only guidance.
+
+```text
+policies/host-policy.yaml       # host / privilege / VM / network / Git / orchestration / evidence
+policies/mount-denylist.yaml    # paths never mounted into experiment VMs
+policies/permission-tiers.yaml  # read / write / network / credential / privileged tiers
+```
+
+The canonical interface is `scripts/policyctl`:
+
+```bash
+# Inspect and validate
+./scripts/policyctl show
+./scripts/policyctl validate
+
+# Evaluate and audit
+./scripts/policyctl check vm
+./scripts/policyctl check network
+./scripts/policyctl check credentials
+./scripts/policyctl check mounts
+./scripts/policyctl check git-write
+
+# Enforce: approval-required fails closed without explicit approval
+./scripts/policyctl require vm
+./scripts/policyctl require vm --approved
+./scripts/policyctl enforce git-write
+./scripts/policyctl enforce git-write --approved
+
+# Review decisions
+./scripts/policyctl audit
+```
+
+Controls include credentials, unrestricted mounts, host-root access, sudo, disposable VM/Lima/QEMU, localhost network, public MCP/gateway access, Git read/write/push, learning helpers, untrusted host execution and host network reconfiguration.
+
+`policyctl` returns distinct states for invalid policy/action, denial, and approval-required operations. A deny is never converted into an allow by the agent. Decisions are written to an auditable JSONL file. Policyctl is a decision layer; Lima/QEMU remains the workload containment boundary.
 
 ## Experiment model
-
-A Cusimanse experiment is composed, not improvised:
 
 ```text
 Research Contract
@@ -160,7 +174,7 @@ Research Contract
 Experiment Configuration
       ├── compute / Lima
       ├── workload
-      ├── security policy
+      ├── policy → policyctl
       ├── guest instrumentation
       ├── evidence requirements
       ├── specialist roles
@@ -169,136 +183,94 @@ Experiment Configuration
 Goose Recipe or validated agent adapter
       ↓
 Selected Primary Agent
+      ↓
+policyctl validation / checks / approval
+      ↓
+Disposable VM execution
 ```
 
-### Contract vs configuration vs recipe
-
 - **Contract:** why, scope, authorization, acceptance and security constraints.
-- **Experiment configuration:** the concrete research composition.
-- **Goose recipe:** valid Goose-native instructions for operating that experiment.
-- **Prompt reference:** a convenience handoff for agents that are not using native Goose recipes.
-
-Keeping these separate prevents the same workload from being copied into multiple agent-specific formats.
+- **Experiment configuration:** concrete research composition.
+- **Policy:** allowed, denied and approval-gated operations.
+- **Goose recipe:** valid Goose-native instructions for operating the experiment.
+- **Prompt reference:** convenience handoff for non-Goose agents.
 
 ## Execution lifecycle
-
-The canonical lifecycle is:
 
 ```text
 CREATE
   ↓
 VALIDATE → PREFLIGHT → PLAN
   ↓
-APPROVAL (when required)
+POLICY CHECKS → APPROVAL (when required)
   ↓
-PROVISION VM
+PROVISION VM → START INSTRUMENTATION
   ↓
-START INSTRUMENTATION
+EXECUTE WORKLOAD → COLLECT + HASH EVIDENCE
   ↓
-EXECUTE WORKLOAD
+ANALYZE → INDEPENDENT VERIFY → REPORT
   ↓
-COLLECT + HASH EVIDENCE
-  ↓
-ANALYZE
-  ↓
-INDEPENDENT VERIFY
-  ↓
-REPORT
-  ↓
-PRESERVE
-  ↓
-DESTROY VM
+PRESERVE → DESTROY VM
   ↓
 COMPLETE / PARTIAL / FAILED
 ```
 
-`scripts/session.sh` implements session-state/checkpoint and evidence/provenance mechanics. `scripts/run-experiment.sh` provides deterministic VM/evidence execution so lifecycle-critical mechanics are not left entirely to agent prose.
-
-Lifecycle-critical stages remain sequential. Specialist analysis may be parallelized only after the relevant evidence exists, and the verifier is kept independent from the analysis it verifies.
+`scripts/session.sh` implements lifecycle/checkpoint and evidence/provenance mechanics. `scripts/run-experiment.sh` provides deterministic VM/evidence execution. `scripts/policyctl` is the policy gate and audit interface.
 
 ## Goose and specialist roles
 
-Goose is the reference operator because the platform can use native Goose recipes, Skills, delegation and MCP/extension capabilities without introducing a competing orchestration framework.
+Goose is the reference operator because Cusimanse uses native Goose recipes, Skills, delegation and MCP/extension capabilities without requiring a competing orchestration framework.
 
-Specialist definitions live under `.agents/agents/` and include responsibilities for planning, research, runtime analysis, forensics, detection, verification and reporting.
-
-`recipes/agents/goose-orchestration.yaml` maps those responsibilities to Goose-native delegation. A role describes **what** a specialist is responsible for; the orchestration recipe describes **when/how** it is delegated.
+Specialist definitions under `.agents/agents/` cover planning, research, runtime analysis, forensics, detection, verification and reporting. `recipes/agents/goose-orchestration.yaml` maps responsibilities to Goose-native delegation.
 
 ## Agent adapters
 
-Compatibility and actual validation are deliberately separate:
-
 | Agent | Integration path | Current status |
 |---|---|---|
-| Goose | Native Goose recipe | Reference operator; runtime evidence required for PASS |
+| Goose | Native Goose recipe | Reference; runtime evidence required for PASS |
 | OpenCode | Prompt adapter | NOT_DEPLOYED |
 | Hermes | Prompt adapter | NOT_DEPLOYED |
 | Antigravity | Prompt adapter | NOT_DEPLOYED |
 | Pi | Prompt adapter | NOT_DEPLOYED |
 
-CLI presence, documentation, or schema compatibility is **not** runtime validation. An adapter becomes PASS only after disposable-VM execution produces the expected session artifacts and independent verification.
+CLI presence, documentation or schema compatibility is **not** runtime validation. Promotion requires disposable-VM execution and independent verification artifacts.
 
 ## Host, VM, and instrumentation
 
-The host layer is responsible for platform-aware setup and preflight. Linux-specific forensic commands are guest instrumentation requirements, not universal host requirements.
+The host performs platform-aware setup and preflight. Linux-specific forensic commands are guest instrumentation requirements, not universal host requirements.
 
 ```text
-Host recipe
-  ↓
-platform-aware installer
-  ↓
-host preflight
-  ↓
-Lima / QEMU
-  ↓
-Linux guest
-  ├── process observation
-  ├── syscall observation
-  ├── filesystem observation
-  └── network observation
+Host recipe → installer → host preflight
+                         ↓
+                    Lima / QEMU
+                         ↓
+                    Linux guest
+                  ↙      ↓       ↘
+             process   syscall   filesystem/network
 ```
 
-Apple Silicon can use native arm64 Lima/QEMU. Native x86_64 QEMU is not required for an arm64 guest. Full Windows experiments use WSL2 as the supported Linux host path.
+Apple Silicon can use native arm64 Lima/QEMU. Full Windows experiments use WSL2. Native Windows without WSL2 remains an agent-only fallback.
 
 ## Gateways and observability
 
-The full research deployment can integrate model gateways and agent observability:
+Full research deployments can integrate OmniRoute → LiteLLM and Numbat, Aegis, Phoenix/OpenTelemetry and ClawMetry. Credentials remain environment-only and the default network posture is local-only.
 
-- **Gateways:** OmniRoute → LiteLLM.
-- **Observability:** Numbat, Aegis, Phoenix/OpenTelemetry and ClawMetry.
-- **Credentials:** environment-only; not committed to recipes.
-- **Network posture:** local-only by default.
-
-These integrations observe or route agent activity. **They are not the workload containment boundary.** The disposable guest is the execution boundary.
-
-CI control-plane validation does not require the full host observability stack.
+These systems route or observe activity. **They are not the workload containment boundary.** CI control-plane validation does not require the full host observability stack.
 
 ## Skills and MCP
 
-`recipes/skills/registry.yaml` and `recipes/mcp/registry.yaml` define capability sources.
-
-Goose-native Skills and MCP extensions are preferred where they provide the required capability. External skill collections are treated as candidate sources rather than trusted code.
-
-Promotion requires:
+`recipes/skills/registry.yaml` and `recipes/mcp/registry.yaml` define capability sources. External skills are candidate inputs rather than trusted code.
 
 ```text
-candidate
-  → scope/provenance review
-  → execute
-  → evaluate
-  → replay
-  → independent verification
-  → human approval
-  → skills/validated
+candidate → provenance/scope review → execute → evaluate → replay
+→ independent verification → human approval → skills/validated
 ```
 
-MCP credentials remain environment-only, and MCP does not expand the VM/OS security boundary.
+MCP credentials remain environment-only and MCP cannot expand the VM/OS security boundary.
 
 ## Evidence and reproducibility
 
-A completed session is expected to preserve enough information to explain **what ran, where it ran, what was observed, and how the conclusion was verified**.
-
-Key artifacts include:
+A completed session preserves enough information to answer **what ran, where it ran, what was observed, which policy decisions were made, and how the conclusion was verified**.
 
 ```text
 runs/<session-id>/
@@ -311,30 +283,25 @@ runs/<session-id>/
 ├── verification/result.md
 ├── research-report/report.md
 ├── research-report/report.yaml
-├── preservation/manifest.yaml
-└── observability/
-    ├── token-usage.yaml
-    └── dashboard.yaml
+└── preservation/manifest.yaml
 ```
 
-Recipe digests, Git references, tool versions, agent/adapter versions, audit events and evidence hashes support reproducibility. Model output itself is not treated as raw evidence.
+Policy decisions are separately auditable through the configured policyctl JSONL audit file. Model output is not treated as raw evidence.
 
 ## Threat-model coverage
 
-The reference experiments distinguish clean baselines from controlled adversarial-like behavior:
-
 | Experiment | Purpose | Boundary |
 |---|---|---|
-| `go-install-001` | Go build/install baseline with runtime observation | Disposable guest |
-| `npm-install-001` | Pinned npm installation baseline using `--ignore-scripts` | Disposable guest |
-| `npm-lifecycle-001` | Controlled local postinstall fixture | Disposable guest; localhost-only attempt |
-| `npm-threat-001` | Threat-model-oriented postinstall process/filesystem/network observation | Local, deterministic, disposable fixture |
+| `go-install-001` | Go build/install baseline | Disposable guest |
+| `npm-install-001` | Pinned npm baseline with `--ignore-scripts` | Disposable guest |
+| `npm-lifecycle-001` | Controlled local postinstall fixture | Disposable guest; localhost-only |
+| `npm-threat-001` | Threat-model-oriented lifecycle observation | Local, deterministic, disposable fixture |
 
-The npm fixture is **adversarial-like, not real malware**. It does not receive credentials and is not authorized for external network access.
+The npm fixture is **adversarial-like, not real malware**. It does not receive credentials or external network authorization.
 
-The following remain separate future experiments unless a run produces evidence for them: package substitution/supply-chain compromise, explicit network-policy violation, and agent tool-abuse or escape attempts.
+Package substitution/supply-chain compromise, explicit network-policy violation, agent tool abuse and agent escape remain separate future experiments unless independently exercised and evidenced.
 
-## Validation
+## Validation and integration tests
 
 ### Static validation
 
@@ -342,7 +309,7 @@ The following remain separate future experiments unless a run produces evidence 
 ./scripts/tests/validate.sh
 ```
 
-Checks project contracts, Goose recipe shape, experiment composition, adapter declarations, registries and policy invariants without requiring Lima or third-party observability services.
+Validates project structure, Goose recipes, experiment composition, policy files, `policyctl`, adapter declarations, registries, executable script bits and retired-reference invariants.
 
 ### Functional control-plane validation
 
@@ -350,7 +317,7 @@ Checks project contracts, Goose recipe shape, experiment composition, adapter de
 ./scripts/tests/runtime.sh
 ```
 
-Exercises Goose recipe validation plus session lifecycle transitions, invalid-transition rejection, audit events and evidence/provenance hashing.
+Exercises Goose recipe validation, lifecycle transitions, invalid-transition rejection, policy validation/check behavior, audit events and evidence/provenance hashing.
 
 ### Disposable-VM integration
 
@@ -358,7 +325,7 @@ Exercises Goose recipe validation plus session lifecycle transitions, invalid-tr
 CUSIMANSE_RUN_VM_TEST=1 ./scripts/tests/runtime.sh
 ```
 
-A VM smoke-test PASS means the Lima/QEMU runtime path executed. A research experiment or adapter PASS additionally requires the expected session artifacts and independent verification.
+The integration path validates the actual Lima/QEMU smoke test and policy-gated workload execution where supported. A research experiment or adapter PASS additionally requires independent verification.
 
 ## Platform support
 
@@ -366,55 +333,43 @@ A VM smoke-test PASS means the Lima/QEMU runtime path executed. A research exper
 |---|---|---|
 | Linux | Full | Reference host path |
 | macOS | Full with Lima/QEMU | Guest provides Linux instrumentation |
-| Windows 10/11 + WSL2 | Full supported path | Linux guest/host tooling runs through WSL2 |
-| Native Windows | Limited | Agent-only fallback; not a full experiment host |
+| Windows 10/11 + WSL2 | Full supported path | Linux tooling through WSL2 |
+| Native Windows | Limited | Agent-only fallback |
 
-Recommended baseline: **4+ CPU cores, 8+ GB RAM, and 20+ GB free disk**, plus space for VM images and evidence.
+Recommended baseline: **4+ CPU cores, 8+ GB RAM, 20+ GB free disk**, plus VM/evidence storage.
 
 ## Safety boundary
 
-The security boundary is intentionally explicit:
-
 ```text
 Research contract
-      │ defines authorization
+      │ authorization / scope
       ▼
-Policy + approval
-      │ gates allowed actions
+Policy + policyctl + approval
+      │ allowed / denied / approval-gated actions
       ▼
 Disposable Lima/QEMU guest
-      │ contains workload execution
+      │ workload containment
       ▼
 Guest instrumentation
-      │ records observations
+      │ observations
       ▼
-Evidence → independent verification → report
+Evidence → independent verification → report → preservation
 ```
 
-**Not the containment boundary:** agent adapters, Goose Skills, MCP, model gateways, observability services, or optional Container Use.
+**Not the containment boundary:** agent adapters, Goose Skills, MCP, model gateways, observability services or optional Container Use.
 
-This architecture assumes experiments are authorized, local/disposable, and designed so that credentials and unintended external network access are excluded.
+Policy control is a fail-closed decision layer, not a substitute for VM isolation. Credentials, unrestricted mounts, untrusted host execution and unauthorized external network access remain outside the intended experiment scope.
 
 ## Repository map
 
 ```text
 Cusimanse/
-├── .agents/
-│   ├── agents/                 # specialist role definitions
-│   └── skills/                 # agent skill definitions
-├── contracts/                  # research intent and authorization
-├── recipes/
-│   ├── experiments/            # Cusimanse experiment composition
-│   ├── agents/                 # agent/adapter declarations
-│   ├── host/                   # platform-aware host requirements
-│   ├── instrumentation/        # guest collection profiles
-│   ├── lima/                   # disposable compute definitions
-│   ├── mcp/                    # MCP registry
-│   ├── observability/           # observability integrations
-│   ├── session/                # lifecycle/session contract
-│   └── skills/                 # skill registry
+├── .agents/                    # specialist roles and agent skills
+├── contracts/                  # research intent, authorization and acceptance
+├── policies/                   # executable policy, mount and permission definitions
+├── recipes/                    # experiment, agent, host, instrumentation and integration declarations
 ├── prompts/                    # cross-agent handoff prompts
-├── scripts/                    # install, preflight and runtime mechanics
+├── scripts/                    # installation, policy, preflight and runtime mechanics
 ├── docs/architecture/          # editable Mermaid + rendered architecture
 ├── runs/                       # generated research sessions
 └── packages/                   # controlled workload/support packages
@@ -422,4 +377,4 @@ Cusimanse/
 
 ## Design principle
 
-> **Declare once. Operate with the selected agent. Execute only inside disposable compute. Observe before, during and after the workload. Preserve evidence. Verify independently. Learn only with replay and human approval.**
+> **Declare once. Validate policy. Operate with the selected agent. Execute only inside disposable compute. Observe before, during and after the workload. Preserve evidence. Verify independently. Learn only with replay and human approval.**
