@@ -1,4 +1,4 @@
-version: 1
+version: 2
 kind: agent-adapter-installation
 purpose: Interactive, idempotent selection of optional primary-agent adapters.
 mandatory:
@@ -6,28 +6,34 @@ mandatory:
 optional_adapters:
   opencode:
     command: opencode
-    unix_install: curl -fsSL https://opencode.ai/install | bash
-    windows: scoop install opencode
+    unix_install: scripts/install.sh
+    windows: native-installer-or-wsl2
   hermes:
     command: hermes
-    unix_install: curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
-    windows: irm https://hermes-agent.nousresearch.com/install.ps1 | iex
+    unix_install: scripts/install.sh
+    windows: native-installer-or-wsl2
   antigravity:
     command: agy
-    unix_install: curl -fsSL https://antigravity.google/cli/install.sh | bash
-    windows: irm https://antigravity.google/cli/install.ps1 | iex
+    unix_install: scripts/install.sh
+    windows: native-installer-or-wsl2
   pi:
     command: pi
-    unix_install: npm install -g @mariozechner/pi-coding-agent
-    windows: npm install -g @mariozechner/pi-coding-agent
+    package: '@earendil-works/pi-coding-agent@0.74.0'
+    unix_install: npm install -g @earendil-works/pi-coding-agent@0.74.0
+    windows: npm install -g @earendil-works/pi-coding-agent@0.74.0
 selection:
   interactive: true
-  noninteractive_all: CUSIMANSE_INSTALL_ADAPTERS=all
-  noninteractive_list: CUSIMANSE_INSTALL_ADAPTERS=opencode,hermes,antigravity,pi
+  environment_variable: CUSIMANSE_INSTALL_ADAPTERS
+  noninteractive_all: all
+  noninteractive_list: opencode,hermes,antigravity,pi
 idempotency:
   check_command_before_install: true
   rerun_safe: true
+supply_chain:
+  pinned_known_versions: [goose: '1.50.0', numbat: '0.2.0', omniroute: '3.8.50', pi: '0.74.0']
+  remote_installer_scripts_must_be_downloaded_then_syntax_checked: true
+  secrets_not_in_recipe: true
 fallback:
-  unsupported_native_install: report_and_continue
+  unsupported_platform: report_and_stop_before_full_experiment
   failed_optional_adapter: PARTIAL
   required_goose_failure: FAIL
