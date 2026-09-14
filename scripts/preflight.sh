@@ -15,11 +15,12 @@ case "$OS" in
   *) platform=windows_wsl2 ;;
 esac
 if [ "$platform" = windows_native ]; then
-  echo 'PREFLIGHT NOT_READY: native Windows is supported for agent/repository operations; use WSL2 for Lima reference experiments.' >&2
+  echo 'PREFLIGHT NOT_READY: native Windows supports repository/agent operations; use WSL2 for full Lima experiments.' >&2
   exit 2
 fi
 while IFS= read -r t; do [ -z "$t" ] || command -v "$t" >/dev/null 2>&1 || missing+=("host-command:$t"); done < <(yq -r '.common.commands[]' "$RECIPE")
 while IFS= read -r t; do [ -z "$t" ] || command -v "$t" >/dev/null 2>&1 || missing+=("platform-command:$t"); done < <(yq -r '.platforms["'"$platform"'"].commands[]' "$RECIPE" 2>/dev/null)
+for t in litellm omniroute numbat clawmetry; do command -v "$t" >/dev/null 2>&1 || missing+=("mandatory-service:$t"); done
 [ -x "$VENV/bin/python" ] || missing+=(python-venv)
 if [ -x "$VENV/bin/python" ]; then "$VENV/bin/python" - <<'PY' || missing+=(python-observability)
 import importlib.util
