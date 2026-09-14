@@ -1,0 +1,22 @@
+kind: host-toolchain
+required:
+  - git
+  - bash
+  - curl
+  - python3
+  - ruby
+  - node
+  - npm
+  - go
+  - limactl
+  - qemu-system-x86_64
+  - goose
+  - jq
+  - yq
+  - rg
+  - litellm
+  - omniroute
+  - numbat
+  - clawmetry
+  - phoenix
+  - aegis

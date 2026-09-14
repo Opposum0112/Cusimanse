@@ -1,8 +1,0 @@
-{
-  "mcpServers": {},
-  "registry": "recipes/mcp/registry.yaml",
-  "policy": {
-    "public_exposure": "deny",
-    "unknown_server": "NOT_DEPLOYED"
-  }
-}

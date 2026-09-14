@@ -1,0 +1,16 @@
+id: security-research
+kind: instrumentation-profile
+scope: disposable-lima-vm
+collectors:
+  process: [ps, pgrep, lsof]
+  syscall: [strace]
+  network: [ss, ip, tcpdump]
+  dns: [dig, getent]
+  filesystem: [find, stat, sha256sum, inotifywait]
+  security: [dmesg, journalctl]
+optional:
+  ebpf: bpftrace
+rules:
+  raw_evidence_immutable: true
+  model_output_is_evidence: false
+  collectors_start_before_workload: true

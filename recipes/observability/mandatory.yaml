@@ -1,0 +1,10 @@
+kind: host-observability
+required: true
+components:
+  numbat: {command: numbat, mode: monitor-only}
+  aegis: {source: antropos17/Aegis, mode: monitor-only}
+  phoenix: {python_import: phoenix}
+  opentelemetry: {python_import: opentelemetry}
+  clawmetry: {command: clawmetry}
+security:
+  observers_are_not_security_boundaries: true

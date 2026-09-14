@@ -1,11 +1,13 @@
-# Cusimanse Goose project guidance
+# Cusimanse project instructions
 
-- Treat the Markdown contract as the research scope and safety statement.
-- Treat the selected Goose recipe as the executable workflow definition.
-- Use Goose Plan/Todo for task decomposition.
-- Prefer Skills for reusable security-research instructions.
-- Use Summon/subrecipes for bounded specialist work and parallel work only when outputs do not conflict.
-- Prefer Container Use when the workload needs an isolated environment.
-- Never treat model output as evidence; cite observable files and command output.
-- Do not access unrelated credentials, host data or repositories.
-- Keep research artifacts under the experiment run directory.
+The Markdown contract defines the research question, authorization, scope and acceptance criteria. The experiment recipe is the single executable configuration source.
+
+Use Goose as the reference primary operator. Other agents may operate the same recipe only through a validated adapter or prompt handoff.
+
+Reference experiments execute workloads inside disposable Lima/QEMU VMs. Start the declared instrumentation before the workload. Never execute the approved workload on the host.
+
+Use project Skills and specialist subagents for focused work. Keep independent analysis separate from the primary lifecycle. Do not introduce a second orchestration controller.
+
+Raw runtime artifacts are evidence. Model output is analysis only. Preserve evidence and provenance before VM destruction.
+
+Do not access unrelated credentials, host data or mounts. Keep provider credentials outside Git.

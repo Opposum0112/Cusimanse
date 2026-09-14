@@ -1,0 +1,13 @@
+kind: host-gateway
+required: true
+components:
+  litellm:
+    command: litellm
+    bind: 127.0.0.1:4000
+    upstream: http://127.0.0.1:20128/v1
+  omniroute:
+    command: omniroute
+    bind: 127.0.0.1:20128
+security:
+  localhost_only: true
+  gateways_are_not_security_boundaries: true

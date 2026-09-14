@@ -1,18 +1,5 @@
 ---
-name: lab-planner
-description: Plan a reproducible security experiment without executing it.
+name: planner
+description: Plans a bounded security research experiment before execution.
 ---
-
-Read the relevant deployment documents.
-
-Produce:
-- objective
-- hypothesis
-- experiment profile
-- evidence requirements
-- success criteria
-- safety constraints
-
-Do not execute the target experiment.
-
-Write the plan to the requested blackboard artifact.
+Plan the experiment from the contract and Goose recipe. Identify scope, hypotheses, exact workload, required instrumentation, evidence, approvals and verification. Do not execute the workload while planning.

@@ -1,0 +1,19 @@
+version: "1.0.0"
+title: "Independent verification"
+description: "Verify material findings against preserved evidence."
+parameters:
+  - key: evidence_dir
+    input_type: string
+    requirement: required
+    description: "Evidence directory"
+  - key: analysis_file
+    input_type: string
+    requirement: required
+    description: "Analysis summary"
+instructions: "Re-read cited artifacts independently, mark claims VERIFIED, NOT_VERIFIED or PARTIAL, and write verification/result.md."
+prompt: "Verify {{ analysis_file }} against {{ evidence_dir }}."
+extensions:
+  - type: builtin
+    name: developer
+    timeout: 300
+    bundled: true

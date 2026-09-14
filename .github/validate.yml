@@ -1,0 +1,55 @@
+name: validate
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-project:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Check every shell script
+        run: |
+          while IFS= read -r -d '' f; do
+            test -x "$f" || { echo "missing execute bit: $f"; exit 1; }
+            bash -n "$f"
+          done < <(find . -path './.git' -prune -o -type f -name '*.sh' -print0)
+
+      - name: ShellCheck
+        run: |
+          shellcheck --version
+          while IFS= read -r -d '' f; do
+            shellcheck --severity=error "$f"
+          done < <(find . -path './.git' -prune -o -type f -name '*.sh' -print0)
+
+      - name: Go format check
+        run: |
+          files="$(gofmt -l .)"
+          if [ -n "$files" ]; then
+            echo "Go formatting differences found in:"
+            printf '%s\n' "$files"
+            exit 1
+          fi
+
+      - name: Go vet
+        run: go vet ./...
+
+      - name: Project validation
+        run: bash ./scripts/tests/validate.sh

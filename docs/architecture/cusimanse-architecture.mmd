@@ -1,23 +1,20 @@
 flowchart TD
-    R[Researcher] --> C[Markdown Research Contract]
-    C --> Q[Goose Recipe]
-    Q --> G[Goose Primary Session]
-    G --> P[Plan / Todo]
-    G --> S[Skills]
-    G --> M[Summon + Subagents / Subrecipes]
-    G --> X[Configured MCP Extensions]
-    G --> I[Developer Tools]
-    G --> U[Container Use - optional isolation]
-    U --> W[Experiment Workload]
-    I --> W
-    W --> E[Observable Evidence Files]
-    E --> A[Evidence Analysis Subrecipe]
-    E --> V[Independent Verification Subrecipe]
-    A --> V
-    V --> T[Research Report]
-    E --> T
-    G --> H[Goose Session History]
-    H --> O[ClawMetry - optional local observability]
-
-    classDef native fill:#eef,stroke:#334;
-    class Q,G,P,S,M,X,I,U,A,V,T native;
+ R[Researcher] --> C[Contract]
+ C --> G[Goose experiment recipe]
+ G --> P[Goose primary session]
+ P --> PLAN[Plan / Todo]
+ P --> SK[Skills]
+ P --> SA[Summon subagents / subrecipes]
+ P --> HOST[Mandatory host stack]
+ HOST --> GW[LiteLLM + OmniRoute]
+ HOST --> OBS[Numbat + Aegis + Phoenix + ClawMetry]
+ P --> VM[Lima + QEMU VM]
+ VM --> I[Instrumentation profile]
+ I --> W[Approved workload]
+ W --> E[Evidence]
+ E --> A[Analysis]
+ A --> V[Independent verification]
+ V --> RPT[Research report]
+ RPT --> PR[Preserve evidence]
+ PR --> D[Destroy VM]
+ P -. optional .-> CU[Container Use]

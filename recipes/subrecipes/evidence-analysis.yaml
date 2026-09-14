@@ -1,0 +1,15 @@
+version: "1.0.0"
+title: "Evidence analysis"
+description: "Analyze preserved experiment evidence without changing raw artifacts."
+parameters:
+  - key: evidence_dir
+    input_type: string
+    requirement: required
+    description: "Evidence directory"
+instructions: "Read only {{ evidence_dir }}, cite exact artifacts, separate observation from inference, and write analysis/summary.md."
+prompt: "Analyze the preserved evidence in {{ evidence_dir }}."
+extensions:
+  - type: builtin
+    name: developer
+    timeout: 300
+    bundled: true

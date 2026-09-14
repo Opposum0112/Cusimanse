@@ -1,13 +1,7 @@
-# Cusimanse Research Contracts
+# Contracts
 
-Contracts define the human research agreement around a Goose workflow: research question, authorization, scope, safety expectations, evidence requirements and acceptance criteria.
+Contracts define the research question, authorization, safety, workload, evidence requirements and acceptance criteria. They do not duplicate Goose recipe instructions.
 
-The executable workflow is a Goose YAML recipe. Contracts do not define a second orchestration system, VM controller, gateway or telemetry service.
-
-Recommended flow:
-
-```text
-Contract → Goose recipe → Goose session → evidence → verification → report
-```
-
-See the official Goose recipe documentation for the executable recipe schema and validation rules.
+- `go-install-001.md`
+- `npm-install-001.md`
+- `acceptance.md`

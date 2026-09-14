@@ -1,0 +1,15 @@
+version: "1.0.0"
+title: "Research report"
+description: "Generate the final researcher-facing report."
+parameters:
+  - key: run_dir
+    input_type: string
+    requirement: required
+    description: "Run directory"
+instructions: "Read the contract, recipe, evidence index, analysis and verification. Write research-report/report.md and report.yaml. Include scope, workload, environment, instrumentation, observations, inference, verification, failures, limitations, versions and reproducibility."
+prompt: "Generate the final report from {{ run_dir }}."
+extensions:
+  - type: builtin
+    name: developer
+    timeout: 300
+    bundled: true

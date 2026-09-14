@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-echo "capture stage-03-runbook-stack"
-echo "Instrumentation: process filesystem"
-echo "Start collectors BEFORE the target. Prefer VM-side strace/tcpdump."
-echo "Do not capture host credential files."

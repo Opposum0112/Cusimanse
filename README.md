@@ -1,112 +1,197 @@
-# Cusimanse — Goose-native security research
+# Cusimanse
 
-Cusimanse is a research workflow built directly around **goose** recipes, built-in extensions, Skills, Summon subagents/subrecipes, planning, headless execution, and optional Container Use isolation.
-
-The design deliberately keeps the runtime small: Goose is the operator, Goose recipes are the executable workflow definition, and Goose-native capabilities do the orchestration. Capabilities that require a separate orchestration framework, alternate primary-agent runtime, custom gateway, custom policy controller, or custom observability runtime are not part of this branch's core.
-
-## Native model
-
-```text
-Research contract
-      ↓
-Goose experiment recipe
-      ↓
-Goose primary session
-      ├── Plan / Todo
-      ├── Summon subagents / subrecipes
-      ├── Skills
-      └── Developer + selected MCP extensions
-      ↓
-Optional Container Use isolated environment
-      ↓
-Workload / analysis
-      ↓
-Evidence files + research report
-      ↓
-Goose session history / ClawMetry (optional)
-```
-
-Goose recipes package instructions, parameters, extensions and subrecipes into reusable workflows. Subrecipes execute in isolated sessions and can run in parallel when the prompt explicitly requests it. Goose's Skills platform extension discovers project skills from `.agents/skills/`. urlGoose recipe documentationhttps://goose-docs.ai/docs/guides/recipes/
-
-## Quick start
-
-Install and configure Goose using the official Goose installation flow. Then from this repository:
-
-```bash
-goose recipe validate recipes/goose-research/recipe.yaml
-goose run --recipe recipes/goose-research/recipe.yaml --interactive
-```
-
-For a reference experiment:
-
-```bash
-goose recipe validate recipes/go-install-001/recipe.yaml
-goose run --recipe recipes/go-install-001/recipe.yaml --interactive
-```
-
-Headless automation is also supported because the recipes contain a `prompt` field:
-
-```bash
-goose run --recipe recipes/go-install-001/recipe.yaml
-```
-
-Goose's documented CLI supports recipe validation, parameterized execution, headless `run`, interactive recipe execution, and structured JSON output. urlGoose CLI commandshttps://goose-docs.ai/docs/guides/goose-cli-commands/
+Cusimanse is a declarative security-research project. The **experiment recipe is agent-neutral**: it defines the research workflow, workload, Lima VM, instrumentation, evidence, verification and report. Goose is the reference primary operator because it provides the native recipe, planning, Skills and subagent capabilities needed by the workflow. Other primary agents can operate the same recipe through an adapter/prompt when they are actually integrated and validated.
 
 ## Researcher workflow
 
-1. Define the question and authorization in a Markdown contract.
-2. Choose or create a Goose experiment recipe.
-3. Validate the recipe with `goose recipe validate`.
-4. Start the recipe interactively for research that needs human decisions, or use headless mode for deterministic automation.
-5. Let Goose use Plan/Todo, Skills and Summon subagents/subrecipes as declared by the recipe.
-6. Use Container Use when an isolated container environment is appropriate.
-7. Execute the workload and record observed evidence as files; model output is analysis, not evidence.
-8. Ask specialist subrecipes to analyze independent evidence where useful.
-9. Run the verification subrecipe after analysis.
-10. Produce the research report and preserve the evidence in the experiment directory.
-
-Goose's official tutorials document recipes, built-in extensions, Skills, subagents, parallel subrecipes, headless execution and isolated Container Use workflows. urlGoose tutorialshttps://goose-docs.ai/docs/category/tutorials/
-
-## What is intentionally not in this branch
-
-The Goose-native refactor does **not** make these separate runtime layers part of the execution model:
-
-- CrewAI, LangGraph or Taskflow as orchestration controllers
-- alternate primary-agent adapters for OpenCode/Grok/Antigravity/Pi/Hermes/Codex/etc.
-- LiteLLM/OmniRoute or another custom model gateway
-- a custom `policyctl` control plane
-- custom Numbat/Phoenix/Aegis orchestration
-- a custom session-state engine or blackboard service
-- Lima/QEMU as a Goose-native requirement
-
-These can be studied independently, but they are not represented as required Goose capabilities. For isolation, the native Goose-supported Container Use integration is the reference option; it uses Docker and provides isolated development environments. urlGoose Container Use extensionhttps://goose-docs.ai/docs/mcp/container-use-mcp/
-
-## Project structure
-
 ```text
-.goosehints
-.agents/skills/                 # Goose-compatible project skills
-contracts/                      # research contracts and acceptance rules
-recipes/
-├── goose-research/             # main reusable Goose workflow
-├── go-install-001/             # Go reference experiment
-├── npm-install-001/            # npm reference experiment
-└── subrecipes/                 # native Goose specialist workflows
-docs/
-└── architecture/               # canonical Goose-native architecture
-packages/labprobe/              # small reference workload fixture
+Research question + authorization
+        ↓
+Contract
+        ↓
+Experiment recipe
+        ↓
+Primary agent (Goose reference)
+        ↓
+Native planning / Skills / specialist subagents
+        ↓
+Lima + QEMU disposable VM
+        ↓
+Instrumentation profile
+        ↓
+Approved workload
+        ↓
+Evidence
+        ↓
+Analysis → independent verification
+        ↓
+Research report
+        ↓
+Preserve evidence → destroy VM
 ```
 
-## Observability
+### 1. Prepare the host
 
-Goose already persists session information locally. The Goose ecosystem provides ClawMetry as a read-only local dashboard over the Goose session store, so token and session visibility does not require a custom telemetry control plane. urlClawMetry tutorialhttps://goose-docs.ai/docs/tutorials/clawmetry/
+Run the single host preparation script:
 
-## Safety boundary
+```bash
+./scripts/install.sh
+```
 
-This branch is a **Goose workflow project, not a security sandbox**. Goose's Developer extension can execute shell commands with the user's privileges, so researchers must choose an appropriately isolated working environment and configure Goose permissions deliberately. The official documentation explicitly describes the Developer extension as capable of shell execution and file editing. urlGoose Developer extensionhttps://goose-docs.ai/docs/mcp/developer-mcp/
+It installs and configures the required researcher toolchain, Goose, Lima/QEMU, workload/forensic tools, the model gateway chain (LiteLLM → OmniRoute), and the host agent-observability stack (Numbat, Aegis, Phoenix/OpenTelemetry and ClawMetry). Provider credentials are supplied outside Git.
 
-Container Use is the preferred Goose-supported isolation integration for experiments requiring an isolated development environment; it does not turn Goose itself into a security boundary. 
+Check the host:
 
-## License
+```bash
+./scripts/preflight.sh
+```
 
-MIT. See `LICENSE`.
+### 2. Validate the recipes
+
+```bash
+./scripts/tests/validate.sh
+```
+
+This checks repository cleanliness, shell syntax, YAML structure, Goose recipe validation, required Lima/instrumentation profiles and mandatory gateway/observability declarations.
+
+### 3. Run an experiment
+
+Goose is the reference operator:
+
+```bash
+goose run --recipe ./recipes/go-install-001/recipe.yaml --interactive
+```
+
+or:
+
+```bash
+goose run --recipe ./recipes/npm-install-001/recipe.yaml --interactive
+```
+
+The primary agent must follow the recipe and contract. It must not move the workload to the host.
+
+### 4. Go workload
+
+Inside the disposable VM:
+
+```bash
+go version
+go install ./packages/labprobe
+```
+
+### 5. npm workload
+
+Inside the disposable VM:
+
+```bash
+node --version
+npm --version
+mkdir -p /tmp/npm-test
+cd /tmp/npm-test
+npm init -y
+npm install lodash@4.17.21 --ignore-scripts
+```
+
+### 6. Inspect the result
+
+Each run is rooted at:
+
+```text
+runs/<session-id>/
+├── session.yaml
+├── evidence/
+│   ├── audit/events.jsonl
+│   ├── audit/manifest.sha256
+│   ├── index.yaml
+│   └── <captured artifacts>/
+├── provenance/manifest.sha256
+├── analysis/summary.md
+├── verification/result.md
+├── research-report/
+│   ├── report.md
+│   └── report.yaml
+├── preservation/manifest.yaml
+└── observability/
+    ├── token-usage.yaml
+    └── dashboard.yaml
+```
+
+Read, in order:
+
+```bash
+cat runs/<session-id>/research-report/report.md
+cat runs/<session-id>/verification/result.md
+cat runs/<session-id>/analysis/summary.md
+cat runs/<session-id>/evidence/index.yaml
+```
+
+A material finding must cite observable evidence and distinguish observation, inference and independent verification. Model output is not evidence.
+
+## Native operator model
+
+The primary agent owns the experiment lifecycle and can delegate independent specialist work. The project keeps specialist role definitions without introducing another orchestration controller:
+
+- planner
+- researcher
+- runtime analyst
+- forensics analyst
+- detection analyst
+- verifier
+- report generator
+
+Skills are reusable instructions under `.agents/skills/`. MCP extensions and developer tools are capability providers; neither replaces the contract or the Lima execution boundary.
+
+## Mandatory host services
+
+These are host requirements, not optional architecture layers:
+
+| Service | Function |
+|---|---|
+| Goose | Primary research operator |
+| Lima + QEMU | Disposable VM execution boundary |
+| LiteLLM | Local model routing |
+| OmniRoute | Provider routing/fallback |
+| Numbat | Agent/process observability |
+| Aegis | Independent host observation |
+| Phoenix + OpenTelemetry | Agent telemetry/tracing |
+| ClawMetry | Agent session/token observability |
+
+If a mandatory service cannot be installed, host preparation or preflight fails. No fake configuration is reported as deployed.
+
+## Security boundary
+
+The contract defines authorization and scope. The experiment recipe defines what runs. The disposable Lima VM and guest OS contain the workload. Instrumentation observes the VM; gateways route model traffic; observability services observe agents. None of those services should be treated as the workload containment boundary.
+
+Container Use may be used as an **additional** isolated environment for suitable tasks; it does not replace the Lima experiment profile.
+
+## Learning
+
+After a verified experiment, a researcher may enable the learning workflow:
+
+```text
+retrieve → execute → evaluate → refine → replay → independent verification → human approval → promote
+```
+
+Promotion cannot change contracts, grant privileges or weaken isolation automatically.
+
+## Repository layout
+
+```text
+contracts/                         research authority
+recipes/
+├── go-install-001/                reference Go experiment
+├── npm-install-001/               reference npm experiment
+├── subrecipes/                    analysis / verification / reporting
+├── lima/                          disposable VM profile
+├── instrumentation/               VM telemetry profile
+├── host/                          host inventory
+├── gateway/                       mandatory gateway declaration
+└── observability/                 mandatory observability declaration
+.agents/                           primary roles and Skills
+scripts/
+├── install.sh                    single host preparation entry point
+├── preflight.sh                  host readiness check
+└── tests/                        validation and integration checks
+docs/architecture/                canonical architecture
+packages/labprobe/                 reference Go workload
+```
