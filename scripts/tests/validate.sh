@@ -9,8 +9,10 @@ while IFS= read -r -d '' f; do
   [ -x "$f" ] || fail "not executable: $f"
   bash -n "$f" || fail "syntax error: $f"
 done < <(find scripts -type f -name '*.sh' -print0)
+[ -x scripts/policyctl ] || fail 'policyctl is not executable'
+bash -n scripts/policyctl
 
-for f in contracts/*.md recipes/*/recipe.yaml recipes/experiments/*.yaml recipes/subrecipes/*.yaml recipes/lima/security-research.yaml recipes/instrumentation/security-research.yaml recipes/host/security-research.yaml recipes/gateway/mandatory.yaml recipes/observability/mandatory.yaml recipes/session/session-state.yaml recipes/session/learning-workflow.yaml recipes/agents/adapter-matrix.yaml recipes/agents/adapter-validation.yaml recipes/agents/adapter-installation.yaml recipes/agents/goose-orchestration.yaml recipes/skills/registry.yaml recipes/mcp/registry.yaml; do
+for f in contracts/*.md recipes/*/recipe.yaml recipes/experiments/*.yaml recipes/subrecipes/*.yaml recipes/lima/security-research.yaml recipes/instrumentation/security-research.yaml recipes/host/security-research.yaml recipes/gateway/mandatory.yaml recipes/observability/mandatory.yaml recipes/session/session-state.yaml recipes/session/learning-workflow.yaml recipes/agents/adapter-matrix.yaml recipes/agents/adapter-validation.yaml recipes/agents/adapter-installation.yaml recipes/agents/goose-orchestration.yaml recipes/skills/registry.yaml recipes/mcp/registry.yaml policies/host-policy.yaml policies/mount-denylist.yaml policies/permission-tiers.yaml; do
   [ -s "$f" ] || fail "missing/empty: $f"
 done
 for f in prompts/README.md prompts/experiments/*.md; do [ -s "$f" ] || fail "missing/empty prompt reference: $f"; done
@@ -19,6 +21,8 @@ for d in skills/candidate skills/validated; do [ -d "$d" ] || fail "missing skil
 [ -s docs/architecture/cusimanse-architecture.mmd ] || fail 'architecture Mermaid source missing'
 [ -s docs/images/cusimanse-mascot-logo.svg ] || fail 'mascot/logo image missing'
 [ -s manifest/PACKAGE-MANIFEST.json ] || fail 'package manifest missing'
+
+./scripts/policyctl validate >/dev/null || fail 'policyctl policy validation failed'
 
 python3 - <<'PY'
 from pathlib import Path
@@ -53,20 +57,39 @@ for name in ('opencode','hermes','antigravity','pi'):
     assert adapters['status'][name]['state'] == 'NOT_DEPLOYED', name
 assert adapters['rules']['cli_presence_is_not_pass'] is True
 assert adapters['rules']['pass_requires_actual_disposable_vm_execution'] is True
+policy=yaml.safe_load(Path('policies/host-policy.yaml').read_text())
+assert policy['host']['credentials'] == 'deny'
+assert policy['host']['unrestricted_mounts'] == 'deny'
+assert policy['host']['untrusted_host_execution'] == 'deny'
+assert policy['privileged']['host_filesystem'] == 'deny'
+assert policy['network']['public_mcp'] == 'deny'
+assert policy['network']['public_gateway'] == 'deny'
+assert policy['evidence']['preserve_before_destroy'] == 'required'
+assert policy['evidence']['hashing'] == 'required'
+exp=yaml.safe_load(Path('recipes/experiments/npm-threat-001.yaml').read_text())
+assert exp['policy']['enforcement'] == 'scripts/policyctl'
+assert set(exp['policy']['required_checks']) >= {'vm','network','credentials','mounts'}
 print('STRUCTURAL YAML/JSON/POLICY PASS')
 PY
 
 python3 - <<'PY'
 from pathlib import Path
+import hashlib
 patterns=('ai-security-lab','CrewAI','crewai','scripts/cusimanse-host.sh','scripts/agent-preflight.sh','scripts/configure-recipes.sh','scripts/goose-env.sh','turn0search','turn1search','turn2search','turn3search')
-roots=[Path('contracts'),Path('recipes'),Path('docs'),Path('scripts'),Path('.goosehints')]
+roots=[Path('contracts'),Path('recipes'),Path('docs'),Path('scripts'),Path('.goosehints'),Path('README.md')]
+seen={}
 for root in roots:
     paths=[root] if root.is_file() else root.rglob('*')
     for p in paths:
         if not p.is_file() or p.as_posix() == 'scripts/tests/validate.sh': continue
         text=p.read_text(errors='ignore')
         for pat in patterns: assert pat not in text, f'{p}: retired/reference artifact {pat}'
-print('RETIRED REFERENCE SCAN PASS')
+        digest=hashlib.sha256(text.encode()).hexdigest()
+        seen.setdefault(digest,[]).append(p.as_posix())
+# Exact duplicate files are reported only when there is more than one meaningful path.
+dups=[paths for paths in seen.values() if len(paths)>1 and all(not x.endswith('.md') for x in paths)]
+assert not dups, f'exact duplicate non-document files: {dups}'
+print('RETIRED REFERENCE + DUPLICATE SCAN PASS')
 PY
 
 if command -v goose >/dev/null 2>&1; then
