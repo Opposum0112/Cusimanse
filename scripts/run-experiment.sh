@@ -57,8 +57,6 @@ if [ "$rc" -ne 0 ]; then
   echo "RUNTIME FAIL: workload exited with status $rc; evidence preserved at $RUN" >&2
   exit "$rc"
 fi
-# The deterministic harness intentionally stops at EVIDENCE_COLLECTED. The primary agent
-# then performs analysis, independent verification, reporting, preservation and final destroy.
 cat > "$RUN/analysis/summary.md" <<EOF
 # Analysis status
 
@@ -83,7 +81,7 @@ Session: $SESSION
 
 Status: PENDING_AGENT_ANALYSIS_AND_VERIFICATION
 
-Raw evidence is preserved under `evidence/`. This is not a final research conclusion.
+Raw evidence is preserved under evidence/. This is not a final research conclusion.
 EOF
 cat > "$RUN/research-report/report.yaml" <<EOF
 experiment: $EXP
