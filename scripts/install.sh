@@ -10,23 +10,25 @@ export PATH="$BIN:$HOME/go/bin:$PATH"
 log(){ printf '[cusimanse] %s\n' "$*"; }
 fail(){ printf '[cusimanse] ERROR: %s\n' "$*" >&2; exit 1; }
 have(){ command -v "$1" >/dev/null 2>&1; }
+run_root(){ if [ -n "$SUDO" ]; then "$SUDO" "$@"; else "$@"; fi; }
 OS="$(uname -s)"; SUDO=""; [ "$(id -u)" -eq 0 ] || SUDO=sudo
 if [ "$OS" = Darwin ]; then
   have brew || fail 'Homebrew is required on macOS'
   brew install git curl python node ruby go jq yq ripgrep qemu lima
 elif [ "$OS" = Linux ]; then
   if have apt-get; then
-    $SUDO apt-get update
-    $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y git bash curl python3 python3-pip python3-venv ruby jq yq ripgrep qemu-system-x86 qemu-utils lima ca-certificates strace tcpdump iproute2 iputils-ping dnsutils lsof inotify-tools file psmisc procps
+    run_root apt-get update
+    run_root env DEBIAN_FRONTEND=noninteractive apt-get install -y git bash curl python3 python3-pip python3-venv ruby jq yq ripgrep qemu-system-x86 qemu-utils lima ca-certificates strace tcpdump iproute2 iputils-ping dnsutils lsof inotify-tools file psmisc procps
     node_major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
     if [ "$node_major" -lt 22 ]; then
-      curl -fsSL https://deb.nodesource.com/setup_22.x | $SUDO -E bash -
-      $SUDO apt-get install -y nodejs
+      setup_node="$(curl -fsSL https://deb.nodesource.com/setup_22.x)"
+      if [ -n "$SUDO" ]; then printf '%s\n' "$setup_node" | sudo -E bash; else printf '%s\n' "$setup_node" | bash; fi
+      run_root apt-get install -y nodejs
     fi
-    $SUDO apt-get install -y golang-go
-  elif have dnf; then $SUDO dnf install -y git bash curl python3 python3-pip python3-venv ruby nodejs npm golang jq yq ripgrep qemu-system-x86-core qemu-img lima ca-certificates strace tcpdump iproute iputils bind-utils lsof inotify-tools file psmisc procps
-  elif have pacman; then $SUDO pacman -Sy --needed --noconfirm git bash curl python python-pip ruby nodejs npm go jq yq ripgrep qemu lima strace tcpdump iproute iputils bind lsof inotify-tools file psmisc procps
-  elif have zypper; then $SUDO zypper --non-interactive install git bash curl python3 python3-pip ruby nodejs npm go jq yq ripgrep qemu lima ca-certificates strace tcpdump iproute2 iputils bind-utils lsof inotify-tools file psmisc procps
+    run_root apt-get install -y golang-go
+  elif have dnf; then run_root dnf install -y git bash curl python3 python3-pip python3-venv ruby nodejs npm golang jq yq ripgrep qemu-system-x86-core qemu-img lima ca-certificates strace tcpdump iproute iputils bind-utils lsof inotify-tools file psmisc procps
+  elif have pacman; then run_root pacman -Sy --needed --noconfirm git bash curl python python-pip ruby nodejs npm go jq yq ripgrep qemu lima strace tcpdump iproute iputils bind lsof inotify-tools file psmisc procps
+  elif have zypper; then run_root zypper --non-interactive install git bash curl python3 python3-pip ruby nodejs npm go jq yq ripgrep qemu lima ca-certificates strace tcpdump iproute2 iputils bind-utils lsof inotify-tools file psmisc procps
   else fail 'No supported Linux package manager'; fi
 else fail 'Use Linux, macOS, or WSL2'; fi
 
@@ -42,7 +44,9 @@ ln -sf "$VENV/bin/litellm" "$BIN/litellm"
 ln -sf "$VENV/bin/clawmetry" "$BIN/clawmetry"
 GOBIN="$BIN" go install github.com/perplexityai/numbat/cmd/numbat@latest
 npm install -g omniroute
-have numbat || fail 'Numbat installation failed'; have omniroute || fail 'OmniRoute installation failed'; have clawmetry || fail 'ClawMetry installation failed'
+have numbat || fail 'Numbat installation failed'
+have omniroute || fail 'OmniRoute installation failed'
+have clawmetry || fail 'ClawMetry installation failed'
 
 AEGIS="$DATA/aegis"
 if [ ! -d "$AEGIS/.git" ]; then git clone --depth 1 https://github.com/antropos17/Aegis "$AEGIS"; fi
