@@ -9,10 +9,9 @@ import (
     "path/filepath"
 )
 
-// The Go CLI exposes the operational entrypoints. scripts/install.sh remains
-// the bootstrap adapter because the machine may not have Go before installation.
-// Validation/preflight/tests remain auditable shell adapters until their logic is
-// fully migrated to native Go checks with equivalent coverage.
+// The Go CLI exposes operational entrypoints. scripts/install.sh remains the
+// bootstrap adapter because a fresh machine may not have Go. Other helpers are
+// compatibility adapters until their logic is migrated to native Go packages.
 func init() {
     if len(os.Args) < 2 { return }
     switch os.Args[1] {
@@ -22,7 +21,33 @@ func init() {
     case "test": mustHandleCLICommand(func(root string) error { return runHelper(root, "scripts/tests/runtime.sh") })
     case "integration-test": mustHandleCLICommand(func(root string) error { return runHelper(root, "scripts/tests/integration.sh") })
     case "doctor": mustHandleCLICommand(func(root string) error { if err := runHelper(root, "scripts/tests/validate.sh"); err != nil { return err }; return runHelper(root, "scripts/preflight.sh") })
+    case "tools": mustHandleCLICommand(func(root string) error { return runHelperArgs(root, "scripts/tools.sh", os.Args[2:]...) })
+    case "session": mustHandleCLICommand(func(root string) error { return runHelperArgs(root, "scripts/session.sh", os.Args[2:]...) })
+    case "policy": mustHandleCLICommand(func(root string) error { return runHelperArgs(root, "scripts/policyctl", os.Args[2:]...) })
+    case "learning": mustHandleCLICommand(func(root string) error { return runHelperArgs(root, "scripts/learningctl", os.Args[2:]...) })
     case "observability": mustHandleCLICommand(func(root string) error { return runHelperArgs(root, "scripts/observability.sh", os.Args[2:]...) })
+    case "run-experiment": mustHandleCLICommand(func(root string) error { return runHelperArgs(root, "scripts/run-experiment.sh", os.Args[2:]...) })
+    }
+}
+
+// OperationalAPI is the stable command-to-helper mapping used by the CLI.
+// Keeping the mapping explicit makes each compatibility script discoverable and
+// gives future native implementations a one-for-one replacement seam.
+type OperationalAPI struct { Command string; Helper string; Bootstrap bool }
+
+func OperationalAPIs() []OperationalAPI {
+    return []OperationalAPI{
+        {"install", "scripts/install.sh", true},
+        {"validate", "scripts/tests/validate.sh", false},
+        {"preflight", "scripts/preflight.sh", false},
+        {"test", "scripts/tests/runtime.sh", false},
+        {"integration-test", "scripts/tests/integration.sh", false},
+        {"tools", "scripts/tools.sh", false},
+        {"session", "scripts/session.sh", false},
+        {"policy", "scripts/policyctl", false},
+        {"learning", "scripts/learningctl", false},
+        {"observability", "scripts/observability.sh", false},
+        {"run-experiment", "scripts/run-experiment.sh", false},
     }
 }
 
@@ -49,8 +74,6 @@ func runHelperArgs(root, rel string, args ...string) error {
 
 func handleInstall(root string) error {
     if _, err := os.Stat(filepath.Join(root, "scripts/install.sh")); err != nil { return fmt.Errorf("bootstrap installer missing: %w", err) }
-    // A machine without Go must use the bootstrap script directly once; after
-    // bootstrap, the Go CLI is the normal install/validate/preflight/test API.
     if _, err := exec.LookPath("go"); err != nil { return errors.New("Go is not installed; run scripts/install.sh once to bootstrap Go and host dependencies") }
     if err := runHelper(root, "scripts/install.sh"); err != nil { return fmt.Errorf("bootstrap installation failed: %w", err) }
     bin := filepath.Join(os.Getenv("HOME"), ".local", "bin", "cusimanse"); if custom := os.Getenv("CUSIMANSE_BIN"); custom != "" { bin = custom }
