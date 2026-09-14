@@ -67,6 +67,14 @@ agent:
   prompt_handoff: optional
   other_agent_adapters: allowed_when_validated
 
+execution:
+  workload_owner: primary-agent
+  workload_source: experiment-recipe
+  researcher_runs_workload_commands: false
+  researcher_action: start_selected_primary_agent_and_review_results
+  execution_boundary: disposable-lima-vm-and-guest-os
+  instrumentation_started_before_workload: true
+
 orchestration:
   owner: primary-agent
   specialist_roles: required
