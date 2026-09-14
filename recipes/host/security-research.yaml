@@ -1,15 +1,50 @@
 kind: host-toolchain
-version: 2
+version: 3
 purpose: >-
-  Declarative inventory for every host tool Cusimanse installs and uses. The
-  installer implements this inventory; the recipe is the source of truth for
-  required commands, configuration locations and researcher access.
+  Declarative inventory for the complete host toolchain. The recipe is the
+  source of truth for what must be installed/configured; scripts/install.sh
+  implements it and scripts/tools.sh exposes the resulting tool inventory.
 required:
-  core: [git, bash, curl, python3, ruby, node, npm, go, jq, yq, rg]
-  execution: [limactl, qemu-system-x86_64, goose]
-  workload_tools: [strace, tcpdump, ss, ip, dig, getent, lsof, find, stat, sha256sum, inotifywait, file, ps, pgrep]
-  gateways: [litellm, omniroute]
-  observability: [numbat, clawmetry, phoenix, aegis]
+  commands:
+    - git
+    - bash
+    - curl
+    - python3
+    - ruby
+    - node
+    - npm
+    - go
+    - limactl
+    - qemu-system-x86_64
+    - goose
+    - jq
+    - yq
+    - rg
+    - strace
+    - tcpdump
+    - ss
+    - ip
+    - dig
+    - getent
+    - lsof
+    - find
+    - stat
+    - sha256sum
+    - inotifywait
+    - file
+    - ps
+    - pgrep
+    - litellm
+    - omniroute
+    - numbat
+    - clawmetry
+  python_packages:
+    - phoenix
+    - opentelemetry-api
+    - opentelemetry-sdk
+    - opentelemetry-exporter-otlp
+  host_observer:
+    - aegis
 configuration:
   root: ~/.config/cusimanse/
   gateway: ~/.config/cusimanse/litellm.yaml
@@ -20,11 +55,12 @@ configuration:
   python_environment: ~/.local/share/cusimanse/venv/
 access:
   path_prepend: "$HOME/.local/bin:$HOME/go/bin"
-  command: ./scripts/tools.sh
-  direct_commands: true
+  inventory_command: ./scripts/tools.sh list
+  version_command: ./scripts/tools.sh versions
+  config_command: ./scripts/tools.sh config
   secrets_not_printed: true
 installation:
   entrypoint: ./scripts/install.sh
   idempotent: true
   configure_from_recipe: true
-  fail_if_required_tool_unavailable: true
+  fail_if_required_capability_unavailable: true
