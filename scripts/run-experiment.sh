@@ -10,36 +10,49 @@ EXP="$1"; SESSION="${2:-$(date -u +%Y%m%dT%H%M%SZ)-$1}"
 case "$EXP" in go-install-001|npm-install-001|npm-lifecycle-001|npm-threat-001) CONFIG="recipes/experiments/$EXP.yaml";; *) fail "unknown experiment $EXP";; esac
 for t in yq limactl goose; do command -v "$t" >/dev/null 2>&1 || fail "$t missing; run ./scripts/install.sh"; done
 [ -s "$CONFIG" ] || fail "missing $CONFIG"
+HOST_PROFILE="$(yq -r '.profiles.host' "$CONFIG")"
+WORKLOAD_PROFILE="$(yq -r '.profiles.workload' "$CONFIG")"
+[ -s "$HOST_PROFILE" ] || fail "missing host profile $HOST_PROFILE"
+[ -s "$WORKLOAD_PROFILE" ] || fail "missing workload profile $WORKLOAD_PROFILE"
+[ "$(yq -r '.kind' "$HOST_PROFILE")" = "host-profile" ] || fail "invalid host profile kind"
+[ "$(yq -r '.kind' "$WORKLOAD_PROFILE")" = "workload-profile" ] || fail "invalid workload profile kind"
+[ "$(yq -r '.agent_may_generate_provisioning' "$HOST_PROFILE")" = "false" ] || fail "host profile permits agent-generated provisioning"
+[ "$(yq -r '.agent_may_generate_instrumentation' "$HOST_PROFILE")" = "false" ] || fail "host profile permits agent-generated instrumentation"
+HANDLER="$(yq -r '.runtime_handler' "$WORKLOAD_PROFILE")"
+case "$HANDLER" in go-install|npm-install|npm-lifecycle|npm-threat) ;; *) fail "unsupported/non-deterministic workload handler: $HANDLER";; esac
+INSTRUMENTATION="$(yq -r '.instrumentation' "$WORKLOAD_PROFILE")"
+[ -s "$INSTRUMENTATION" ] || fail "missing workload instrumentation profile $INSTRUMENTATION"
 RECIPE="recipes/$EXP/recipe.yaml"
 goose recipe validate "$RECIPE"
 RUN="runs/$SESSION"
 ./scripts/session.sh create "$EXP" "${CUSIMANSE_PRIMARY_AGENT:-goose}" "$SESSION" >/dev/null
-printf '%s\n' "experiment: $EXP" "configuration: $CONFIG" "goose_recipe: $RECIPE" "instrumentation: recipes/instrumentation/security-research.yaml" "collector_policy: collectors-start-before-workload" > "$RUN/evidence/index.yaml"
+printf '%s\n' "experiment: $EXP" "configuration: $CONFIG" "host_profile: $HOST_PROFILE" "workload_profile: $WORKLOAD_PROFILE" "goose_recipe: $RECIPE" "instrumentation: $INSTRUMENTATION" "runtime_mode: deterministic-profile-handler" > "$RUN/evidence/index.yaml"
 ./scripts/session.sh checkpoint "$SESSION" VALIDATED
 ./scripts/session.sh checkpoint "$SESSION" PREFLIGHTED
 ./scripts/session.sh checkpoint "$SESSION" PLANNED
 ./scripts/session.sh checkpoint "$SESSION" AWAITING_APPROVAL
 ./scripts/session.sh checkpoint "$SESSION" APPROVED
-limactl validate recipes/lima/security-research.yaml
+HOST_RECIPE="$(yq -r '.compute_recipe' "$HOST_PROFILE")"
+[ -s "$HOST_RECIPE" ] || fail "missing compute recipe from host profile: $HOST_RECIPE"
+limactl validate "$HOST_RECIPE"
 VM="cusimanse-$SESSION"
 cleanup(){ limactl delete --force "$VM" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 ./scripts/session.sh checkpoint "$SESSION" PROVISIONED
-limactl start --name="$VM" recipes/lima/security-research.yaml
+limactl start --name="$VM" "$HOST_RECIPE"
 ./scripts/session.sh checkpoint "$SESSION" INSTRUMENTED
 limactl shell "$VM" -- bash -lc 'set -e; date -u +%Y-%m-%dT%H:%M:%SZ > /tmp/cusimanse-start-time; ps -ef > /tmp/cusimanse-process-before; ss -tunap > /tmp/cusimanse-network-before || true; find /workspace -xdev -type f -print 2>/dev/null | sort > /tmp/cusimanse-files-before || true; if command -v tcpdump >/dev/null && sudo -n true 2>/dev/null; then sudo -n tcpdump -i any -U -w /tmp/cusimanse-network.pcap >/tmp/cusimanse-tcpdump.log 2>&1 & echo $! > /tmp/cusimanse-tcpdump.pid; fi' || fail 'failed to start guest collectors'
-if [ "$EXP" = go-install-001 ]; then
-  tar -C packages -cf - labprobe | limactl shell "$VM" -- bash -lc 'mkdir -p /workspace/packages && tar -xf - -C /workspace/packages'
-elif [ "$EXP" = npm-lifecycle-001 ] || [ "$EXP" = npm-threat-001 ]; then
-  tar -C packages -cf - npm-fixture | limactl shell "$VM" -- bash -lc 'mkdir -p /workspace/packages && tar -xf - -C /workspace/packages'
-fi
+case "$HANDLER" in
+  go-install) tar -C packages -cf - labprobe | limactl shell "$VM" -- bash -lc 'mkdir -p /workspace/packages && tar -xf - -C /workspace/packages' ;;
+  npm-lifecycle|npm-threat) tar -C packages -cf - npm-fixture | limactl shell "$VM" -- bash -lc 'mkdir -p /workspace/packages && tar -xf - -C /workspace/packages' ;;
+esac
 ./scripts/session.sh checkpoint "$SESSION" EXECUTING
 set +e
-case "$EXP" in
-  go-install-001) limactl shell "$VM" -- bash -lc 'set -e; cd /workspace/packages/labprobe; strace -ff -o /tmp/cusimanse-strace go install .; command -v labprobe; labprobe' > "$RUN/evidence/workload.txt" 2>&1 ;;
-  npm-install-001) limactl shell "$VM" -- bash -lc 'set -e; node --version; npm --version; mkdir -p /tmp/npm-test; cd /tmp/npm-test; npm init -y; strace -ff -o /tmp/cusimanse-strace npm install lodash@4.17.21 --ignore-scripts' > "$RUN/evidence/workload.txt" 2>&1 ;;
-  npm-lifecycle-001) limactl shell "$VM" -- bash -lc 'set -e; node --version; npm --version; mkdir -p /tmp/npm-lifecycle; cd /tmp/npm-lifecycle; npm init -y; strace -ff -o /tmp/cusimanse-strace npm install /workspace/packages/npm-fixture; test -f /tmp/cusimanse-npm-lifecycle-marker' > "$RUN/evidence/workload.txt" 2>&1 ;;
-  npm-threat-001) limactl shell "$VM" -- bash -lc 'set -e; node --version; npm --version; mkdir -p /tmp/npm-threat; cd /tmp/npm-threat; npm init -y; strace -ff -o /tmp/cusimanse-strace npm install /workspace/packages/npm-fixture; test -f /tmp/cusimanse-npm-lifecycle-marker; test -f /tmp/cusimanse-start-time' > "$RUN/evidence/workload.txt" 2>&1 ;;
+case "$HANDLER" in
+  go-install) limactl shell "$VM" -- bash -lc 'set -e; cd /workspace/packages/labprobe; strace -ff -o /tmp/cusimanse-strace go install .; command -v labprobe; labprobe' > "$RUN/evidence/workload.txt" 2>&1 ;;
+  npm-install) limactl shell "$VM" -- bash -lc 'set -e; node --version; npm --version; mkdir -p /tmp/npm-test; cd /tmp/npm-test; npm init -y; strace -ff -o /tmp/cusimanse-strace npm install lodash@4.17.21 --ignore-scripts' > "$RUN/evidence/workload.txt" 2>&1 ;;
+  npm-lifecycle) limactl shell "$VM" -- bash -lc 'set -e; node --version; npm --version; mkdir -p /tmp/npm-lifecycle; cd /tmp/npm-lifecycle; npm init -y; strace -ff -o /tmp/cusimanse-strace npm install /workspace/packages/npm-fixture; test -f /tmp/cusimanse-npm-lifecycle-marker' > "$RUN/evidence/workload.txt" 2>&1 ;;
+  npm-threat) limactl shell "$VM" -- bash -lc 'set -e; node --version; npm --version; mkdir -p /tmp/npm-threat; cd /tmp/npm-threat; npm init -y; strace -ff -o /tmp/cusimanse-strace npm install /workspace/packages/npm-fixture; test -f /tmp/cusimanse-npm-lifecycle-marker' > "$RUN/evidence/workload.txt" 2>&1 ;;
 esac
 rc=$?
 set -e
@@ -91,4 +104,4 @@ status: PENDING_AGENT_ANALYSIS_AND_VERIFICATION
 evidence: evidence/
 EOF
 ./scripts/session.sh verify-layout "$SESSION"
-printf 'RUNTIME PARTIAL: deterministic disposable-VM execution, declared collector capture and hashing completed at EVIDENCE_COLLECTED. Agent analysis, independent verification, final report, preservation and destruction remain required. Session: %s\n' "$RUN"
+printf 'RUNTIME PARTIAL: deterministic profile-selected disposable-VM execution, declared collector capture and hashing completed at EVIDENCE_COLLECTED. Agent analysis, independent verification, final report, preservation and destruction remain required. Session: %s\n' "$RUN"

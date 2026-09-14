@@ -1,8 +1,17 @@
 kind: cusimanse-experiment
-version: 2
+version: 3
 id: go-install-001
 purpose: Observe a Go installation and harmless local binary execution in disposable Lima compute.
 contract: contracts/go-install-001.md
+profiles:
+  host: recipes/profiles/host/linux-lima.yaml
+  workload: recipes/profiles/workload/go-install.yaml
+policy:
+  enforcement: scripts/policyctl
+  policy_file: policies/host-policy.yaml
+  mount_denylist: policies/mount-denylist.yaml
+  permission_tiers: policies/permission-tiers.yaml
+  required_checks: [vm, network, credentials, mounts]
 host:
   recipe: recipes/host/security-research.yaml
 compute:
@@ -13,21 +22,10 @@ session:
   state: recipes/session/session-state.yaml
 workload:
   execution: disposable-lima-vm
-  commands:
-    - go version
-    - go install ./packages/labprobe
-    - labprobe
+  profile: recipes/profiles/workload/go-install.yaml
 threat_model:
-  coverage:
-    - process-observation
-    - syscall-observation
-    - filesystem-observation
-    - network-observation
-    - package-build-and-install
-  limitations:
-    - does-not-emulate-malicious-package
-    - does-not-test-agent-escape
-    - does-not-test-privilege-escalation
+  coverage: [process-observation, syscall-observation, filesystem-observation, network-observation, package-build-and-install]
+  limitations: [does-not-emulate-malicious-package, does-not-test-agent-escape, does-not-test-privilege-escalation]
 agent:
   reference: goose
   adapters: recipes/agents/adapter-matrix.yaml

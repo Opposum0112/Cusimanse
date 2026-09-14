@@ -1,0 +1,9 @@
+kind: workload-profile
+version: 1
+id: npm-lifecycle
+purpose: Deterministic local npm postinstall fixture workload.
+runtime: disposable-lima-vm
+runtime_handler: npm-lifecycle
+instrumentation: recipes/instrumentation/security-research.yaml
+fixture: packages/npm-fixture
+agent_may_modify: false

@@ -1,0 +1,8 @@
+kind: workload-profile
+version: 1
+id: npm-install
+purpose: Deterministic pinned npm install with lifecycle hooks disabled.
+runtime: disposable-lima-vm
+runtime_handler: npm-install
+instrumentation: recipes/instrumentation/security-research.yaml
+agent_may_modify: false

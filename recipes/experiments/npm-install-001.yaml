@@ -1,8 +1,17 @@
 kind: cusimanse-experiment
-version: 2
+version: 3
 id: npm-install-001
 purpose: Observe a pinned npm project bootstrap/install in disposable Lima compute without lifecycle hooks.
 contract: contracts/npm-install-001.md
+profiles:
+  host: recipes/profiles/host/linux-lima.yaml
+  workload: recipes/profiles/workload/npm-install.yaml
+policy:
+  enforcement: scripts/policyctl
+  policy_file: policies/host-policy.yaml
+  mount_denylist: policies/mount-denylist.yaml
+  permission_tiers: policies/permission-tiers.yaml
+  required_checks: [vm, network, credentials, mounts]
 host:
   recipe: recipes/host/security-research.yaml
 compute:
@@ -13,23 +22,10 @@ session:
   state: recipes/session/session-state.yaml
 workload:
   execution: disposable-lima-vm
-  commands:
-    - node --version
-    - npm --version
-    - mkdir -p /tmp/npm-test
-    - cd /tmp/npm-test && npm init -y
-    - cd /tmp/npm-test && npm install lodash@4.17.21 --ignore-scripts
+  profile: recipes/profiles/workload/npm-install.yaml
 threat_model:
-  coverage:
-    - process-observation
-    - syscall-observation
-    - filesystem-observation
-    - network-observation
-    - pinned-package-install
-  limitations:
-    - ignore-scripts-does-not-test-postinstall
-    - does-not-test-malicious-package
-    - does-not-test-agent-escape
+  coverage: [process-observation, syscall-observation, filesystem-observation, network-observation, pinned-package-install]
+  limitations: [ignore-scripts-does-not-test-postinstall, does-not-test-malicious-package, does-not-test-agent-escape]
 agent:
   reference: goose
   adapters: recipes/agents/adapter-matrix.yaml

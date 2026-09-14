@@ -1,0 +1,16 @@
+kind: host-profile
+version: 1
+id: linux-lima
+purpose: Deterministic Linux reference host profile for disposable Lima/QEMU experiments.
+platforms: [linux, macos, windows_wsl2]
+host_recipe: recipes/host/security-research.yaml
+compute_recipe: recipes/lima/security-research.yaml
+instrumentation_default: recipes/instrumentation/security-research.yaml
+execution:
+  boundary: disposable-lima-vm
+  runtime: scripts/run-experiment.sh
+  agent_may_generate_provisioning: false
+  agent_may_generate_instrumentation: false
+policy:
+  enforcement: scripts/policyctl
+  required_checks: [vm, network, credentials, mounts]

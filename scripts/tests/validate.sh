@@ -4,15 +4,13 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
 fail(){ echo "VALIDATION FAIL: $*" >&2; exit 1; }
-
 while IFS= read -r -d '' f; do
   [ -x "$f" ] || fail "not executable: $f"
   bash -n "$f" || fail "syntax error: $f"
 done < <(find scripts -type f -name '*.sh' -print0)
 [ -x scripts/policyctl ] || fail 'policyctl is not executable'
 bash -n scripts/policyctl
-
-for f in contracts/*.md recipes/*/recipe.yaml recipes/experiments/*.yaml recipes/subrecipes/*.yaml recipes/lima/security-research.yaml recipes/instrumentation/security-research.yaml recipes/host/security-research.yaml recipes/gateway/mandatory.yaml recipes/observability/mandatory.yaml recipes/session/session-state.yaml recipes/session/learning-workflow.yaml recipes/agents/adapter-matrix.yaml recipes/agents/adapter-validation.yaml recipes/agents/adapter-installation.yaml recipes/agents/goose-orchestration.yaml recipes/skills/registry.yaml recipes/mcp/registry.yaml policies/host-policy.yaml policies/mount-denylist.yaml policies/permission-tiers.yaml; do
+for f in contracts/*.md recipes/*/recipe.yaml recipes/experiments/*.yaml recipes/subrecipes/*.yaml recipes/lima/security-research.yaml recipes/instrumentation/security-research.yaml recipes/host/security-research.yaml recipes/profiles/host/*.yaml recipes/profiles/workload/*.yaml recipes/gateway/mandatory.yaml recipes/observability/mandatory.yaml recipes/session/session-state.yaml recipes/session/learning-workflow.yaml recipes/agents/adapter-matrix.yaml recipes/agents/adapter-validation.yaml recipes/agents/adapter-installation.yaml recipes/agents/goose-orchestration.yaml recipes/skills/registry.yaml recipes/mcp/registry.yaml policies/host-policy.yaml policies/mount-denylist.yaml policies/permission-tiers.yaml; do
   [ -s "$f" ] || fail "missing/empty: $f"
 done
 for f in prompts/README.md prompts/experiments/*.md; do [ -s "$f" ] || fail "missing/empty prompt reference: $f"; done
@@ -21,9 +19,7 @@ for d in skills/candidate skills/validated; do [ -d "$d" ] || fail "missing skil
 [ -s docs/architecture/cusimanse-architecture.mmd ] || fail 'architecture Mermaid source missing'
 [ -s docs/images/cusimanse-mascot-logo.svg ] || fail 'mascot/logo image missing'
 [ -s manifest/PACKAGE-MANIFEST.json ] || fail 'package manifest missing'
-
 ./scripts/policyctl validate >/dev/null || fail 'policyctl policy validation failed'
-
 python3 - <<'PY'
 from pathlib import Path
 import json, yaml
@@ -39,13 +35,22 @@ for p in Path('recipes/experiments').glob('*.yaml'):
     d=yaml.safe_load(p.read_text()); assert d.get('kind') == 'cusimanse-experiment', p
     assert d.get('contract') and d.get('workload'), p
     assert d.get('compute') and d.get('instrumentation') and d.get('session'), p
-    assert d['workload'].get('execution') == 'disposable-lima-vm', p
-
+    assert d['workload'].get('execution') == 'disposable-lima-vm'
+    assert d.get('profiles',{}).get('host') and d['profiles'].get('workload'), f'{p}: profiles required'
+    hp=Path(d['profiles']['host']); wp=Path(d['profiles']['workload'])
+    assert hp.is_file(), f'{p}: missing host profile {hp}'
+    assert wp.is_file(), f'{p}: missing workload profile {wp}'
+    h=yaml.safe_load(hp.read_text()); w=yaml.safe_load(wp.read_text())
+    assert h.get('kind') == 'host-profile', hp
+    assert h.get('execution',{}).get('agent_may_generate_provisioning') is False, hp
+    assert h.get('execution',{}).get('agent_may_generate_instrumentation') is False, hp
+    assert w.get('kind') == 'workload-profile', wp
+    assert w.get('runtime_handler') in {'go-install','npm-install','npm-lifecycle','npm-threat'}, wp
+    assert w.get('agent_may_modify') is False, wp
 lifecycle=yaml.safe_load(Path('recipes/experiments/npm-lifecycle-001.yaml').read_text())
 coverage=set(lifecycle['threat_model']['coverage'])
 assert {'package-lifecycle-process','filesystem-behavior','localhost-network-behavior'} <= coverage
 assert 'local-fixture-only' in lifecycle['threat_model']['limitations']
-
 inst=yaml.safe_load(Path('recipes/instrumentation/security-research.yaml').read_text())
 assert inst['rules']['collectors_start_before_workload'] is True
 assert inst['rules']['raw_evidence_immutable'] is True
@@ -69,9 +74,8 @@ assert policy['evidence']['hashing'] == 'required'
 exp=yaml.safe_load(Path('recipes/experiments/npm-threat-001.yaml').read_text())
 assert exp['policy']['enforcement'] == 'scripts/policyctl'
 assert set(exp['policy']['required_checks']) >= {'vm','network','credentials','mounts'}
-print('STRUCTURAL YAML/JSON/POLICY PASS')
+print('STRUCTURAL YAML/JSON/POLICY/PROFILE PASS')
 PY
-
 python3 - <<'PY'
 from pathlib import Path
 import hashlib
@@ -86,12 +90,10 @@ for root in roots:
         for pat in patterns: assert pat not in text, f'{p}: retired/reference artifact {pat}'
         digest=hashlib.sha256(text.encode()).hexdigest()
         seen.setdefault(digest,[]).append(p.as_posix())
-# Exact duplicate files are reported only when there is more than one meaningful path.
 dups=[paths for paths in seen.values() if len(paths)>1 and all(not x.endswith('.md') for x in paths)]
 assert not dups, f'exact duplicate non-document files: {dups}'
 print('RETIRED REFERENCE + DUPLICATE SCAN PASS')
 PY
-
 if command -v goose >/dev/null 2>&1; then
   for f in recipes/*/recipe.yaml; do goose recipe validate "$f"; done
 else

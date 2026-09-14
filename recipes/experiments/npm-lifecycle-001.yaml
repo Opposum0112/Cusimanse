@@ -1,8 +1,17 @@
 kind: cusimanse-experiment
-version: 1
+version: 2
 id: npm-lifecycle-001
 purpose: Observe a controlled local npm postinstall behavior inside disposable Lima compute.
 contract: contracts/npm-lifecycle-001.md
+profiles:
+  host: recipes/profiles/host/linux-lima.yaml
+  workload: recipes/profiles/workload/npm-lifecycle.yaml
+policy:
+  enforcement: scripts/policyctl
+  policy_file: policies/host-policy.yaml
+  mount_denylist: policies/mount-denylist.yaml
+  permission_tiers: policies/permission-tiers.yaml
+  required_checks: [vm, network, credentials, mounts]
 host:
   recipe: recipes/host/security-research.yaml
 compute:
@@ -13,13 +22,7 @@ session:
   state: recipes/session/session-state.yaml
 workload:
   execution: disposable-lima-vm
-  commands:
-    - node --version
-    - npm --version
-    - mkdir -p /tmp/npm-lifecycle
-    - cd /tmp/npm-lifecycle && npm init -y
-    - cd /tmp/npm-lifecycle && npm install ../../packages/npm-fixture
-    - test -f /tmp/cusimanse-npm-lifecycle-marker
+  profile: recipes/profiles/workload/npm-lifecycle.yaml
 threat_model:
   coverage: [package-lifecycle-process, filesystem-behavior, localhost-network-behavior]
   limitations: [local-fixture-only, no-external-network, no-real-malware]

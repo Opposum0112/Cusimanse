@@ -2,10 +2,14 @@ flowchart TB
     subgraph CP[1. Control & Declaration Plane]
         R[Researcher]
         C[Research Contract<br/>purpose • scope • authorization • acceptance]
-        E[Cusimanse Experiment Configuration<br/>workload • compute • policy • instrumentation • evidence]
+        E[Cusimanse Experiment Configuration<br/>workload • profiles • policy • evidence]
+        HP[Host Profile<br/>platform • compute • fixed runtime policy]
+        WP[Workload Profile<br/>runtime handler • fixture • instrumentation]
         GR[Goose Recipe<br/>title • description • instructions/prompt]
         PR[Prompt Reference<br/>cross-agent handoff only]
         R --> C --> E
+        E --> HP
+        E --> WP
         E --> GR
         E --> PR
     end
@@ -25,32 +29,38 @@ flowchart TB
     end
     GR --> A
     PR --> A
+    A -. selects profiles, never provisions .-> HP
+    A -. selects workload intent, never generates runtime .-> WP
 
     subgraph PP[3. Policy Control Plane]
         PC[policyctl<br/>show • validate • check • require • enforce • audit]
-        HP[host-policy.yaml<br/>host • privilege • VM • network • Git • orchestration]
+        HPOL[host-policy.yaml<br/>host • privilege • VM • network • Git • orchestration]
         MD[mount-denylist.yaml<br/>forbidden host paths]
         PT[permission-tiers.yaml<br/>read • write • network • credentials • privileged]
         DEC{Policy decision}
         AUDIT[Auditable policy decision JSONL]
-        HP --> PC
+        HPOL --> PC
         MD --> PC
         PT --> PC
         PC --> DEC
         DEC --> AUDIT
     end
     A --> PC
+    HP --> PC
 
     subgraph EP[4. Execution & Security Plane — containment boundary]
         PLAN[Plan + explicit approval checkpoint]
         VM[Lima / QEMU Disposable VM<br/>guest OS = execution / isolation boundary]
-        INST[Guest Instrumentation<br/>process • syscall • filesystem • network]
-        WORK[Recipe-defined Workload<br/>Go • npm • controlled threat fixtures]
+        FIXED[Deterministic Runtime<br/>profile resolver + fixed handlers<br/>no agent-generated provisioning/instrumentation]
+        INST[Declared Guest Instrumentation<br/>selected by workload profile]
+        WORK[Profile-defined Workload<br/>Go • npm • controlled threat fixtures]
         DESTROY[Destroy / clean up VM]
-        PLAN --> VM --> INST --> WORK --> DESTROY
+        PLAN --> VM --> FIXED --> INST --> WORK --> DESTROY
     end
     DEC -->|allow / approved| PLAN
     DEC -->|deny / missing approval| BLOCK[STOP — do not execute]
+    HP --> FIXED
+    WP --> FIXED
 
     subgraph EVP[5. Evidence, Verification & Research Plane]
         EV[Evidence bundle<br/>session.yaml • events • raw observations]
@@ -98,9 +108,9 @@ flowchart TB
     classDef exec fill:#fff3df,stroke:#b06d18,color:#3a2309,stroke-width:2px;
     classDef evidence fill:#edf8ef,stroke:#438451,color:#16361d,stroke-width:1.5px;
     classDef integration fill:#f4f4f4,stroke:#666,color:#222,stroke-width:1.5px;
-    class R,C,E,GR,PR control;
+    class R,C,E,HP,WP,GR,PR control;
     class A,G,AD,ROLES,TOOLS agent;
-    class PC,HP,MD,PT,DEC,AUDIT,BLOCK policy;
-    class PLAN,VM,INST,WORK,DESTROY exec;
+    class PC,HPOL,MD,PT,DEC,AUDIT,BLOCK policy;
+    class PLAN,VM,FIXED,INST,WORK,DESTROY exec;
     class EV,HASH,ANALYZE,VERIFY,REPORT,PRESERVE evidence;
     class HOST,GW,OBS,SKILLS,MCP,CU integration;
