@@ -1,65 +1,44 @@
 # Contributing to Cusimanse
 
-Thank you for contributing to Cusimanse, an agent-neutral security research platform for controlled workload detonation and evidence-driven analysis.
+Cusimanse is a declarative security-research project. Experiment semantics live in contracts and Goose-compatible recipes; Lima and the instrumentation profile provide the controlled experiment environment.
 
-## Contribution types
+## Contribution rules
 
-- **Bug fixes:** include a minimal reproduction and validation evidence.
-- **Documentation:** clarify contracts, runbooks, security boundaries or operator workflows.
-- **Experiments/recipes:** keep recipes small, composable and reproducible.
-- **Adapters:** keep Goose, OpenCode, Grok Build and Antigravity integration at the adapter boundary; do not fork experiment semantics.
-- **Tests/tooling:** improve deterministic validation, evidence integrity and CI quality.
-
-## Architecture rules
-
-1. Keep the project recipe-driven and agent-neutral.
-2. Do not introduce a second project controller.
-3. Use `policyctl` only for host/security policy configuration and the local token dashboard.
-4. Do not treat agents, prompts, skills, MCP servers or policy output as security boundaries.
-5. Preserve VM/OS, credential, mount, network and approval controls.
-6. Preserve evidence before VM destruction and hash release/runtime artifacts where required.
-7. Never claim `PASS` without evidence; use `NOT_DEPLOYED` when an integration is unavailable.
+1. Keep experiment definitions declarative and reusable.
+2. Keep the primary operator responsible for the lifecycle; specialist agents/subrecipes perform focused work.
+3. Keep the Lima VM as the execution boundary for reference workloads.
+4. Do not put credentials or private telemetry in Git.
+5. Raw evidence must be preserved and material findings must cite it.
+6. Independent verification is required before a material result is marked verified.
+7. Do not describe an unexercised capability as deployed.
 
 ## Before changing the project
 
-1. Read `AGENTS.md` and the relevant Markdown contract.
-2. Read the affected recipes and their references.
-3. Keep changes reproducible and avoid secrets or unrestricted host mounts.
-4. Consider both the happy path and negative/security cases.
-
-## Local validation
+1. Read the relevant contract.
+2. Read the matching Goose recipe and supporting profiles.
+3. Use the single host installer when a local integration is required:
 
 ```bash
-./scripts/tests/validate-recipes.sh
-go test ./...
-go vet ./...
-go build ./...
-./policyctl validate
-./policyctl check
-bash ./scripts/tests/validate-project.sh
+./scripts/install.sh
 ```
 
-Run the checks relevant to your change and report exactly what was executed.
+4. Run validation:
+
+```bash
+./scripts/preflight.sh
+./scripts/tests/validate.sh
+```
+
+5. For Lima integration testing:
+
+```bash
+CUSIMANSE_RUN_VM_TEST=1 ./scripts/tests/runtime.sh
+```
 
 ## Pull requests
 
-Use a focused branch and pull request. Explain:
+Explain what changed, why, affected contracts/recipes, security impact, validation performed and any capability that could not be exercised.
 
-- what changed and why;
-- architecture/security impact;
-- recipes, adapters or contracts affected;
-- validation performed and its result;
-- platform-specific behavior;
-- capabilities that remain `NOT_DEPLOYED`.
+Do not include credentials, tokens, private keys or unredacted forensic artifacts.
 
-Do not include credentials, tokens, private keys, sensitive telemetry or unredacted forensic artifacts.
-
-## Bug reports
-
-For reproducible defects, use the GitHub **Bug Report** template. Include the smallest useful reproduction, environment details and sanitized evidence.
-
-For potential security vulnerabilities—especially host escape, credential exposure, unsafe mounts, privilege escalation, network-policy bypass or evidence-integrity failures—**do not open a public issue**. Follow `SECURITY.md` instead.
-
-## Code of conduct
-
-Be respectful, precise and evidence-driven. Security research should be performed only against systems and workloads for which you have authorization.
+For potential security vulnerabilities, follow `SECURITY.md` rather than publishing sensitive details in an issue.
