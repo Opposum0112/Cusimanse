@@ -1,0 +1,6 @@
+version: 1
+name: runtime-analyst
+description: "Analyze runtime, process, syscall and network behavior"
+skills: ["experiment-run", "evidence-analysis"]
+capabilities: ["execute", "collect"]
+managed_by: cmd/cusimanse
