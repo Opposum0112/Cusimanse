@@ -1,19 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900">
-<rect width="1400" height="900" fill="white"/>
-<text x="700" y="45" text-anchor="middle" font-family="sans-serif" font-size="28" font-weight="bold">Cusimanse — Agent-Neutral Research, Goose Reference Operator</text>
-<g font-family="sans-serif" font-size="17" text-anchor="middle">
-<rect x="520" y="75" width="360" height="60" rx="12" fill="#eef2ff" stroke="#4f46e5"/><text x="700" y="112">Researcher → Contract</text>
-<rect x="450" y="165" width="500" height="65" rx="12" fill="#ecfeff" stroke="#0891b2"/><text x="700" y="204">Agent-neutral Experiment Recipe YAML</text>
-<rect x="180" y="265" width="300" height="75" rx="12" fill="#f0fdf4" stroke="#16a34a"/><text x="330" y="295">Goose</text><text x="330" y="320">Native recipes + Summon + Skills + MCP</text>
-<rect x="920" y="265" width="300" height="75" rx="12" fill="#fff7ed" stroke="#ea580c"/><text x="1070" y="295">Other primary agents</text><text x="1070" y="320">OpenCode · Hermes · Antigravity · Pi</text>
-<rect x="180" y="385" width="1040" height="70" rx="12" fill="#f8fafc" stroke="#475569"/><text x="700" y="413">Native tools / plugins / extensions / role delegation</text><text x="700" y="438">Semantic roles remain in .agents/agents/</text>
-<rect x="300" y="500" width="800" height="70" rx="12" fill="#fefce8" stroke="#ca8a04"/><text x="700" y="542">Lima + QEMU disposable VM + instrumentation profile</text>
-<rect x="300" y="610" width="800" height="65" rx="12" fill="#fdf2f8" stroke="#db2777"/><text x="700" y="649">Recipe-defined workload → evidence → analysis → independent verification</text>
-<rect x="300" y="715" width="800" height="65" rx="12" fill="#f5f3ff" stroke="#7c3aed"/><text x="700" y="754">Research report → preserve hashes/provenance → destroy VM</text>
-<rect x="40" y="500" width="210" height="150" rx="12" fill="#eff6ff" stroke="#2563eb"/><text x="145" y="530">Mandatory host</text><text x="145" y="558">LiteLLM</text><text x="145" y="582">OmniRoute</text><text x="145" y="606">Numbat · Aegis</text><text x="145" y="630">Phoenix/OTel · ClawMetry</text>
-<rect x="1150" y="500" width="210" height="150" rx="12" fill="#f0fdf4" stroke="#16a34a"/><text x="1255" y="530">Learning (opt-in)</text><text x="1255" y="558">retrieve → propose</text><text x="1255" y="582">execute → evaluate</text><text x="1255" y="606">refine → replay</text><text x="1255" y="630">verify → approve → promote</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="820" viewBox="0 0 1200 820">
+<rect width="1200" height="820" fill="white"/>
+<text x="600" y="42" text-anchor="middle" font-family="sans-serif" font-size="28" font-weight="bold">Cusimanse — Declarative Agent-Neutral Security Research</text>
+<g font-family="sans-serif" font-size="16" stroke="#333" stroke-width="2" fill="#f7f7f7">
+<rect x="430" y="70" width="340" height="52" rx="10"/><text x="600" y="102" text-anchor="middle" stroke="none">Research Contract</text>
+<rect x="400" y="150" width="400" height="58" rx="10"/><text x="600" y="185" text-anchor="middle" stroke="none">Cusimanse Experiment Configuration</text>
+<rect x="120" y="240" width="400" height="72" rx="10"/><text x="320" y="270" text-anchor="middle" stroke="none">Goose Recipe</text><text x="320" y="294" text-anchor="middle" stroke="none" font-size="13">title + description + instructions/prompt</text>
+<rect x="680" y="240" width="400" height="72" rx="10"/><text x="880" y="270" text-anchor="middle" stroke="none">Prompt Reference</text><text x="880" y="294" text-anchor="middle" stroke="none" font-size="13">handoff for non-Goose agents</text>
+<rect x="430" y="345" width="340" height="62" rx="10"/><text x="600" y="382" text-anchor="middle" stroke="none">Selected Primary Agent</text>
+<rect x="80" y="440" width="310" height="70" rx="10"/><text x="235" y="470" text-anchor="middle" stroke="none">Goose native operator</text><text x="235" y="494" text-anchor="middle" stroke="none" font-size="13">Recipes • Summon • Skills • MCP</text>
+<rect x="445" y="440" width="310" height="70" rx="10"/><text x="600" y="470" text-anchor="middle" stroke="none">Other validated adapters</text><text x="600" y="494" text-anchor="middle" stroke="none" font-size="13">OpenCode • Hermes • Antigravity • Pi</text>
+<rect x="810" y="440" width="310" height="70" rx="10"/><text x="965" y="470" text-anchor="middle" stroke="none">Mandatory host</text><text x="965" y="494" text-anchor="middle" stroke="none" font-size="13">Gateways + observability + tools</text>
+<rect x="360" y="555" width="480" height="70" rx="10"/><text x="600" y="585" text-anchor="middle" stroke="none">Lima/QEMU disposable VM + guest instrumentation</text><text x="600" y="609" text-anchor="middle" stroke="none" font-size="13">execution / isolation boundary</text>
+<rect x="360" y="660" width="480" height="58" rx="10"/><text x="600" y="696" text-anchor="middle" stroke="none">Recipe workload → evidence → verification → report</text>
+<rect x="890" y="555" width="240" height="110" rx="10"/><text x="1010" y="585" text-anchor="middle" stroke="none">Learning</text><text x="1010" y="610" text-anchor="middle" stroke="none" font-size="13">retrieve → propose → replay</text><text x="1010" y="632" text-anchor="middle" stroke="none" font-size="13">→ verify → approve</text><text x="1010" y="654" text-anchor="middle" stroke="none" font-size="13">→ validated skill</text>
 </g>
-<g stroke="#334155" stroke-width="3" fill="none" marker-end="url(#a)"><defs><marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L10,3 L0,6 Z" fill="#334155"/></marker></defs>
-<path d="M700 135 V165"/><path d="M700 230 V265 H330"/><path d="M700 230 V265 H1070"/><path d="M330 340 V385"/><path d="M1070 340 V385"/><path d="M700 455 V500"/><path d="M700 570 V610"/><path d="M700 675 V715"/><path d="M250 575 H300"/><path d="M1100 575 H1150"/></g>
-<text x="700" y="850" text-anchor="middle" font-family="sans-serif" font-size="16">Policy controls and guest OS enforce boundaries; gateways, observability, Skills and MCP are capability/observation layers.</text>
+<g stroke="#333" stroke-width="2" fill="none" marker-end="url(#a)">
+<path d="M600 122V150"/><path d="M500 208V240"/><path d="M700 208V240"/><path d="M320 312V345"/><path d="M880 312V345"/><path d="M520 407V440"/><path d="M600 407V440"/><path d="M680 407V440"/><path d="M235 510V555"/><path d="M600 510V555"/><path d="M965 510V555"/><path d="M600 625V660"/><path d="M840 690H890"/>
+</g>
+<defs><marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#333"/></marker></defs>
+<text x="600" y="790" text-anchor="middle" font-family="sans-serif" font-size="13">Container Use is optional; gateways and observers are not the containment boundary.</text>
 </svg>
