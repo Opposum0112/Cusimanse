@@ -1,17 +1,13 @@
 # Cusimanse Research Contracts
 
-This directory contains the Markdown research contracts used by Cusimanse experiments. Contracts define intent, scope, hypotheses, safety constraints, evidence requirements, acceptance criteria, and review/promotion gates.
+Contracts define the human research agreement around a Goose workflow: research question, authorization, scope, safety expectations, evidence requirements and acceptance criteria.
 
-Each case contract should define:
+The executable workflow is a Goose YAML recipe. Contracts do not define a second orchestration system, VM controller, gateway or telemetry service.
 
-- research question and hypothesis
-- authorized scope and workload
-- safety constraints and prohibited actions
-- required compute/isolation boundary
-- required VM-side instrumentation
-- evidence and provenance requirements
-- independent verification requirements
-- human approval gates
-- acceptance and cleanup criteria
+Recommended flow:
 
-Recipes in `recipes/` provide the executable configuration that implements the contract.
+```text
+Contract → Goose recipe → Goose session → evidence → verification → report
+```
+
+See the official Goose recipe documentation for the executable recipe schema and validation rules.
