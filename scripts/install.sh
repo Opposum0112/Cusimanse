@@ -17,9 +17,6 @@ OS="$(uname -s)"; SUDO=""; [ "$(id -u)" -eq 0 ] || SUDO=sudo
 [ -s "$HOST_RECIPE" ] || fail "missing host recipe: $HOST_RECIPE"
 [ -s "$ADAPTER_RECIPE" ] || fail "missing adapter installation recipe: $ADAPTER_RECIPE"
 
-# The canonical installer is idempotent: package managers and existing checkouts
-# are reused, configuration is rewritten deterministically, and existing agents
-# are not reinstalled unless explicitly requested.
 if [ "$OS" = Darwin ]; then
   have brew || fail 'Homebrew is required on macOS'
   brew install git curl python node ruby go jq yq ripgrep qemu lima ca-certificates
@@ -30,7 +27,7 @@ elif [ "$OS" = Linux ]; then
     node_major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
     if [ "$node_major" -lt 22 ]; then
       setup_node="$(curl -fsSL https://deb.nodesource.com/setup_22.x)"
-      printf '%s\n' "$setup_node" | $SUDO -E bash
+      if [ -n "${SUDO:-}" ]; then printf '%s\n' "$setup_node" | "$SUDO" -E bash; else printf '%s\n' "$setup_node" | bash; fi
       run_root apt-get install -y nodejs
     fi
     run_root apt-get install -y golang-go
@@ -41,10 +38,8 @@ elif [ "$OS" = Linux ]; then
   elif have zypper; then
     run_root zypper --non-interactive install git bash curl python3 python3-pip ruby nodejs npm go jq yq ripgrep qemu lima ca-certificates strace tcpdump iproute2 iputils bind-utils lsof inotify-tools file psmisc procps
   else fail 'No supported Linux package manager'; fi
-elif printf '%s' "$OS" | grep -qi microsoft; then
-  fail 'Run scripts/install.ps1 from native Windows, or run this script inside WSL2'
 else
-  fail 'Use Linux, macOS, WSL2, or native Windows via scripts/install.ps1'
+  fail 'Use Linux/macOS/WSL2 with install.sh, or native Windows with install.ps1'
 fi
 
 have yq || fail 'yq installation failed'
@@ -54,9 +49,8 @@ VENV="$(yq -r '.configuration.python_environment' "$HOST_RECIPE" | sed "s|^~|$HO
 GATEWAY_CFG="$(yq -r '.configuration.gateway' "$HOST_RECIPE" | sed "s|^~|$HOME|")"
 mkdir -p "$BIN" "$CFG" "$(dirname "$AEGIS")" "$(dirname "$VENV")"
 
-if ! have goose; then curl -fsSL https://github.com/block/goose/releases/latest/download/download_cli.sh | CONFIGURE=false GOOSE_BIN_DIR="$BIN" bash || curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | CONFIGURE=false GOOSE_BIN_DIR="$BIN" bash; fi
+if ! have goose; then curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | CONFIGURE=false GOOSE_BIN_DIR="$BIN" bash; fi
 have goose || fail 'Goose installation failed'
-
 node_major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"; [ "$node_major" -ge 22 ] || fail 'Node.js 22+ is required'
 python3 -m venv "$VENV"
 "$VENV/bin/pip" install --upgrade pip
@@ -119,24 +113,14 @@ install_adapters() {
   if [ -z "$selection" ] && [ -t 0 ]; then
     printf '%s\n' 'Install optional primary-agent adapters?' '  1) none (default)' '  2) OpenCode' '  3) Hermes' '  4) Antigravity' '  5) Pi' '  6) all'
     read -r -p '[cusimanse] Selection [1]: ' answer || answer=1
-    case "$answer" in
-      2) selection=opencode;; 3) selection=hermes;; 4) selection=antigravity;; 5) selection=pi;; 6) selection=all;; *) selection=none;;
-    esac
+    case "$answer" in 2) selection=opencode;; 3) selection=hermes;; 4) selection=antigravity;; 5) selection=pi;; 6) selection=all;; *) selection=none;; esac
   fi
   [ "$selection" = none ] || [ -z "$selection" ] && return 0
-  case ",$selection," in *,all,*) selection=opencode,hermes,antigravity,pi;; esac
-  case ",$selection," in
-    *,opencode,*) have opencode || curl -fsSL https://opencode.ai/install | bash || log 'OpenCode optional install failed';;
-  esac
-  case ",$selection," in
-    *,hermes,*) have hermes || curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash || log 'Hermes optional install failed';;
-  esac
-  case ",$selection," in
-    *,antigravity,*) have agy || curl -fsSL https://antigravity.google/cli/install.sh | bash || log 'Antigravity optional install failed';;
-  esac
-  case ",$selection," in
-    *,pi,*) have pi || npm install -g @mariozechner/pi-coding-agent || log 'Pi optional install failed';;
-  esac
+  [ "$selection" = all ] && selection=opencode,hermes,antigravity,pi
+  case ",$selection," in *,opencode,*) have opencode || curl -fsSL https://opencode.ai/install | bash || log 'OpenCode optional install failed';; esac
+  case ",$selection," in *,hermes,*) have hermes || curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash || log 'Hermes optional install failed';; esac
+  case ",$selection," in *,antigravity,*) have agy || curl -fsSL https://antigravity.google/cli/install.sh | bash || log 'Antigravity optional install failed';; esac
+  case ",$selection," in *,pi,*) have pi || npm install -g @mariozechner/pi-coding-agent || log 'Pi optional install failed';; esac
 }
 install_adapters
 
