@@ -5,7 +5,7 @@ cd "$ROOT"
 export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
 fail(){ echo "VALIDATION FAIL: $*" >&2; exit 1; }
 
-forbidden='ai-security-lab|CrewAI|crewai|infra/|ARCHITECTURE-REFACTOR|scripts/cusimanse-host|scripts/agent-preflight|scripts/configure-recipes|scripts/goose-env|recipes/adapters|recipes/gateways|recipes/routing|recipes/orchestration'
+forbidden='ai-security-lab|CrewAI|crewai|infra/|ARCHITECTURE-REFACTOR|scripts/cusimanse-host|scripts/agent-preflight|scripts/configure-recipes|scripts/goose-env|recipes/adapters|recipes/gateways|recipes/routing|recipes/orchestration|docs/research-workflow|docs/images/cusimanse-workflow'
 if grep -RInE "$forbidden" README.md .goosehints contracts recipes docs scripts 2>/dev/null; then
   fail 'stale or retired architecture references remain'
 fi
@@ -15,24 +15,13 @@ for f in scripts/*.sh scripts/tests/*.sh; do
   bash -n "$f" || fail "syntax error: $f"
 done
 
-for f in contracts/*.md \
-  recipes/go-install-001/recipe.yaml \
-  recipes/npm-install-001/recipe.yaml \
-  recipes/subrecipes/*.yaml \
-  recipes/lima/security-research.yaml \
-  recipes/instrumentation/security-research.yaml \
-  recipes/host/security-research.yaml \
-  recipes/gateway/mandatory.yaml \
-  recipes/observability/mandatory.yaml \
-  recipes/session/session-state.yaml \
-  recipes/session/learning-workflow.yaml; do
+for f in contracts/*.md recipes/go-install-001/recipe.yaml recipes/npm-install-001/recipe.yaml recipes/subrecipes/*.yaml recipes/lima/security-research.yaml recipes/instrumentation/security-research.yaml recipes/host/security-research.yaml recipes/gateway/mandatory.yaml recipes/observability/mandatory.yaml recipes/session/session-state.yaml recipes/session/learning-workflow.yaml; do
   [ -s "$f" ] || fail "missing/empty: $f"
 done
 
 [ -s docs/architecture/cusimanse-architecture.svg ] || fail 'architecture SVG missing'
 [ -s docs/architecture/cusimanse-architecture.mmd ] || fail 'architecture Mermaid source missing'
-[ -s docs/images/cusimanse-mascot-logo.webp ] || fail 'mascot/logo image missing'
-[ -s docs/images/cusimanse-architecture.webp ] || fail 'architecture image missing'
+[ -s docs/images/cusimanse-mascot-logo.svg ] || fail 'mascot/logo image missing'
 
 python3 - <<'PY'
 from pathlib import Path
@@ -61,11 +50,17 @@ grep -Fq 'session-state.yaml' README.md || fail 'session state documentation mis
 grep -Fq 'Container Use may be added' README.md || fail 'optional Container Use statement missing'
 grep -Fq 'scripts/tools.sh list' README.md || fail 'host tool access documentation missing'
 grep -Fq 'recipe-defined workload' README.md || fail 'recipe-driven workload documentation missing'
+grep -Fq 'researcher does not manually run' README.md || fail 'manual workload distinction missing'
 
 grep -Fq 'selected_primary_agent: goose-reference' recipes/session/session-state.yaml || fail 'Goose primary operator missing'
 grep -Fq 'mandatory_host_gateway_stack: true' recipes/session/session-state.yaml || fail 'mandatory gateway state missing'
 grep -Fq 'mandatory_host_stack: true' recipes/session/session-state.yaml || fail 'mandatory observability state missing'
 grep -Fq 'default: false' recipes/session/learning-workflow.yaml || fail 'learning default missing'
 grep -Fq 'session_key: learning.enabled' recipes/session/learning-workflow.yaml || fail 'learning enable key missing'
+
+grep -Fq 'recipe: recipes/session/learning-workflow.yaml' recipes/session/session-state.yaml || fail 'learning recipe linkage missing'
+grep -Fq 'how_to_enable:' recipes/session/learning-workflow.yaml || fail 'learning enable instructions missing'
+grep -Fq 'configure_from_recipe: true' recipes/host/security-research.yaml || fail 'host recipe install declaration missing'
+grep -Fq 'scripts/tools.sh versions' recipes/host/security-research.yaml || fail 'host access declaration missing'
 
 printf '%s\n' 'VALIDATION PASS'
