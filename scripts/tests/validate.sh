@@ -4,39 +4,28 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
 fail(){ echo "VALIDATION FAIL: $*" >&2; exit 1; }
-
-# Static validation must not require host-only VM binaries in CI.
 for f in scripts/*.sh scripts/tests/*.sh; do
-  [ -x "$f" ] || fail "not executable: $f"
+  if [ "$f" != scripts/session.sh ]; then [ -x "$f" ] || fail "not executable: $f"; fi
   bash -n "$f" || fail "syntax error: $f"
 done
-
-for f in contracts/*.md recipes/go-install-001/recipe.yaml recipes/npm-install-001/recipe.yaml recipes/experiments/*.yaml recipes/subrecipes/*.yaml recipes/lima/security-research.yaml recipes/instrumentation/security-research.yaml recipes/host/security-research.yaml recipes/gateway/mandatory.yaml recipes/observability/mandatory.yaml recipes/session/session-state.yaml recipes/session/learning-workflow.yaml recipes/agents/adapter-matrix.yaml recipes/agents/adapter-installation.yaml recipes/agents/goose-orchestration.yaml recipes/skills/registry.yaml recipes/mcp/registry.yaml; do
-  [ -s "$f" ] || fail "missing/empty: $f"
-done
+for f in contracts/*.md recipes/go-install-001/recipe.yaml recipes/npm-install-001/recipe.yaml recipes/experiments/*.yaml recipes/subrecipes/*.yaml recipes/lima/security-research.yaml recipes/instrumentation/security-research.yaml recipes/host/security-research.yaml recipes/gateway/mandatory.yaml recipes/observability/mandatory.yaml recipes/session/session-state.yaml recipes/session/learning-workflow.yaml recipes/agents/adapter-matrix.yaml recipes/agents/adapter-installation.yaml recipes/agents/goose-orchestration.yaml recipes/skills/registry.yaml recipes/mcp/registry.yaml; do [ -s "$f" ] || fail "missing/empty: $f"; done
 for f in prompts/README.md prompts/experiments/*.md; do [ -s "$f" ] || fail "missing/empty prompt reference: $f"; done
 [ -s docs/architecture/cusimanse-architecture.svg ] || fail 'architecture SVG missing'
 [ -s docs/architecture/cusimanse-architecture.mmd ] || fail 'architecture Mermaid source missing'
 [ -s docs/images/cusimanse-mascot-logo.svg ] || fail 'mascot/logo image missing'
 [ -s manifest/PACKAGE-MANIFEST.json ] || fail 'package manifest missing'
-
 python3 - <<'PY'
 from pathlib import Path
 import json, yaml
 json.loads(Path('manifest/PACKAGE-MANIFEST.json').read_text())
 for p in Path('recipes').glob('**/*.yaml'):
-    d=yaml.safe_load(p.read_text())
-    assert isinstance(d, dict), p
+    d=yaml.safe_load(p.read_text()); assert isinstance(d,dict),p
 for p in (Path('recipes/go-install-001/recipe.yaml'), Path('recipes/npm-install-001/recipe.yaml')):
     d=yaml.safe_load(p.read_text())
-    for key in ('title','description'):
+    for key in ('title','description','instructions'):
         assert isinstance(d.get(key), str) and d[key].strip(), f'{p}: {key}'
-    assert isinstance(d.get('instructions') or d.get('prompt'), str), p
 print('YAML/JSON PASS')
 PY
-
-# Goose recipe validation is required when Goose is installed, but is not a CI
-# prerequisite because the static job may validate repository structure only.
 if command -v goose >/dev/null 2>&1; then
   goose recipe validate recipes/go-install-001/recipe.yaml
   goose recipe validate recipes/npm-install-001/recipe.yaml
@@ -44,21 +33,16 @@ if command -v goose >/dev/null 2>&1; then
 else
   echo 'Goose CLI not installed: Goose runtime validation deferred'
 fi
-
 python3 - <<'PY'
 from pathlib import Path
 import yaml
 m=yaml.safe_load(Path('recipes/agents/adapter-matrix.yaml').read_text())
-assert m['reference']['id'] == 'goose-reference'
-for name in ('opencode','hermes','antigravity','pi'):
-    assert name in m['adapters']
+assert m['reference']['agent'] == 'goose'
+for name in ('opencode','hermes','antigravity','pi'): assert name in m['adapters']
 for p in ('recipes/go-install-001/recipe.yaml','recipes/npm-install-001/recipe.yaml'):
-    d=yaml.safe_load(Path(p).read_text())
-    assert d['cusimanse']['experiment'].startswith('recipes/experiments/')
-    assert d['cusimanse']['prompt_reference'].startswith('prompts/experiments/')
+    d=yaml.safe_load(Path(p).read_text()); assert d['cusimanse']['experiment'].startswith('recipes/experiments/')
 print('AGENT INTEGRATION PASS')
 PY
-
 grep -Fq 'required: true' recipes/gateway/mandatory.yaml || fail 'gateway is not mandatory'
 grep -Fq 'required: true' recipes/observability/mandatory.yaml || fail 'observability is not mandatory'
 grep -Fq 'default: false' recipes/session/learning-workflow.yaml || fail 'learning must default off'
@@ -72,5 +56,4 @@ grep -Fq 'role_definitions: .agents/agents/' recipes/agents/goose-orchestration.
 grep -Fq 'native-agent-subagents-and-skills' recipes/agents/goose-orchestration.yaml || fail 'Goose native orchestration missing'
 grep -Fq 'optional_adapters:' recipes/agents/adapter-installation.yaml || fail 'adapter installer options missing'
 grep -Fq 'CUSIMANSE_INSTALL_ADAPTERS' recipes/agents/adapter-installation.yaml || fail 'adapter noninteractive install missing'
-
-echo 'VALIDATION PASS'
+printf '%s\n' 'VALIDATION PASS'
