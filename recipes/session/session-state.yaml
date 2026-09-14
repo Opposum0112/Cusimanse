@@ -1,10 +1,10 @@
-version: 1
+version: 2
 id: research-session-state
 kind: session-state-contract
 purpose: >-
   Maintain one durable, replayable YAML state record for every Cusimanse research
-  session, including selected profiles, adapter, orchestration, policy, audit,
-  artifacts, verification, learning and token accounting.
+  session, including selected profiles, adapter, native agent orchestration, policy,
+  audit, artifacts, verification, learning and token accounting.
 
 identity:
   required: [session_id, experiment_id, contract_ref, recipe_ref]
@@ -62,24 +62,30 @@ agent:
   selected_adapter: required
   interactive_command: required
   run_command: required
-  prompt_ref: required
-  prompt_digest: required
+  prompt_ref: optional
+  prompt_digest: optional
   operator_authority: primary-agent
+  native_orchestration: preferred
+  recipe_input: required
 
 orchestration:
   owner: primary-agent
   specialist_roles: required
-  framework: declared-profile
-  optional_backends: [crewai, langgraph, taskflow]
+  framework: native-agent-capabilities
+  optional_helpers: [langgraph, taskflow]
+  competing_frameworks: false
   backend_is_security_boundary: false
 
 learning:
-  enabled: true
+  enabled: opt_in
+  helper_install_scope: host-control-plane-only
   candidate_path: learning/candidates/
+  candidate_library: skills/candidate/
   evaluation_path: learning/evaluations/
   replay_path: learning/replays/
   verification_path: learning/verification/
   promotion_path: learning/promotions/
+  promotion_target: skills/validated/
   promotion_requires_human_approval: true
   base_contracts_immutable: true
   runtime_self_modification: false
