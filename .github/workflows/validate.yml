@@ -17,10 +17,10 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install host validation dependencies
+      - name: Install validation dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y shellcheck python3-yaml
+          sudo apt-get install -y shellcheck python3-yaml yq
           curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh | CONFIGURE=false bash
       - name: Validate shell scripts
         run: |
@@ -32,3 +32,5 @@ jobs:
           done < <(find scripts -type f -name '*.sh' -print0)
       - name: Validate project and Goose recipes
         run: bash ./scripts/tests/validate.sh
+      - name: Run functional control-plane tests
+        run: bash ./scripts/tests/runtime.sh
