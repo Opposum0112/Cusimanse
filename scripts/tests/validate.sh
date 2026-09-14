@@ -46,10 +46,16 @@ grep -q 'promotion_target: skills/validated/' recipes/session/learning-workflow.
 grep -q 'human_approval_required: true' recipes/session/learning-workflow.yaml || fail 'human approval missing'
 grep -q 'provider: antropos17/Aegis' recipes/observability/aegis.yaml || fail 'Aegis provider is incorrect'
 grep -q 'independent-os-level-observer' recipes/observability/aegis.yaml || fail 'Aegis role is incorrect'
+grep -q 'enforcement: monitor-only' recipes/observability/aegis.yaml || fail 'Aegis must remain monitor-only'
 grep -q 'agent-observability' recipes/agent-monitoring/observability.yaml || fail 'agent observability recipe missing'
 grep -q 'gateway_is_security_boundary: false' recipes/gateways/model-gateways.yaml || fail 'gateway boundary invariant missing'
 grep -q 'public_exposure: deny' recipes/mcp/registry.yaml || fail 'MCP public exposure policy missing'
-grep -q 'skills cannot grant privileges' recipes/skills/registry.yaml || fail 'skill privilege invariant missing'
+grep -q 'MCP connectors cannot expand the VM/OS security boundary' recipes/mcp/registry.yaml || fail 'MCP boundary invariant missing'
+grep -q 'skills are instructions, not security boundaries' recipes/skills/registry.yaml || fail 'skill boundary invariant missing'
+grep -q 'is_security_boundary: false' recipes/orchestration/taskflow.yaml || fail 'Taskflow boundary invariant missing'
+grep -q 'ai_output_is_not_evidence' recipes/orchestration/langgraph.yaml || fail 'LangGraph evidence invariant missing'
+grep -q 'gateways_are_not_security_boundary: true' recipes/routing/default.yaml || fail 'routing gateway boundary invariant missing'
+grep -q 'required_end_state:' recipes/observability/token-dashboard.yaml || fail 'token dashboard lifecycle contract missing'
 echo 'PASS: optional-layer recipes and security invariants are connected'
 
 # Go, policyctl and policy boundary validation.
@@ -72,7 +78,6 @@ command -v numbat >/dev/null 2>&1 || partial 'Numbat is NOT_DEPLOYED'
 [ -f "$HOME/.local/share/cusimanse/aegis/package.json" ] || partial 'Aegis source checkout is NOT_DEPLOYED'
 python3 -c 'import importlib.util; raise SystemExit(0 if importlib.util.find_spec("phoenix") and importlib.util.find_spec("opentelemetry") else 1)' || partial 'Phoenix/OpenTelemetry is NOT_DEPLOYED'
 [ -f "$ROOT/recipes/agent-monitoring/observability.yaml" ] || fail 'agent observability recipe missing'
-# Gateways and learning helpers are optional; configuration can be valid while runtime deployment remains NOT_DEPLOYED.
 if [ ! -f "$HOME/.config/cusimanse/litellm.yaml" ]; then partial 'LiteLLM is NOT_DEPLOYED'; fi
 if [ ! -f "$HOME/.config/cusimanse/omniroute.yaml" ]; then partial 'OmniRoute is NOT_DEPLOYED'; fi
 if ! command -v taskflow >/dev/null 2>&1; then partial 'Taskflow is NOT_DEPLOYED (learning helper)'; fi
