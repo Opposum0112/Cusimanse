@@ -1,9 +1,10 @@
 kind: host-toolchain
-version: 7
+version: 8
 purpose: >-
   Declarative host inventory. Host tools needed to operate experiments are
   separated from Linux guest instrumentation tools. Go is a required control
   plane dependency and is installed before Go-based capabilities such as Numbat.
+project_inventory: manifest/TOOL-INVENTORY.yaml
 common:
   commands: [git, bash, curl, python3, node, npm, go, jq, yq, rg, goose]
   python_packages: [phoenix, opentelemetry-api, opentelemetry-sdk, opentelemetry-exporter-otlp]
