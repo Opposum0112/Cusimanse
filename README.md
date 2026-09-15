@@ -13,12 +13,13 @@ Beta. Not a certified sandbox.
 5. [Repository structure](#repository-structure)
 6. [Which shell](#which-shell)
 7. [Install](#install)
-8. [Example: npm-install-001 end to end](#example-npm-install-001-end-to-end)
-9. [Access and observability](#access-and-observability)
-10. [Report generation](#report-generation)
-11. [Compiler commands](#compiler-commands)
-12. [Tests and CI](#tests-and-ci)
-13. [Safety](#safety)
+8. [Researcher workflow (npm-install-001)](#researcher-workflow-npm-install-001)
+9. [YAML configuration set](#yaml-configuration-set)
+10. [Access and observability](#access-and-observability)
+11. [Report generation](#report-generation)
+12. [Compiler commands](#compiler-commands)
+13. [Validation and integration tests](#validation-and-integration-tests)
+14. [Safety](#safety)
 
 ## Layers
 
@@ -34,9 +35,15 @@ Beta. Not a certified sandbox.
 | Guest | Lima or Multipass | Compiler/engine |
 | Gateway / observability | LiteLLM, OmniRoute, ClawMetry, Numbat | External |
 
+Policy file still used at execute time: `policies/host-policy.yaml`.
+
 ## Architecture
 
-See `docs/architecture/agentic-native-goose.mmd`. Authority flows down. Evidence flows up into `runs/<session>/`.
+Authority flows **down**. Evidence flows **up**. Sidecars never authorize a run.
+
+![Cusimanse layered architecture](docs/architecture/agentic-native-layers.svg)
+
+Source drawings: `docs/architecture/agentic-native-layers.svg` and `docs/architecture/agentic-native-goose.mmd`.
 
 ```mermaid
 flowchart TB
@@ -45,53 +52,62 @@ flowchart TB
   classDef compile fill:#2b2110,stroke:#e8c47a,color:#fff6e0
   classDef runtime fill:#2a1420,stroke:#e8a0b8,color:#ffeef4
   classDef side fill:#1a1d24,stroke:#9aa3b2,color:#d7dde6
-
   subgraph CONTRACT["CONTRACT LAYER"]
     direction LR
-    S["Schema"]
-    E["Experiment YAML"]
-    H["Host-prep"]
-    R["Roles / skills"]
+    S[Schema]
+    E[Experiment YAML]
+    H[Host-prep]
+    R[Roles / skills]
   end
-
   subgraph CONTROL["CONTROL LAYER — Goose"]
     direction LR
-    G["Session recipe"]
-    AP["Approval"]
-    VR["Verifier + reporter"]
+    G[Session recipe]
+    AP[Approval]
+    VR[Verifier + reporter]
   end
-
   subgraph COMPILE["COMPILER LAYER"]
     direction LR
-    CA["catalog"]
-    VA["validate / resolve"]
-    HP["host-prep"]
-    EX["execute --approved"]
+    CA[catalog]
+    VA[validate / resolve]
+    HP[host-prep]
+    EX[execute --approved]
   end
-
   subgraph RUNTIME["RUNTIME + ARTIFACTS"]
     direction LR
-    EN["cusimanse + policy"]
-    VM["Disposable guest"]
-    EV["runs/session"]
+    EN[cusimanse + policy]
+    VM[Disposable guest]
+    EV[runs/session]
   end
-
+  subgraph SIDE["SIDECARS"]
+    direction LR
+    GW[LiteLLM / OmniRoute]
+    OB[ClawMetry / Numbat]
+  end
   E --> G --> AP --> CA --> VA --> HP --> EX --> EN --> VM --> EV --> VR
-
+  GW -.-> G
+  OB -.-> EV
   class S,E,H,R contract
   class G,AP,VR control
   class CA,VA,HP,EX compile
   class EN,VM,EV runtime
+  class GW,OB side
 ```
 
 ## Components
 
 | Layer | Component | Responsibility |
 |---|---|---|
-| Contract | Schema / experiment YAML | Legal fields and one study |
-| Control | Goose | Plan, approve, Summon |
-| Compiler | `cmd/compile` | Interpret YAML only |
-| Runtime | guest + `runs/` | Workload + research outputs |
+| Contract | LinkML + JSON Schema | Legal fields and enums |
+| Contract | Experiment YAML | One study |
+| Contract | Host-prep YAML | Allow-listed host tools |
+| Contract | Roles + skills | Who may compile vs who only reads `runs/` |
+| Control | Goose session | Plan, approve, Summon |
+| Compiler | `cmd/compile` | Only interpreter of declarative YAML |
+| Runtime | cusimanse + `host-policy.yaml` | Approved provision |
+| Runtime | Disposable VM | Pinned workload |
+| Runtime | `runs/` | Evidence, verification, report |
+| Sidecar | LiteLLM / OmniRoute | Model transport |
+| Sidecar | ClawMetry / Numbat | Optional observability |
 
 ## Research outputs (`runs/`)
 
@@ -99,114 +115,251 @@ Every approved execute creates **one session directory**. That tree is the citab
 
 ```text
 runs/<session-id>/
-  session.yaml                 session id, experiment id, state, agent
+  session.yaml
   evidence/
-    index.yaml                 what was collected (or NOT_DEPLOYED)
-    audit/
-      events.jsonl             lifecycle events
-      manifest.sha256          hashes of evidence files
-    process/                   process snapshots when instrumented
-    syscall/                   syscall traces when instrumented
-    filesystem/                guest fs diffs when instrumented
-    network/                   localhost-only captures when instrumented
-  provenance/
-    manifest.sha256            hash of the whole session tree
-  analysis/
-    summary.md                 operator / analyst notes (not authority)
-  verification/
-    result.md                  VERIFIED | NOT_VERIFIED | PARTIAL + cited paths
-  research-report/
-    report.md                  requirements-traceable write-up
-    report.yaml                machine-readable report metadata
-  preservation/
-    manifest.yaml              preserve-before-destroy status
-  observability/
-    token-usage.yaml           Goose token accounting when available
-    dashboard.yaml             ClawMetry / Numbat pointers when deployed
+    index.yaml
+    audit/events.jsonl
+    audit/manifest.sha256
+    process/   syscall/   filesystem/   network/
+  provenance/manifest.sha256
+  analysis/summary.md
+  verification/result.md
+  research-report/report.md
+  research-report/report.yaml
+  preservation/manifest.yaml
+  observability/token-usage.yaml
+  observability/dashboard.yaml
 ```
 
 `<session-id>` is typically `YYYYMMDDTHHMMSSZ-<experiment-id>`.
 
-### What each artifact is for
-
 | Artifact | Key research output |
 |---|---|
-| `session.yaml` | Which experiment ran, which operator, lifecycle state |
-| `evidence/index.yaml` | Inventory of collectors and gaps |
-| `evidence/*` | Raw guest observations (process, syscall, fs, net) |
-| `evidence/audit/manifest.sha256` | Integrity of evidence files |
-| `provenance/manifest.sha256` | Integrity of the whole session |
-| `verification/result.md` | Independent check against acceptance lines |
-| `research-report/report.md` | Publishable findings and limitations |
-| `preservation/manifest.yaml` | Proof evidence was kept before VM destroy |
-| `observability/*` | Token use and dashboards; optional |
+| `session.yaml` | Experiment, operator, lifecycle state |
+| `evidence/*` | Guest observations |
+| `*.sha256` | Integrity |
+| `verification/result.md` | VERIFIED / NOT_VERIFIED / PARTIAL |
+| `research-report/report.md` | Publishable findings |
+| `preservation/manifest.yaml` | Kept before destroy |
 
-### How they get written
-
-1. Compiler / engine create the session and collect guest evidence.
-2. Hashes are written **before** destroy.
-3. Goose **verifier** fills `verification/result.md` from hashes + index.
-4. Goose **reporter** fills `research-report/report.md` from verified evidence and `spec.acceptance` in the experiment YAML.
-
-A report that cites only the chat is incomplete. Cite `evidence/` paths and SHA-256 lines.
+Hashes are written **before** destroy. Verifier then reporter fill the markdown outputs.
 
 ## Repository structure
 
 ```text
-experiments/          contracts
-recipes/goose/        operator recipe
-cmd/compile           YAML interpreter
-runs/                 session artifacts (generated, not committed)
+Cusimanse/
+  schemas/
+    cusimanse.yaml                 LinkML source of truth
+    experiment.schema.json         editor / CI schema
+  experiments/
+    npm-install-001.yaml
+    npm-lifecycle-001.yaml
+    npm-threat-001.yaml
+    go-install-001.yaml
+  host-prep/
+    default.yaml                   declared host bootstrap
+  roles/
+    operator.yaml  verifier.yaml  reporter.yaml
+    bindings.yaml  skill-registry.yaml
+  skills/
+    experiment-operate/SKILL.md
+    host-prep-declared/SKILL.md
+    evidence-read/SKILL.md
+    verification/SKILL.md
+    report/SKILL.md
+  recipes/
+    goose/session.yaml             only Goose operator recipe
+    subrecipes/                    evidence-analysis, verification, report
+    lima/  profiles/  gateway/     provision backends (engine)
+  cmd/
+    compile/                       YAML compiler Goose calls
+    cusimanse/                     approved provision engine
+  internal/
+    compiler/  policy/  execution/ evidence/ model/
+  policies/
+    host-policy.yaml               loaded at execute
+  scripts/
+    install.sh
+    tests/validate.sh
+    tests/integration.sh
+  docs/architecture/
+    agentic-native-layers.svg
+    agentic-native-goose.mmd
+  .github/workflows/
+    validate.yml
+    agentic-native.yml
+  runs/                            generated sessions (not source)
 ```
 
 ## Which shell
 
 | Task | Where |
 |---|---|
-| Install / go test | bash/zsh |
-| Drive experiment | Goose |
-| Read artifacts | `ls runs/<session>/` in a normal shell |
+| git clone, `install.sh`, `go test` | Normal bash / zsh |
+| Drive the experiment | Goose |
+| Debug YAML | Normal shell + `go run ./cmd/compile` |
+| Read artifacts | `ls runs/<session>/` |
+| Workload (`npm install`) | Guest only |
 
 ## Install
 
 ```bash
+git clone https://github.com/Opposum0112/Cusimanse.git
+cd Cusimanse
 git checkout agentic-native-goose
 ./scripts/install.sh
+export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
+go version
+goose --version
 ```
 
-## Example: npm-install-001 end to end
+## Researcher workflow (npm-install-001)
+
+### 1. Author the experiment (already in repo)
+
+`experiments/npm-install-001.yaml` is the only researcher contract:
+
+```yaml
+apiVersion: cusimanse.dev/v1
+kind: Experiment
+metadata:
+  id: npm-install-001
+  title: Pinned npm install baseline
+spec:
+  question: Observe a pinned lodash install in a disposable Linux VM with lifecycle scripts disabled.
+  hostPrep: default
+  roles: [operator, verifier, reporter]
+  scope:
+    exclude: [host-execution, credentials, extra-mounts, postinstall-payloads, agent-escape]
+  requirements:
+    execution: disposable
+    os: linux
+    workload: npm-install
+    network: localhost-only
+    instrumentation: [process, syscall, filesystem, network]
+  policyChecks: [vm, network, mounts]
+  acceptance:
+    - resolve binds npm-install handler
+    - lodash installed with ignore-scripts in the guest
+    - evidence hashed before destroy
+  operator: goose
+  observability:
+    host: [clawmetry, goose-logs, token-usage]
+    experiment: [session, evidence-hash, numbat]
+```
+
+Do not put `npm` argv in this file. `workload: npm-install` binds a trusted handler.
+
+### 2. Validate in a normal shell
 
 ```bash
+go run ./cmd/compile catalog
 go run ./cmd/compile validate npm-install-001
-goose run --recipe recipes/goose/session.yaml --params experiment=npm-install-001
-ls runs/
+go run ./cmd/compile host-prep npm-install-001
+go run ./cmd/compile resolve npm-install-001
 ```
 
-Then open `runs/<session>/research-report/report.md`.
+### 3. Operate in Goose
+
+```bash
+goose recipe validate recipes/goose/session.yaml
+goose run --recipe recipes/goose/session.yaml --params experiment=npm-install-001
+```
+
+Goose: validate → host-prep → resolve → you approve → `compile execute --approved` → Summon verifier → reporter.
+
+### 4. Read outputs
+
+```bash
+ls runs/
+# open runs/<session>/verification/result.md
+# open runs/<session>/research-report/report.md
+```
+
+## YAML configuration set
+
+These files together define one experiment. Goose does not invent extra ones.
+
+| File | Kind |
+|---|---|
+| `schemas/cusimanse.yaml` | Contract language |
+| `experiments/npm-install-001.yaml` | This study |
+| `host-prep/default.yaml` | Host tools + lima/multipass fallback |
+| `recipes/goose/session.yaml` | Goose operator recipe |
+| `roles/operator.yaml` `verifier.yaml` `reporter.yaml` | Specialist roles |
+| `roles/bindings.yaml` | Role → skill map |
+| `roles/skill-registry.yaml` | Skill index |
+| `policies/host-policy.yaml` | Execute-time policy |
+
+`recipes/goose/session.yaml` (shape):
+
+```yaml
+version: "1.0.0"
+title: Cusimanse Goose session
+parameters:
+  - key: experiment
+    requirement: required
+instructions: |
+  Load experiments/{{ experiment }}.yaml.
+  Call compile validate, host-prep, resolve, then execute --approved.
+  Then Summon verifier and reporter.
+extensions:
+  - type: builtin
+    name: developer
+  - type: platform
+    name: summon
+```
+
+`host-prep/default.yaml` categories: `essential`, `compute` (lima/qemu, multipass fallback), `observability`, `gateway`.
 
 ## Access and observability
 
-Declared on the experiment and in `host-prep/default.yaml`. Missing collectors are `NOT_DEPLOYED` in `evidence/index.yaml`.
+Declared on the experiment (`spec.observability`) and in host-prep. Missing tools are `NOT_DEPLOYED` in `evidence/index.yaml`.
+
+- LiteLLM: `http://127.0.0.1:4000` when deployed
+- OmniRoute: `http://127.0.0.1:20128` when deployed
+- ClawMetry / Numbat: optional host dashboards
 
 ## Report generation
 
-Acceptance lines in the experiment YAML are the checklist. Use `PARTIAL` when a collector is missing.
+Acceptance lines in the experiment YAML are the checklist. `PARTIAL` if a collector was `NOT_DEPLOYED`. Cite hashed `evidence/` paths.
 
 ## Compiler commands
 
 ```bash
 go run ./cmd/compile catalog
 go run ./cmd/compile validate <id>
+go run ./cmd/compile host-prep <id>
+go run ./cmd/compile resolve <id>
 go run ./cmd/compile execute <id> --approved
 ```
 
-## Tests and CI
+`execute` without `--approved` must fail.
+
+## Validation and integration tests
+
+Local:
 
 ```bash
-go test ./internal/compiler ./cmd/compile ./cmd/cusimanse
+go test ./internal/compiler ./cmd/compile ./cmd/cusimanse ./internal/validation
+bash ./scripts/tests/validate.sh
 bash ./scripts/tests/integration.sh
 ```
 
+What they cover:
+
+- compiler loads all four experiments
+- catalog cross-checks host-prep, roles, skills, bindings
+- `execute` without `--approved` is rejected
+- script syntax
+
+CI:
+
+- `.github/workflows/agentic-native.yml` — this branch
+- `.github/workflows/validate.yml` — compiler + integration
+
+Watch: https://github.com/Opposum0112/Cusimanse/actions?query=branch%3Aagentic-native-goose
+
 ## Safety
 
-Do not run the workload on the host. `--approved` is required. Hash evidence before destroy.
+Do not run the workload on the host. `--approved` is required. Hash evidence before destroy. Unknown workload ids fail closed.
