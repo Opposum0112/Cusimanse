@@ -29,13 +29,15 @@ planes:
       - name: litellm
         endpoint: 127.0.0.1:4000
         role: model_gateway_and_normalization
+        access: agent_localhost
+        data: model_requests_and_routing_metadata
+        installation: scripts/install.sh
       - name: omniroute
         endpoint: 127.0.0.1:20128
         role: provider_routing_and_fallback
-    access: localhost_only
-    data: model_requests_and_routing_metadata
-    configuration: ~/.config/cusimanse/
-    installation: scripts/install.sh
+        access: localhost_upstream
+        data: provider-routing requests/metadata
+        installation: scripts/install.sh
     authority: none
   instrumentation:
     scope: disposable_linux_guest
