@@ -16,7 +16,13 @@ export class LimaLifecycle {
 
   async create(profile: LimaProfile): Promise<void> {
     if (!profile.name || profile.cpus < 1 || !profile.memory) throw new Error("Invalid Lima profile");
-    await this.provider.create({ ...profile, mounts: profile.mounts ? [...profile.mounts] : undefined });
+    const normalizedProfile: LimaProfile = {
+      name: profile.name,
+      cpus: profile.cpus,
+      memory: profile.memory,
+      ...(profile.mounts === undefined ? {} : { mounts: [...profile.mounts] }),
+    };
+    await this.provider.create(normalizedProfile);
   }
 
   async destroy(vm: string): Promise<void> {
