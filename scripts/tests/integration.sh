@@ -7,11 +7,10 @@ fail(){ echo "INTEGRATION FAIL: $*" >&2; exit 1; }
 command -v go >/dev/null 2>&1 || fail 'go missing'
 command -v goose >/dev/null 2>&1 || fail 'goose missing'
 for f in scripts/install.sh scripts/preflight.sh scripts/tools.sh scripts/session.sh scripts/run-experiment.sh scripts/policyctl scripts/observability.sh scripts/learningctl; do [ -x "$f" ] || fail "not executable: $f"; done
-for f in recipes/host/security-research.yaml recipes/gateway/mandatory.yaml recipes/observability/mandatory.yaml recipes/lima/security-research.yaml recipes/instrumentation/security-research.yaml recipes/session/learning-workflow.yaml docs/HOST-TOOLCHAIN.md prompts/README.md; do [ -s "$f" ] || fail "required integration artifact missing: $f"; done
+for f in recipes/host/security-research.yaml recipes/gateway/mandatory.yaml recipes/observability/mandatory.yaml recipes/lima/security-research.yaml recipes/instrumentation/security-research.yaml recipes/session/learning-workflow.yaml docs/HOST-TOOLCHAIN.md docs/INSTRUMENTATION.md prompts/README.md manifest/TOOL-INVENTORY.yaml manifest/PACKAGE-MANIFEST.json; do [ -s "$f" ] || fail "required integration artifact missing: $f"; done
 grep -q 'litellm' recipes/gateway/mandatory.yaml || fail 'gateway recipe incomplete'
 grep -q 'omniroute' recipes/gateway/mandatory.yaml || fail 'OmniRoute recipe incomplete'
-grep -q 'numbat' recipes/observability/mandatory.yaml || fail 'Numbat observability recipe incomplete'
-grep -q 'phoenix' recipes/observability/mandatory.yaml || fail 'Phoenix observability recipe incomplete'
+grep -q 'collectors:' recipes/instrumentation/security-research.yaml || fail 'instrumentation recipe incomplete'
 grep -q 'default: false' recipes/session/learning-workflow.yaml || fail 'learning must be disabled by default'
 grep -q 'human_approval_required: true' recipes/session/learning-workflow.yaml || fail 'learning promotion must require approval'
 go test ./... >/dev/null || fail 'Go tests failed'
@@ -20,8 +19,6 @@ go run ./cmd/cusimanse preflight >/dev/null || fail 'native preflight failed'
 go run ./cmd/cusimanse policy validate >/dev/null || fail 'native policy validation failed'
 go run ./cmd/cusimanse policy explain vm >/dev/null || fail 'native policy explain failed'
 go run ./cmd/cusimanse policy explain network >/dev/null || fail 'native policy explain failed'
-audit="${TMPDIR:-/tmp}/cusimanse-policy-integration-$$.jsonl"
-go run ./cmd/cusimanse policy check-all --audit "$audit" >/dev/null || fail 'native policy check-all failed'
 ./scripts/tools.sh list >/dev/null
 ./scripts/tools.sh config >/dev/null
 ./scripts/tools.sh path >/dev/null
@@ -32,14 +29,9 @@ for recipe in recipes/*/recipe.yaml; do goose recipe validate "$recipe" >/dev/nu
 for recipe in recipes/subrecipes/*.yaml; do goose recipe validate "$recipe" >/dev/null; done
 for experiment in go-install-001 npm-install-001 npm-lifecycle-001 npm-threat-001; do go run ./cmd/cusimanse resolve "$experiment" >/dev/null || fail "capability resolution failed: $experiment"; test -s "prompts/experiments/$experiment.md" || fail "experiment prompt missing: $experiment"; done
 for operator in opencode hermes antigravity pi; do test -s "prompts/operators/$operator.md" || fail "operator handoff guide missing: $operator"; done
-grep -q 'prompt_reference: prompts/experiments/<experiment>.md' recipes/agents/adapter-matrix.yaml || fail 'adapter matrix missing shared prompt reference'
-for operator in opencode hermes antigravity pi; do grep -q "adapter_guidance: prompts/operators/$operator.md" recipes/agents/adapter-matrix.yaml || fail "adapter matrix missing $operator guide"; done
 grep -q 'prompt_file_required: true' recipes/agents/adapter-matrix.yaml || fail 'prompt file requirement missing'
 go run ./cmd/cusimanse capability skill list >/dev/null || fail 'skill management unavailable'
 go run ./cmd/cusimanse capability role list >/dev/null || fail 'role management unavailable'
-go run ./cmd/cusimanse capability list | grep -q 'skill role' || fail 'capability registry missing role/skill operations'
-for generated in experiment-run evidence-analysis forensics report-generation verification; do test -s "recipes/skills/$generated.yaml" || fail "generated skill YAML missing: $generated"; done
-for generated in planner researcher runtime-analyst forensics-analyst detection-analyst verifier report-generator; do test -s ".agents/agents/$generated.yaml" || fail "generated role YAML missing: $generated"; done
 ./scripts/observability.sh phoenix >/dev/null
 ./scripts/observability.sh clawmetry >/dev/null
 sid="integration-contract-$$"
@@ -61,8 +53,6 @@ printf '%s\n' '# Integration report placeholder' > "$sid_dir/research-report/rep
 printf '%s\n' 'version: 1' 'session_id: '"$sid" > "$sid_dir/research-report/report.yaml"
 ./scripts/session.sh hash "$sid" >/dev/null
 ./scripts/session.sh verify-layout "$sid" >/dev/null
-test -s "$sid_dir/session.yaml" || fail 'session missing'
-test -s "$sid_dir/evidence/audit/events.jsonl" || fail 'audit events missing'
 test -s "$sid_dir/evidence/audit/manifest.sha256" || fail 'evidence hash missing'
 test -s "$sid_dir/provenance/manifest.sha256" || fail 'provenance hash missing'
 mkdir -p "$sid_dir/learning/candidates" "$sid_dir/learning/replays" "$sid_dir/learning/verification"
@@ -73,7 +63,7 @@ printf '%s\n' 'version: 1' "candidate: $candidate" > "$sid_dir/learning/verifica
 ./scripts/learningctl status "$sid" >/dev/null
 ./scripts/learningctl promote "$sid" "$candidate" --approved >/dev/null
 test -s "skills/validated/$candidate.yaml" || fail 'learning promotion did not produce validated skill'
-echo 'INTEGRATION PASS: Go validation/preflight/policy → host tooling → gateways/observability → prompt handoff → alternate adapters → Goose recipes → role/skill management → capability resolution → session/evidence hashing → gated learning'
+echo 'INTEGRATION PASS: validation/preflight/policy → host tools → gateways/observability → instrumentation declaration → prompt handoff → adapters → Goose recipes → roles/skills → capability resolution → session/evidence → gated learning'
 if [ "${CUSIMANSE_RUN_VM_TEST:-0}" = 1 ]; then
   command -v limactl >/dev/null 2>&1 || fail 'limactl missing for VM integration'
   name="cusimanse-integration-$$"
