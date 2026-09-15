@@ -1,0 +1,44 @@
+name: Bug report
+description: Report a reproducible problem in Cusimanse.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please remove credentials, tokens, private data and sensitive research evidence before submitting.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the observed behavior and expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Provide the smallest safe reproduction, including the command or experiment.
+    validations:
+      required: true
+  - type: input
+    id: commit
+    attributes:
+      label: Commit SHA
+      placeholder: e.g. abc1234
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, architecture, Go version, Goose version and relevant runtime details.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs
+      description: Paste only logs that are safe to publish. Never include secrets or private forensic data.
+      render: shell
