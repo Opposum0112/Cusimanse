@@ -20,19 +20,15 @@ jobs:
           go-version: '1.22.x'
           cache: true
       - name: Compiler unit tests
-        run: go test ./internal/compiler ./cmd/compile
-      - name: Validate all experiment documents
+        run: go test ./internal/compiler ./cmd/compile ./cmd/cusimanse
+      - name: Catalog and experiments
         run: |
           set -euo pipefail
+          go run ./cmd/compile catalog
           for id in npm-install-001 npm-lifecycle-001 npm-threat-001 go-install-001; do
             go run ./cmd/compile validate "$id"
             go run ./cmd/compile resolve "$id"
+            go run ./cmd/compile host-prep "$id"
           done
-      - name: Check role and skill registry paths
-        run: |
-          set -euo pipefail
-          test -f roles/skill-registry.yaml
-          test -f roles/bindings.yaml
-          test -f host-prep/default.yaml
-          test -f recipes/goose/session.yaml
-          test -f skills/verification/SKILL.md
+      - name: Integration
+        run: bash ./scripts/tests/integration.sh

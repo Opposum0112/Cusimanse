@@ -1,15 +1,39 @@
 package main
 
 import (
-    "encoding/json"
-    "os"
-    "path/filepath"
-    "strings"
-    "testing"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/opposum0112/Cusimanse/internal/compiler"
 )
 
-func repoFile(t *testing.T, path string) string { t.Helper(); b,err:=os.ReadFile(filepath.Join("..","..",path));if err!=nil{t.Fatalf("read %s: %v",path,err)};return string(b) }
-func TestCrossLayerNPMThreatReferences(t *testing.T){contract:=repoFile(t,"contracts/npm-threat-001.md");experiment:=repoFile(t,"recipes/experiments/npm-threat-001.yaml");recipe:=repoFile(t,"recipes/npm-threat-001/recipe.yaml");prompt:=repoFile(t,"prompts/experiments/npm-threat-001.md");for _,m:=range []string{"authorization","native Go policy engine","disposable Lima","localhost"}{if !strings.Contains(strings.ToLower(contract),strings.ToLower(m)){t.Fatalf("contract missing %q",m)}};for _,m:=range []string{"contract: contracts/npm-threat-001.md","workload: npm-threat","network: localhost-only","enforcement: internal/policy","required_checks: [vm, network, mounts]"}{if !strings.Contains(experiment,m){t.Fatalf("experiment missing %q",m)}};if strings.Contains(experiment,"scripts/policyctl"){t.Fatal("experiment must not name a shell policy authority")};if !strings.Contains(recipe,"name: summon"){t.Fatal("reference Goose recipe must explicitly declare summon")};for _,m:=range []string{"contracts/npm-threat-001.md","recipes/experiments/npm-threat-001.yaml","recipes/npm-threat-001/recipe.yaml","recipes/agents/adapter-matrix.yaml"}{if !strings.Contains(prompt,m){t.Fatalf("experiment prompt missing handoff input %q",m)}};for _,p:=range []string{"recipes/subrecipes/evidence-analysis.yaml","recipes/subrecipes/verification.yaml","recipes/subrecipes/report.yaml"}{if _,err:=os.Stat(filepath.Join("..","..",p));err!=nil{t.Fatalf("recipe dependency missing: %s",p)}}}
-func TestAdapterPromptLibraryIsComplete(t *testing.T){for _,p:=range []string{"prompts/experiments/go-install-001.md","prompts/experiments/npm-install-001.md","prompts/experiments/npm-lifecycle-001.md","prompts/experiments/npm-threat-001.md","prompts/operators/opencode.md","prompts/operators/hermes.md","prompts/operators/antigravity.md","prompts/operators/pi.md"}{if _,err:=os.Stat(filepath.Join("..","..",p));err!=nil{t.Fatalf("prompt handoff file missing: %s",p)}};matrix:=repoFile(t,"recipes/agents/adapter-matrix.yaml");for _,m:=range []string{"prompt_reference: prompts/experiments/<experiment>.md","adapter_guidance: prompts/operators/opencode.md","adapter_guidance: prompts/operators/hermes.md","adapter_guidance: prompts/operators/antigravity.md","adapter_guidance: prompts/operators/pi.md","prompt_file_required: true"}{if !strings.Contains(matrix,m){t.Fatalf("adapter matrix missing %q",m)}}}
-func TestCrossLayerInventoriesArePresent(t *testing.T){for _,p:=range []string{"recipes/host/security-research.yaml","recipes/gateway/mandatory.yaml","recipes/observability/mandatory.yaml","recipes/session/learning-workflow.yaml","recipes/profiles/registry.yaml","recipes/agents/adapter-matrix.yaml","internal/policy/loader.go","internal/preflight/preflight.go","internal/validation/validation.go"}{if _,err:=os.Stat(filepath.Join("..","..",p));err!=nil{t.Fatalf("inventory/runtime package missing: %s",p)}}}
-func TestManifestRemainsValid(t *testing.T){var m map[string]any;if err:=json.Unmarshal([]byte(repoFile(t,"manifest/PACKAGE-MANIFEST.json")),&m);err!=nil{t.Fatalf("manifest is not valid JSON: %v",err)};if m["reference_operator"]!="goose"{t.Fatalf("reference operator = %v, want goose",m["reference_operator"])}}
+func TestReferenceExperimentsCompile(t *testing.T) {
+	root := filepath.Join("..", "..")
+	for _, id := range []string{"npm-install-001", "npm-lifecycle-001", "npm-threat-001", "go-install-001"} {
+		doc, err := compiler.LoadID(root, id)
+		if err != nil {
+			t.Fatalf("%s: %v", id, err)
+		}
+		if doc.Spec.Requirements.Workload == "" {
+			t.Fatalf("%s missing workload", id)
+		}
+	}
+}
+
+func TestDeclarativeCatalogExists(t *testing.T) {
+	root := filepath.Join("..", "..")
+	for _, p := range []string{
+		"schemas/cusimanse.yaml",
+		"schemas/experiment.schema.json",
+		"experiments/npm-install-001.yaml",
+		"host-prep/default.yaml",
+		"roles/bindings.yaml",
+		"roles/skill-registry.yaml",
+		"recipes/goose/session.yaml",
+	} {
+		if _, err := os.Stat(filepath.Join(root, p)); err != nil {
+			t.Fatalf("missing %s", p)
+		}
+	}
+}

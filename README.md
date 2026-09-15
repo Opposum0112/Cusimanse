@@ -1,72 +1,87 @@
 # Cusimanse (`agentic-native-goose`)
 
-Goose-driven research lab. The researcher writes a typed experiment YAML. Goose plans, orchestrates roles, operates host-prep, requests approval, runs the compiler, analyses evidence, and writes the report.
+Goose-driven, schema-backed security research lab. Write one experiment YAML. Goose plans, orchestrates specialist roles, operates declared host-prep, requests approval, runs the compiler, analyses evidence, and writes the report.
 
-LinkML is the contract language. The small compiler is the only interpreter of those YAML fields. Gateway and observability stay external.
+Beta research framework. Not a certified sandbox.
 
-This is a **beta research lab**, not a certified sandbox.
+## Table of contents
+
+1. [What this branch is](#what-this-branch-is)
+2. [Architecture](#architecture)
+3. [Repository structure](#repository-structure)
+4. [Which shell to use](#which-shell-to-use)
+5. [Install](#install)
+6. [Run with Goose](#run-with-goose)
+7. [Run with the compiler only](#run-with-the-compiler-only)
+8. [Go commands](#go-commands)
+9. [Tests and CI](#tests-and-ci)
+10. [Safety](#safety)
+
+## What this branch is
+
+| Layer | What it is |
+|---|---|
+| LinkML + JSON Schema | Contract fields and enums |
+| `experiments/*.yaml` | The experiment |
+| Goose session recipe | Planner, orchestrator, operator |
+| `cmd/compile` | Interprets every declarative YAML Goose is allowed to act on |
+| `cmd/cusimanse` | Provision engine the compiler calls after `--approved` |
+| Gateway / ClawMetry | External integrations only |
+
+Markdown under `contracts/` is not authoritative.
 
 ## Architecture
 
+Goose talks to the compiler. The compiler talks to disposable compute. The model does not invent `limactl` or host `npm`.
+
 ```mermaid
-flowchart LR
-  subgraph declare [Declaration]
-    S[LinkML + JSON Schema]
-    E[experiments/*.yaml]
-    H[host-prep/default.yaml]
-    R[roles + skills]
-  end
-  subgraph goose [Goose]
-    P[plan]
-    O[orchestrate roles]
-    I[operate host-prep]
-    X[request execute]
-    A[analyse + report]
-  end
-  subgraph compile [Compiler]
-    V[validate / resolve]
-    HP[declared host-prep]
-    EX[approved execute]
-  end
-  subgraph metal [Providers]
-    L[Lima / Multipass]
-  end
-  subgraph ext [External only]
-    G[LiteLLM / OmniRoute]
-    M[ClawMetry / Numbat / token logs]
-  end
-  S --> E
-  E --> P
-  R --> O
-  P --> V
-  I --> HP
-  H --> HP
-  X --> EX
-  EX --> L
-  L --> A
-  G -.-> P
-  M -.-> A
+flowchart TB
+  R[Researcher] --> Y[experiments/*.yaml]
+  S[LinkML schema] --> Y
+  Y --> G[Goose session]
+  SK[roles + skills] --> G
+  G -->|catalog validate host-prep resolve execute| C[cmd/compile]
+  HP[host-prep/*.yaml] --> C
+  C -->|--approved| E[cusimanse run]
+  E --> VM[Lima or Multipass]
+  VM --> RUNS[runs/session]
+  G --> RUNS
+  GW[LiteLLM / OmniRoute] -.-> G
+  OBS[ClawMetry / Numbat / logs] -.-> G
 ```
 
-Goose is the operator. The compiler maps YAML ids to handlers. Goose does not invent `limactl` or host `npm`.
+Source: `docs/architecture/agentic-native-goose.mmd`.
 
-## Repository layout
+## Repository structure
 
-| Path | Role |
-|---|---|
-| `schemas/` | LinkML + JSON Schema |
-| `experiments/` | Experiment contracts (source of truth) |
-| `recipes/goose/session.yaml` | Only Goose operator recipe |
-| `host-prep/` | Declared host bootstrap |
-| `roles/`, `skills/` | Specialist roles and skills |
-| `cmd/compile` | YAML compiler Goose calls |
-| `cmd/cusimanse` | Existing provision engine used by `compile execute` |
-| `profiles/`, `policies/` | Trusted meanings of workload/host ids |
-| `docs/architecture/` | Diagrams |
+```text
+schemas/                 contract language
+experiments/             experiment YAML (source of truth)
+host-prep/               declared host bootstrap
+roles/  skills/          specialist roles and SKILL.md
+recipes/goose/           one Goose operator recipe
+cmd/compile              YAML compiler Goose calls
+cmd/cusimanse            existing VM/policy engine
+internal/compiler        compile library
+internal/policy          policy used at execute time
+policies/                policy YAML
+scripts/install.sh       host bootstrap helper used by host-prep
+scripts/tests/           compiler + integration CI
+```
 
-Markdown files under `contracts/` are **not** the contract. Use `experiments/*.yaml`.
+## Which shell to use
 
-## Researcher install
+| You want | Shell | Why |
+|---|---|---|
+| Drive the whole experiment | **Goose** (`goose run …`) | Planner and operator |
+| CI, debug YAML, no agent | **Normal bash / zsh** + `go run ./cmd/compile` | Same documents, no model |
+| Guest workload | **Not your host shell** | Compiler + disposable VM |
+
+Do not run experiment `npm` / `go install` in the same terminal you use for Goose unless you are only compiling or validating YAML.
+
+## Install
+
+Use a normal login shell (bash or zsh), not a Goose session:
 
 ```bash
 git clone https://github.com/Opposum0112/Cusimanse.git
@@ -74,53 +89,68 @@ cd Cusimanse
 git checkout agentic-native-goose
 ./scripts/install.sh
 export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
+go version
+goose --version
 ```
 
-Needs: Git, Go 1.22+, Node/npm for npm experiments, Goose, and Lima or Multipass for a live VM run.
+Needs Go 1.22+, Goose, Node/npm for npm experiments, and Lima or Multipass for a live guest.
 
-## Run an experiment (Goose)
+## Run with Goose
 
 ```bash
-go run ./cmd/compile validate npm-install-001
 goose recipe validate recipes/goose/session.yaml
 goose run --recipe recipes/goose/session.yaml --params experiment=npm-install-001
 ```
 
-Goose will validate, run declared host-prep checks, resolve, wait for approval, then `compile execute --approved`.
+Goose should call, in order:
 
-## Run without Goose (CI / compiler only)
-
-```bash
-go test ./internal/compiler ./cmd/compile
+```text
+go run ./cmd/compile catalog
 go run ./cmd/compile validate npm-install-001
 go run ./cmd/compile host-prep npm-install-001
 go run ./cmd/compile resolve npm-install-001
 go run ./cmd/compile execute npm-install-001 --approved
 ```
 
-`execute --approved` delegates provision to `cusimanse --approved run <id>` when that binary is on `PATH`. Otherwise it prints a fail-closed plan.
+Then Summon verifier and reporter.
 
-## Observability and gateway
+## Run with the compiler only
 
-Declared in `host-prep/default.yaml` and `spec.observability`:
+Normal shell:
 
-- Host: ClawMetry, Goose logs, token usage
-- Experiment: session id, evidence hash, Numbat when deployed
-- Gateway: LiteLLM (`127.0.0.1:4000`), OmniRoute (`127.0.0.1:20128`)
+```bash
+go run ./cmd/compile catalog
+go run ./cmd/compile validate npm-install-001
+go run ./cmd/compile host-prep npm-install-001
+go run ./cmd/compile resolve npm-install-001
+go run ./cmd/compile execute npm-install-001 --approved
+```
 
-Missing optional tools are `NOT_DEPLOYED`, not a cue to invent another stack.
+`execute` without `--approved` must fail. With `--approved` it runs `cusimanse --approved run <id>` if that binary is on `PATH`.
+
+## Go commands
+
+```bash
+go test ./internal/compiler ./cmd/compile ./cmd/cusimanse
+go build -o /tmp/compile ./cmd/compile
+go build -o /tmp/cusimanse ./cmd/cusimanse
+```
+
+Validated on this branch:
+
+- `compile catalog` loads experiments, host-prep, roles, bindings, skills
+- `compile validate|resolve|host-prep` for all four reference ids
+- `compile execute` requires `--approved`
 
 ## Tests and CI
-
-- `.github/workflows/agentic-native.yml` — compiler + experiment YAML
-- `.github/workflows/validate.yml` — existing scripts plus compiler checks on this branch
 
 ```bash
 bash ./scripts/tests/validate.sh
 bash ./scripts/tests/integration.sh
-go test ./internal/compiler ./cmd/compile ./cmd/cusimanse
 ```
+
+Workflows: `.github/workflows/agentic-native.yml` and `.github/workflows/validate.yml`.
 
 ## Safety
 
-Do not treat this as production isolation. Workloads run in disposable guests when provision is deployed. Host execution of experiment workloads is out of scope.
+Workloads belong in a disposable guest after approval. Host execution of experiment payloads is out of scope. Missing optional observability or gateway tools are `NOT_DEPLOYED`.

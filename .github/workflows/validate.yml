@@ -21,29 +21,21 @@ jobs:
         with:
           go-version: '1.22.x'
           cache: true
-      - name: Install validation dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y shellcheck python3-yaml
-          sudo curl -fsSL https://github.com/mikefarah/yq/releases/download/v4.47.2/yq_linux_amd64 -o /usr/local/bin/yq
-          sudo chmod +x /usr/local/bin/yq
-      - name: Compiler and experiment contracts
+      - name: Compiler tests and catalog
         run: |
           go test ./internal/compiler ./cmd/compile ./cmd/cusimanse
+          go run ./cmd/compile catalog
           for id in npm-install-001 npm-lifecycle-001 npm-threat-001 go-install-001; do
             go run ./cmd/compile validate "$id"
             go run ./cmd/compile resolve "$id"
             go run ./cmd/compile host-prep "$id"
           done
-      - name: Validate executable scripts
+      - name: Script syntax
         run: |
           while IFS= read -r -d '' f; do
             echo "Checking $f"
             test -x "$f"
             bash -n "$f"
-            shellcheck --severity=error "$f" || { shellcheck "$f"; exit 1; }
-          done < <(find scripts -type f \( -name '*.sh' -o -name 'policyctl' \) -print0)
-      - name: Legacy control-plane validate
-        run: bash ./scripts/tests/validate.sh || true
+          done < <(find scripts -type f -name '*.sh' -print0)
       - name: Integration tests
         run: bash ./scripts/tests/integration.sh

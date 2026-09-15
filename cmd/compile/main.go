@@ -9,16 +9,31 @@ import (
 )
 
 func main() {
-	if len(os.Args) < 3 {
-		fmt.Fprintf(os.Stderr, "usage: compile validate|resolve|host-prep|execute <experiment-id> [--approved]\n")
+	if len(os.Args) < 2 {
+		fmt.Fprintf(os.Stderr, "usage: compile catalog|validate|resolve|host-prep|execute [experiment-id] [--approved]\n")
 		os.Exit(2)
 	}
 	cmd := os.Args[1]
-	id := os.Args[2]
 	root := "."
 	if v := os.Getenv("CUSIMANSE_ROOT"); v != "" {
 		root = v
 	}
+	if cmd == "catalog" {
+		cat, err := compiler.LoadCatalog(root)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "compile catalog: %v\n", err)
+			os.Exit(1)
+		}
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		_ = enc.Encode(cat)
+		return
+	}
+	if len(os.Args) < 3 {
+		fmt.Fprintf(os.Stderr, "usage: compile validate|resolve|host-prep|execute <experiment-id> [--approved]\n")
+		os.Exit(2)
+	}
+	id := os.Args[2]
 	doc, err := compiler.LoadID(root, id)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "compile: %v\n", err)
