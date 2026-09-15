@@ -38,15 +38,15 @@ go run ./cmd/cusimanse capability role list >/dev/null || fail 'role management 
 go run ./cmd/cusimanse capability list | grep -q 'skill role' || fail 'capability registry missing role/skill operations'
 for generated in experiment-run evidence-analysis forensics report-generation verification; do test -s "recipes/skills/$generated.yaml" || fail "generated skill YAML missing: $generated"; done
 for generated in planner researcher runtime-analyst forensics-analyst detection-analyst verifier report-generator; do test -s ".agents/agents/$generated.yaml" || fail "generated role YAML missing: $generated"; done
-learning=yaml.tmp
-trap 'rm -f "$learning"' EXIT
 yq -e '.enabled.default == false and .promotion_rules.human_approval_required == true and .commands.promote | contains("--approved")' recipes/session/learning-workflow.yaml >/dev/null || fail 'learning contract incomplete'
 ./scripts/observability.sh phoenix >/dev/null
 ./scripts/observability.sh clawmetry >/dev/null
 ./scripts/learningctl --help >/dev/null 2>&1 || true
+
 audit="${TMPDIR:-/tmp}/cusimanse-policy-integration-$$.jsonl"
 sid="integration-contract-$$"
-trap 'rm -rf "runs/$sid" "$audit" "$learning"' EXIT
+cleanup(){ rm -rf "runs/$sid" "$audit"; }
+trap cleanup EXIT
 ./scripts/session.sh create npm-threat-001 goose "$sid" >/dev/null
 ./scripts/session.sh checkpoint "$sid" VALIDATED >/dev/null
 ./scripts/session.sh checkpoint "$sid" PREFLIGHTED >/dev/null
@@ -54,17 +54,23 @@ trap 'rm -rf "runs/$sid" "$audit" "$learning"' EXIT
 ./scripts/session.sh checkpoint "$sid" AWAITING_APPROVAL >/dev/null
 ./scripts/session.sh checkpoint "$sid" APPROVED >/dev/null
 ./scripts/session.sh checkpoint "$sid" PARTIAL >/dev/null
-./scripts/session.sh verify-layout "$sid" >/dev/null
+sid_dir="runs/$sid"
+printf '%s\n' 'version: 1' 'session_id: '"$sid" > "$sid_dir/evidence/index.yaml"
+printf '%s\n' '# Integration analysis placeholder' > "$sid_dir/analysis/summary.md"
+printf '%s\n' '# Integration verification placeholder' > "$sid_dir/verification/result.md"
+printf '%s\n' '# Integration report placeholder' > "$sid_dir/research-report/report.md"
+printf '%s\n' 'version: 1' 'session_id: '"$sid" > "$sid_dir/research-report/report.yaml"
 ./scripts/session.sh hash "$sid" >/dev/null
-test -s "runs/$sid/session.yaml" || fail 'session missing'
-test -s "runs/$sid/evidence/audit/events.jsonl" || fail 'audit events missing'
-test -s "runs/$sid/evidence/audit/manifest.sha256" || fail 'evidence hash missing'
-test -s "runs/$sid/provenance/manifest.sha256" || fail 'provenance hash missing'
+./scripts/session.sh verify-layout "$sid" >/dev/null
+test -s "$sid_dir/session.yaml" || fail 'session missing'
+test -s "$sid_dir/evidence/audit/events.jsonl" || fail 'audit events missing'
+test -s "$sid_dir/evidence/audit/manifest.sha256" || fail 'evidence hash missing'
+test -s "$sid_dir/provenance/manifest.sha256" || fail 'provenance hash missing'
 echo 'INTEGRATION PASS: inventory → gateways/observability → policy decisions → adapters/prompts → Goose recipes → role/skill management → learning contract → capability resolution → session/evidence hashing'
 if [ "${CUSIMANSE_RUN_VM_TEST:-0}" = 1 ]; then
   command -v limactl >/dev/null 2>&1 || fail 'limactl missing for VM integration'
   name="cusimanse-integration-$$"
-  trap 'limactl delete --force "$name" >/dev/null 2>&1 || true; rm -rf "runs/$sid" "$audit" "$learning"' EXIT
+  trap 'limactl delete --force "$name" >/dev/null 2>&1 || true; rm -rf "runs/'"$sid"'" "$audit"' EXIT
   limactl validate recipes/lima/security-research.yaml >/dev/null
   limactl start --name="$name" recipes/lima/security-research.yaml >/dev/null
   limactl shell "$name" -- bash -lc 'go version && node --version && npm --version && strace -V >/dev/null && tcpdump --version >/dev/null'
