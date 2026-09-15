@@ -1,45 +1,60 @@
-flowchart LR
-  subgraph Declare["1. Declare"]
-    Schema["LinkML + JSON Schema"]
-    Exp["experiments/*.yaml"]
-    Prep["host-prep/*.yaml"]
-    Roles["roles + SKILL.md"]
-    Schema --> Exp
+flowchart TB
+  classDef contract fill:#0f2744,stroke:#7eb6ff,color:#e8f1ff
+  classDef control fill:#123524,stroke:#7dcea0,color:#eafff3
+  classDef compile fill:#2b2110,stroke:#e8c47a,color:#fff6e0
+  classDef runtime fill:#2a1420,stroke:#e8a0b8,color:#ffeef4
+  classDef side fill:#1a1d24,stroke:#9aa3b2,color:#d7dde6
+
+  subgraph CONTRACT["CONTRACT LAYER"]
+    direction LR
+    S["Schema"]
+    E["Experiment YAML"]
+    H["Host-prep"]
+    R["Roles / skills"]
   end
 
-  subgraph Operate["2. Goose operates"]
-    Recipe["session.yaml"]
-    Plan["plan + approve"]
-    Summon["verifier / reporter"]
-    Recipe --> Plan
-    Plan --> Summon
+  subgraph CONTROL["CONTROL LAYER — Goose"]
+    direction LR
+    G["Session recipe"]
+    AP["Researcher approval"]
+    VR["Verifier + reporter"]
   end
 
-  subgraph Compile["3. Compiler interprets"]
-    Cat["catalog"]
-    Val["validate / resolve"]
-    HP["host-prep checks"]
-    Ex["execute --approved"]
-    Cat --> Val --> HP --> Ex
+  subgraph COMPILE["COMPILER LAYER — fail-closed"]
+    direction LR
+    CA["catalog"]
+    VA["validate / resolve"]
+    HP["host-prep check"]
+    EX["execute --approved"]
   end
 
-  subgraph Run["4. Guest run"]
-    Engine["cusimanse + host-policy"]
-    VM["Lima / Multipass"]
-    Ev["runs/session evidence"]
-    Engine --> VM --> Ev
+  subgraph RUNTIME["RUNTIME LAYER"]
+    direction LR
+    EN["cusimanse + host-policy"]
+    VM["Disposable guest"]
+    EV["runs/session evidence"]
   end
 
-  subgraph Side["External only"]
+  subgraph SIDE["SIDECARS — no authority"]
+    direction LR
     GW["LiteLLM / OmniRoute"]
-    Obs["ClawMetry / Numbat / logs"]
+    OB["ClawMetry / Numbat / logs"]
   end
 
-  Exp --> Recipe
-  Roles --> Recipe
-  Prep --> HP
-  Plan --> Cat
-  Ex --> Engine
-  Ev --> Summon
-  GW -.-> Recipe
-  Obs -.-> Recipe
+  E --> G
+  R --> G
+  H --> HP
+  G --> AP
+  AP --> CA
+  CA --> VA --> HP --> EX
+  EX --> EN --> VM --> EV
+  EV --> VR
+  GW -.-> G
+  OB -.-> G
+  OB -.-> EV
+
+  class S,E,H,R contract
+  class G,AP,VR control
+  class CA,VA,HP,EX compile
+  class EN,VM,EV runtime
+  class GW,OB side
