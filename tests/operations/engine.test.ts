@@ -1,4 +1,5 @@
-import { describe, expect, it } from "node:test";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
 import { OperationEngine } from "../../src/operations/index.js";
 
 describe("operation engine", () => {
@@ -6,9 +7,9 @@ describe("operation engine", () => {
     const e = new OperationEngine();
     const op = { id: "o1", experimentId: "e1", intentId: "i1", kind: "vm", capability: "vm.create", parameters: {}, requiresApproval: true };
     e.register(op);
-    expect(e.authorize(op, false)).toBe("pending-approval");
-    expect(e.approve(op.id)).toBe("running");
-    expect(e.succeed(op.id)).toBe("succeeded");
+    assert.equal(e.authorize(op, false), "pending-approval");
+    assert.equal(e.approve(op.id), "running");
+    assert.equal(e.succeed(op.id), "succeeded");
   });
 
   it("rejects invalid transitions", () => {
@@ -17,6 +18,6 @@ describe("operation engine", () => {
     e.register(op);
     e.authorize(op, true);
     e.succeed(op.id);
-    expect(() => e.fail(op.id)).toThrow();
+    assert.throws(() => e.fail(op.id));
   });
 });
