@@ -1,8 +1,9 @@
-version: 3
+version: 4
 kind: goose-orchestration
 primary_agent: goose-reference
 model: native-goose
 recipe_source_of_truth: true
+prompt_library: prompts/experiments/<experiment>.md
 capability_runtime:
   api: cmd/cusimanse
   capabilities: [resolve, provision, configure, execute, collect, destroy]
@@ -16,7 +17,7 @@ role_definitions:
   roles_are_selectable_at_runtime: true
 cross_cutting_controls:
   policy-control:
-    interface: Go capability policy layer with scripts/policyctl compatibility helper
+    interface: internal/policy via cmd/cusimanse policy; scripts/policyctl is compatibility-only
     purpose: validate and audit privileged or approval-gated actions
     required_before: [vm, network, credentials, mounts, git-write, host-execution]
   evidence-integrity:
@@ -24,7 +25,7 @@ cross_cutting_controls:
     purpose: lifecycle checkpoints, hashes, provenance and preservation
 orchestration:
   mechanism: Goose native agents/subagents and recipe/subrecipe delegation
-  lifecycle: [contract, requirements, resolve, plan, policy, provision, instrument, workload, observe, adapt, verify, report, preserve, destroy]
+  lifecycle: [contract, requirements, prompt-handoff, resolve, plan, policy, provision, instrument, workload, observe, adapt, verify, report, preserve, destroy]
   parallel_allowed: [evidence-analysis, forensics, detection-analysis]
   sequential_required: [resolve, provision, instrument, workload, verify, report, preserve, destroy]
   adaptive_loop: observe → analyze → request_declared_capability → execute → observe
@@ -56,8 +57,10 @@ gateways:
   agent_may_change_gateway_policy: false
 adapters:
   source_of_truth: recipes/agents/adapter-matrix.yaml
-  prompt_handoff: prompts/experiments/<experiment>.md
+  shared_prompt_handoff: prompts/experiments/<experiment>.md
+  operator_guides: prompts/operators/<operator>.md
   recipe_mutation: forbidden
+  policy_mutation: forbidden
 extensions:
   native_first: true
   external_adapter_extensions: allowed
