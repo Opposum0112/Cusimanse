@@ -36,7 +36,8 @@ go run ./cmd/cusimanse capability role list >/dev/null || fail 'role management 
 ./scripts/observability.sh clawmetry >/dev/null
 sid="integration-contract-$$"
 candidate="integration-learning-$$"
-cleanup(){ rm -rf "runs/$sid" "$audit" "skills/validated/$candidate.yaml"; }
+audit="runs/$sid/evidence/audit"
+cleanup(){ rm -rf "runs/$sid" "skills/validated/$candidate.yaml"; }
 trap cleanup EXIT
 ./scripts/session.sh create npm-threat-001 goose "$sid" >/dev/null
 ./scripts/session.sh checkpoint "$sid" VALIDATED >/dev/null
@@ -67,7 +68,7 @@ echo 'INTEGRATION PASS: validation/preflight/policy → host tools → gateways/
 if [ "${CUSIMANSE_RUN_VM_TEST:-0}" = 1 ]; then
   command -v limactl >/dev/null 2>&1 || fail 'limactl missing for VM integration'
   name="cusimanse-integration-$$"
-  trap 'limactl delete --force "$name" >/dev/null 2>&1 || true; rm -rf "runs/'"$sid"'" "skills/validated/'"$candidate"'.yaml" "$audit"' EXIT
+  trap 'limactl delete --force "$name" >/dev/null 2>&1 || true; rm -rf "runs/'"$sid"'" "skills/validated/'"$candidate"'.yaml"' EXIT
   limactl validate recipes/lima/security-research.yaml >/dev/null
   limactl start --name="$name" recipes/lima/security-research.yaml >/dev/null
   limactl shell "$name" -- bash -lc 'go version && node --version && npm --version && strace -V >/dev/null && tcpdump --version >/dev/null'
