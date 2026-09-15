@@ -11,7 +11,7 @@ This is a local, deterministic security-research fixture. Do not replace it with
 
 Every run must validate `policies/host-policy.yaml` through the native Go policy engine before provisioning. The required controls are VM creation, network scope, credentials and host mounts. Denied actions are never bypassed. Approval-required actions require explicit researcher approval and an auditable decision recorded by the Go runtime.
 
-The mount denylist (`policies/mount-denylist.yaml`) and permission tiers (`policies/permission-tiers.yaml`) are additional policy inputs. Policy is authoritative; shell wrappers are compatibility entrypoints only.
+The mount denylist (`policies/mount-denylist.yaml`) and permission tiers (`policies/permission-tiers.yaml`) are additional policy inputs. Policy is authoritative. Shell is not an authority layer; compatibility wrappers may delegate to the Go CLI, while bootstrap and unavoidable external tools remain shell-operated.
 
 ## Researcher/operator procedure
 
@@ -21,6 +21,7 @@ The researcher declares intent and approval; the operator/agent performs the con
 ./scripts/install.sh
 cusimanse doctor
 cusimanse validate
+cusimanse preflight
 goose recipe validate recipes/npm-threat-001/recipe.yaml
 cusimanse resolve npm-threat-001
 cusimanse policy explain vm
@@ -39,7 +40,7 @@ The adapter/operator must read this contract and the experiment requirements bef
 A run is successful when:
 
 1. the Goose recipe validates;
-2. native Go policy validation succeeds;
+2. native Go validation, preflight and policy validation succeed;
 3. required policy checks are recorded before VM provisioning;
 4. the disposable VM is created before workload execution;
 5. collectors start before the workload;
