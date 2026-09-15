@@ -3,6 +3,9 @@
 ## Purpose
 Exercise the observation pipeline against a local, harmless npm `postinstall` fixture. The fixture writes a marker under `/tmp` and attempts one localhost connection to the declared gateway port; it does not contact external hosts, read credentials or modify the host.
 
+## Scope
+The experiment is limited to the local fixture, disposable Linux guest, declared localhost gateway behavior and required process/filesystem/network evidence. External package sources, credentials and host execution are out of scope.
+
 ## Configuration
 
 ```text
