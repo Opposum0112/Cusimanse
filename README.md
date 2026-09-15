@@ -39,11 +39,17 @@ Policy file still used at execute time: `policies/host-policy.yaml`.
 
 ## Architecture
 
-Authority flows **down**. Evidence flows **up**. Sidecars never authorize a run.
+The lab is five stacked planes. The researcher never talks to the VM. Goose never invents a provision step. Sidecars never grant `--approved`.
+
+1. **Contract** — LinkML schema plus one experiment YAML, a host-prep catalog, and role/skill files. This is the only place new studies are authored.
+2. **Control** — Goose loads `recipes/goose/session.yaml`, plans the session, asks a human to approve, then Summons verifier and reporter.
+3. **Compiler** — `cmd/compile` reads those YAML files: `catalog` → `validate` / `resolve` → `host-prep` → `execute --approved`. Unknown workload ids fail closed.
+4. **Runtime** — after approval, `cusimanse` plus `policies/host-policy.yaml` start a disposable Lima or Multipass guest, run the pinned handler, hash evidence, then destroy the guest.
+5. **Sidecars** — LiteLLM / OmniRoute carry models. ClawMetry / Numbat / Goose logs observe. Missing sidecars become `NOT_DEPLOYED` in the evidence index.
+
+Authority moves **down** that stack. Evidence moves **up** into `runs/<session>/`.
 
 ![Cusimanse layered architecture](docs/architecture/agentic-native-layers.svg)
-
-Source drawings: `docs/architecture/agentic-native-layers.svg` and `docs/architecture/agentic-native-goose.mmd`.
 
 ```mermaid
 flowchart TB
@@ -182,9 +188,6 @@ Cusimanse/
     install.sh
     tests/validate.sh
     tests/integration.sh
-  docs/architecture/
-    agentic-native-layers.svg
-    agentic-native-goose.mmd
   .github/workflows/
     validate.yml
     agentic-native.yml
@@ -357,8 +360,6 @@ CI:
 
 - `.github/workflows/agentic-native.yml` — this branch
 - `.github/workflows/validate.yml` — compiler + integration
-
-Watch: https://github.com/Opposum0112/Cusimanse/actions?query=branch%3Aagentic-native-goose
 
 ## Safety
 
