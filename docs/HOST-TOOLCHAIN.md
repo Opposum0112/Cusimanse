@@ -1,6 +1,6 @@
 # Host toolchain, gateways and observability
 
-This document is the operator-facing map for the host-side toolchain. The authoritative inventory is `recipes/host/security-research.yaml`; gateway and observability requirements are `recipes/gateway/mandatory.yaml` and `recipes/observability/mandatory.yaml`.
+This document covers host bootstrap, model gateways and observability. Guest instrumentation has a single dedicated guide: `docs/INSTRUMENTATION.md`. The authoritative inventories are `recipes/host/security-research.yaml`, `recipes/gateway/mandatory.yaml`, `recipes/observability/mandatory.yaml` and `recipes/instrumentation/security-research.yaml`.
 
 ## 1. Install
 
@@ -8,35 +8,27 @@ From the repository root:
 
 ```bash
 ./scripts/install.sh
-```
-
-The installer is intended for Linux, macOS and WSL2. It installs the host prerequisites, Go, Node.js/npm, Goose, Lima/QEMU where applicable, guest instrumentation packages, the model gateway, observability stack and optional adapters selected by the installer.
-
-After installation:
-
-```bash
 export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
 cusimanse doctor
 cusimanse validate
 cusimanse preflight
 ```
 
-Use `CUSIMANSE_GOOSE_VERSION` to pin the Goose installer version and `CUSIMANSE_INSTALL_ADAPTERS=none|opencode,hermes,antigravity,pi|all` for non-interactive adapter selection.
+The installer supports the declared Linux, macOS and WSL2 paths. It installs the host control-plane prerequisites, Goose, model gateways, observability dependencies and Lima/QEMU where applicable. Guest instrumentation is provisioned by the disposable Linux VM recipe rather than treated as a host execution dependency.
 
 ## 2. Host command inventory
 
-The required inventory is declared in `recipes/host/security-research.yaml`.
+The project-wide inventory is `manifest/TOOL-INVENTORY.yaml`; host requirements are declared in `recipes/host/security-research.yaml`.
 
 | Area | Commands | Purpose / access |
 |---|---|---|
 | Control/bootstrap | `git`, `bash`, `curl`, `python3`, `go` | repository, bootstrap and native Go control plane |
-| Data/config | `jq`, `yq`, `rg` | external config/data inspection and installer parsing |
-| Workload tooling | `node`, `npm` | package lifecycle experiments; reference workload executes in guest |
+| Data/config | `jq`, `yq`, `rg` | configuration/data inspection and installer parsing |
+| Workload tooling | `node`, `npm` | package-research tooling; reference workloads execute in the guest |
 | Agent | `goose` | primary native agent operator |
-| VM | `limactl`, QEMU | disposable compute; Linux uses x86_64 QEMU, macOS uses arm64 QEMU |
-| Guest instrumentation | `strace`, `tcpdump`, `ss`, `ip`, `dig`, `getent`, `lsof`, `find`, `stat`, `sha256sum`, `inotifywait`, `file`, `ps`, `pgrep` | collectors and evidence inside disposable Linux guest |
+| VM provider | `limactl`, QEMU | disposable compute; lifecycle normally controlled by Go runtime/agent |
 
-Check what is currently available:
+Check host availability:
 
 ```bash
 cusimanse tools list
@@ -45,105 +37,69 @@ cusimanse tools config
 cusimanse tools path
 ```
 
-The compatibility helper remains available as `./scripts/tools.sh <command>`.
-
-## 3. Lima / QEMU
-
-The reference disposable compute recipe is:
-
-```text
-recipes/lima/security-research.yaml
-```
-
-Validate it before a VM smoke test:
-
-```bash
-limactl validate recipes/lima/security-research.yaml
-```
-
-Start a named disposable VM only through the approved runtime workflow or an explicit integration smoke test:
-
-```bash
-limactl start --name=cusimanse-smoke recipes/lima/security-research.yaml
-limactl shell cusimanse-smoke -- bash -lc 'go version && node --version && npm --version'
-limactl delete --force cusimanse-smoke
-```
-
-The experiment lifecycle is responsible for containment and evidence gates. Do not add arbitrary host mounts, credentials or public networking to a Lima instance.
-
-## 4. Model gateways
+## 3. Model gateways
 
 The mandatory gateway recipe is `recipes/gateway/mandatory.yaml`.
 
-```text
-OmniRoute  127.0.0.1:20128  provider routing/fallback
-    ↓
-LiteLLM   127.0.0.1:4000    model gateway/normalization
-    ↓
-Goose / selected agent
-```
+| Component | Access | Data / UI | Installation / configuration |
+|---|---|---|---|
+| LiteLLM | `127.0.0.1:4000`; agent-facing OpenAI-compatible endpoint | model requests, routing and normalization; no public UI/listener | installed into the Cusimanse Python environment by `scripts/install.sh`; `~/.config/cusimanse/litellm.yaml` |
+| OmniRoute | `127.0.0.1:20128`; upstream for LiteLLM | provider routing/fallback; localhost API | installed by the installer with pinned npm package; `~/.config/cusimanse/omniroute.env` |
 
-Configuration is generated under:
+Flow:
 
 ```text
-~/.config/cusimanse/litellm.yaml
-~/.config/cusimanse/omniroute.env
+agent / Goose → LiteLLM :4000 → OmniRoute :20128 → configured provider
 ```
 
-Secrets are environment-only. Gateways bind to localhost and are **not** security boundaries.
-
-Inspect status/configuration without printing secrets:
+Secrets are environment-only. Gateways are **not security boundaries**; policy and the Go capability API remain authoritative. Inspect configuration locations without printing secrets:
 
 ```bash
 cusimanse tools config
-./scripts/tools.sh config
 ```
 
-The Goose environment generated by the installer is:
-
-```text
-~/.config/cusimanse/goose.env
-```
-
-Load it when operating Goose in a shell where the local gateway is intended:
-
-```bash
-source ~/.config/cusimanse/goose.env
-```
-
-## 5. Observability
+## 4. Observability
 
 The mandatory observer recipe is `recipes/observability/mandatory.yaml`.
 
-| Observer | Access | Data |
+| Observer | Access | Data / UI |
 |---|---|---|
 | Numbat | `cusimanse tools numbat` | `~/.numbat/cusimanse.ndjson` |
-| Phoenix | `http://127.0.0.1:6006` | telemetry UI |
-| OpenTelemetry | `http://127.0.0.1:4318` | OTLP/HTTP collector endpoint |
-| ClawMetry | `http://127.0.0.1:8900` | Goose/session/token visibility |
-| Aegis | `~/.local/share/cusimanse/aegis/` | independent monitor-only observer |
-
-Use the observability helper for lifecycle operations:
+| Phoenix | browser | `http://127.0.0.1:6006` |
+| OpenTelemetry | OTLP/HTTP | `http://127.0.0.1:4318` |
+| ClawMetry | browser | `http://127.0.0.1:8900` |
+| Aegis | `cusimanse observability status` | `~/.local/share/cusimanse/aegis/` |
 
 ```bash
 cusimanse observability status
 cusimanse observability phoenix
 cusimanse observability clawmetry
-cusimanse observability start
-cusimanse observability stop
 cusimanse observability report <session-id>
 ```
 
-If a helper subcommand is not supported by the installed version, use `cusimanse observability --help` and the corresponding `scripts/observability.sh` operation. Missing observers are recorded as partial; observers never authorize execution.
+Observers record or expose telemetry; they never authorize execution.
 
-Per-run snapshots are written under:
+## 5. Lima / QEMU boundary
 
-```text
-runs/<session-id>/observability/token-usage.yaml
-runs/<session-id>/observability/dashboard.yaml
+Lima/QEMU is the disposable-compute provider. The normal researcher interface is the Go runtime:
+
+```bash
+cusimanse resolve npm-threat-001
+cusimanse --approved run npm-threat-001 <session-id>
 ```
 
-Required correlation fields are `experiment_id`, `session_id`, `run_id`, `agent_id`, `role`, `skill`, `capability`, `workload_id`, `trace_id` and `timestamp`.
+For diagnostics only, the underlying commands are:
+
+```bash
+limactl validate recipes/lima/security-research.yaml
+limactl start --name=cusimanse-smoke recipes/lima/security-research.yaml
+limactl shell cusimanse-smoke -- bash -lc 'go version && node --version && npm --version'
+limactl delete --force cusimanse-smoke
+```
+
+Do not add arbitrary mounts, credentials or external destinations. The Go runtime/agent owns the normal provision → configure → instrument → execute → collect → verify → preserve → destroy lifecycle.
+
+Guest instrumentation and its access model are documented only in `docs/INSTRUMENTATION.md` to avoid duplicate inventories.
 
 ## 6. Configuration locations
 
@@ -161,47 +117,24 @@ Required correlation fields are `experiment_id`, `session_id`, `run_id`, `agent_
 ~/.numbat/cusimanse.ndjson
 ```
 
-Repository configuration remains authoritative for experiments and security controls:
-
-```text
-policies/host-policy.yaml
-policies/mount-denylist.yaml
-policies/permission-tiers.yaml
-recipes/host/security-research.yaml
-recipes/gateway/mandatory.yaml
-recipes/observability/mandatory.yaml
-recipes/lima/security-research.yaml
-recipes/instrumentation/security-research.yaml
-```
-
-Do not treat generated user configuration as a replacement for repository policy or recipes.
+Repository configuration remains authoritative for experiments and security controls.
 
 ## 7. Native Go commands
-
-The Go CLI is the control-plane interface:
 
 ```bash
 cusimanse validate
 cusimanse preflight
 cusimanse policy validate
-cusimanse policy explain vm
-cusimanse policy check vm
-cusimanse policy check-all
-cusimanse policy require vm --approved
 cusimanse resolve npm-threat-001
 cusimanse capability list
-cusimanse capability role list
-cusimanse capability skill list
 cusimanse test
 cusimanse integration-test
 cusimanse doctor
 ```
 
-These commands are authoritative for deterministic validation, preflight and policy. Shell helpers are compatibility/access wrappers or unavoidable external-tool launchers.
+Native Go validation, preflight and policy are authoritative. Shell is limited to bootstrap, compatibility and unavoidable external-tool access.
 
 ## 8. Session and evidence access
-
-Create and inspect a session with the compatibility lifecycle helper:
 
 ```bash
 cusimanse session create npm-threat-001 goose <session-id>
@@ -209,21 +142,6 @@ cusimanse session status <session-id>
 cusimanse session checkpoint <session-id> VALIDATED
 cusimanse session hash <session-id>
 cusimanse session verify-layout <session-id>
-```
-
-The preserved run tree is:
-
-```text
-runs/<session-id>/
-├── session.yaml
-├── evidence/
-├── provenance/manifest.sha256
-├── analysis/summary.md
-├── verification/result.md
-├── research-report/
-├── preservation/manifest.yaml
-├── observability/
-└── learning/
 ```
 
 Evidence must be hashed and preserved before disposable compute is destroyed.
