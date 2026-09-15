@@ -5,6 +5,8 @@ cd "$ROOT"
 export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
 fail(){ echo "RUNTIME FAIL: $*" >&2; exit 1; }
 command -v go >/dev/null 2>&1 || fail 'go missing'
+command -v yq >/dev/null 2>&1 || fail 'yq missing'
+yq --version | grep -Eq 'version v4\.' || fail 'yq v4 required'
 go test ./... >/dev/null || fail 'Go tests failed'
 go run ./cmd/cusimanse validate >/dev/null || fail 'native validation failed'
 go run ./cmd/cusimanse policy validate >/dev/null || fail 'native policy validation failed'
