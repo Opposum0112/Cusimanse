@@ -4,7 +4,54 @@ CAR is an LLM-augmented, domain-specific runtime for security-research contracts
 
 **The model proposes. CAR validates and authorizes. Adapters execute.**
 
-This `agentic-runtime` branch is a clean TypeScript/Node implementation of CAR. It is intentionally independent of other runtime or agent-framework implementations.
+## Commit 2 — Contract and semantic compiler
+
+This increment establishes the declarative contract boundary and deterministic compilation path:
+
+```text
+LinkML-governed YAML / JSON
+          |
+          v
+   Contract validation
+          |
+          v
+     Semantic compiler
+          |
+          v
+      Cusimanse IR
+```
+
+The compiler performs structural and semantic checks at the runtime boundary and normalizes recipe intents into the IR used by later runtime layers. LLM reasoning is deliberately outside this validation boundary.
+
+## Repository layout
+
+```text
+Cusimanse/
+├── README.md
+├── package.json
+├── tsconfig.json
+├── schema/
+│   └── cusimanse-agent-runtime.yaml
+├── recipes/
+│   └── examples/
+├── src/
+│   ├── compiler/
+│   ├── ir/
+│   ├── state/
+│   ├── planner/
+│   ├── capabilities/
+│   ├── policy/
+│   ├── operations/
+│   ├── adapters/
+│   ├── evidence/
+│   ├── runtime/
+│   └── llm/
+└── tests/
+    ├── compiler/
+    ├── policy/
+    ├── runtime/
+    └── adapters/
+```
 
 ## Architecture
 
@@ -46,40 +93,14 @@ Vercel AI SDK 7 ───────┘
 
 The LLM never grants itself privileges, changes policy, accesses host credentials, bypasses approval, or turns YAML directly into arbitrary shell commands.
 
-## Repository layout
+## Example
 
-```text
-Cusimanse/
-├── README.md
-├── package.json
-├── tsconfig.json
-├── schema/
-│   └── cusimanse-agent-runtime.yaml
-├── recipes/
-│   └── examples/
-├── src/
-│   ├── compiler/
-│   ├── ir/
-│   ├── state/
-│   ├── planner/
-│   ├── capabilities/
-│   ├── policy/
-│   ├── operations/
-│   ├── adapters/
-│   ├── evidence/
-│   ├── runtime/
-│   └── llm/
-└── tests/
-    ├── compiler/
-    ├── policy/
-    ├── runtime/
-    └── adapters/
-```
+`recipes/examples/npm-install.yaml` demonstrates a LinkML-shaped recipe with a research question, explicit scope, operation kinds, and ordered capability intents.
 
 ## Build sequence
 
-1. Contract and LinkML validation
-2. Semantic compiler and normalized IR
+1. Contract and LinkML validation — **current**
+2. Semantic compiler and normalized IR — **current**
 3. Research state and event model
 4. Planner and deterministic dependency graph
 5. Capability registry and resolver
@@ -96,7 +117,3 @@ Cusimanse/
 ## Safety invariant
 
 No adapter receives an executable operation unless the operation has passed contract validation, capability resolution, and the CAR policy/approval gate.
-
-## Status
-
-The branch is being built incrementally. Each architectural layer is committed separately so contracts and security boundaries remain reviewable.
