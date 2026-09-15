@@ -25,6 +25,11 @@ learning:
   enabled: false
 EOF
   printf '%s\n' '{"event":"session_created","state":"CREATED"}' > "$dir/evidence/audit/events.jsonl"
+  printf '%s\n' 'status: NOT_STARTED' > "$dir/evidence/index.yaml"
+  printf '%s\n' '# Analysis Summary' 'status: NOT_STARTED' > "$dir/analysis/summary.md"
+  printf '%s\n' '# Verification Result' 'status: NOT_STARTED' > "$dir/verification/result.md"
+  printf '%s\n' '# Research Report' 'status: NOT_STARTED' > "$dir/research-report/report.md"
+  printf '%s\n' 'status: NOT_STARTED' > "$dir/research-report/report.yaml"
   printf '%s\n' 'status: NOT_STARTED' > "$dir/observability/token-usage.yaml"
   printf '%s\n' 'status: NOT_STARTED' > "$dir/observability/dashboard.yaml"
   printf '%s\n' 'status: NOT_PRESERVED' > "$dir/preservation/manifest.yaml"
