@@ -1,27 +1,45 @@
-flowchart TB
-  researcher[Researcher]
-  yaml[experiments/*.yaml]
-  schema[schemas/cusimanse.yaml]
-  goose[Goose session recipe]
-  roles[roles + skills registry]
-  prep[host-prep/default.yaml]
-  compile[cmd/compile]
-  engine[cusimanse run]
-  vm[Lima or Multipass guest]
-  runs[runs/session]
-  gw[LiteLLM / OmniRoute]
-  obs[ClawMetry / Numbat / Goose logs]
+flowchart LR
+  subgraph Declare["1. Declare"]
+    Schema["LinkML + JSON Schema"]
+    Exp["experiments/*.yaml"]
+    Prep["host-prep/*.yaml"]
+    Roles["roles + SKILL.md"]
+    Schema --> Exp
+  end
 
-  researcher --> yaml
-  schema --> yaml
-  yaml --> goose
-  roles --> goose
-  gw -.-> goose
-  goose -->|validate host-prep resolve execute| compile
-  prep --> compile
-  compile -->|approved| engine
-  engine --> vm
-  vm --> runs
-  goose --> runs
-  obs -.-> goose
-  obs -.-> runs
+  subgraph Operate["2. Goose operates"]
+    Recipe["session.yaml"]
+    Plan["plan + approve"]
+    Summon["verifier / reporter"]
+    Recipe --> Plan
+    Plan --> Summon
+  end
+
+  subgraph Compile["3. Compiler interprets"]
+    Cat["catalog"]
+    Val["validate / resolve"]
+    HP["host-prep checks"]
+    Ex["execute --approved"]
+    Cat --> Val --> HP --> Ex
+  end
+
+  subgraph Run["4. Guest run"]
+    Engine["cusimanse + host-policy"]
+    VM["Lima / Multipass"]
+    Ev["runs/session evidence"]
+    Engine --> VM --> Ev
+  end
+
+  subgraph Side["External only"]
+    GW["LiteLLM / OmniRoute"]
+    Obs["ClawMetry / Numbat / logs"]
+  end
+
+  Exp --> Recipe
+  Roles --> Recipe
+  Prep --> HP
+  Plan --> Cat
+  Ex --> Engine
+  Ev --> Summon
+  GW -.-> Recipe
+  Obs -.-> Recipe
