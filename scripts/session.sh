@@ -47,7 +47,7 @@ checkpoint(){
     *) allowed=0;;
   esac
   [ "$allowed" = 1 ] || { echo "invalid lifecycle transition: $current -> $next" >&2; exit 1; }
-  yq -y -i ".state = \"$next\" | .stage_history += [{\"state\": \"$next\", \"timestamp_utc\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}]" "$file"
+  yq eval -i ".state = \"$next\" | .stage_history += [{\"state\": \"$next\", \"timestamp_utc\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}]" "$file"
   printf '%s\n' "{\"event\":\"checkpoint\",\"from\":\"$current\",\"state\":\"$next\"}" >> "runs/$sid/evidence/audit/events.jsonl"
 }
 hash(){
