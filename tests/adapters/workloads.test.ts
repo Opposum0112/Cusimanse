@@ -1,4 +1,5 @@
-import { describe, expect, it } from "node:test";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
 import { WorkloadAdapters } from "../../src/adapters/workloads.js";
 
 describe("workload adapter contracts", () => {
@@ -11,6 +12,6 @@ describe("workload adapter contracts", () => {
       { install: async (dir) => { installed = dir; return { stdout: "ok", stderr: "", exitCode: 0 }; } },
     );
     await adapters.npm.install("/workspace");
-    expect(installed).toBe("/workspace");
+    assert.equal(installed, "/workspace");
   });
 });
