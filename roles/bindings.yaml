@@ -1,0 +1,12 @@
+version: 1
+registry: roles/skill-registry.yaml
+bindings:
+  operator:
+    - experiment-operate
+    - host-prep-declared
+  verifier:
+    - evidence-read
+    - verification
+  reporter:
+    - evidence-read
+    - report

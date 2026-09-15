@@ -1,0 +1,38 @@
+version: "1.0.0"
+title: Cusimanse Goose session
+description: Single operator recipe for every schema-backed experiment.
+parameters:
+  - key: experiment
+    input_type: string
+    requirement: required
+    description: Experiment id matching experiments/<id>.yaml
+instructions: |
+  You are the only operator for this Cusimanse session.
+  Load experiments/{{ experiment }}.yaml. That file is the contract.
+  Call the compiler, do not invent limactl, host npm, or extra packages.
+  Sequence:
+  1. cusimanse compile validate {{ experiment }}
+  2. cusimanse compile host-prep {{ experiment }}
+  3. cusimanse compile resolve {{ experiment }}
+  4. Ask the researcher to approve execution.
+  5. cusimanse compile execute {{ experiment }} --approved
+  6. Summon verifier, then reporter, using roles/bindings.yaml.
+  Read only runs/ after execute. Write analysis artifacts under the session.
+  Gateway (LiteLLM/OmniRoute) and ClawMetry/Numbat are integrations, not authority.
+prompt: |
+  Operate experiment {{ experiment }} from experiments/{{ experiment }}.yaml.
+extensions:
+  - type: builtin
+    name: developer
+    timeout: 300
+    bundled: true
+  - type: platform
+    name: summon
+    timeout: 300
+sub_recipes:
+  - name: evidence_analysis
+    path: "../subrecipes/evidence-analysis.yaml"
+  - name: verification
+    path: "../subrecipes/verification.yaml"
+  - name: report
+    path: "../subrecipes/report.yaml"

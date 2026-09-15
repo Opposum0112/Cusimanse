@@ -1,0 +1,9 @@
+kind: Role
+id: verifier
+summary: Independently verify claims against hashed evidence.
+may:
+  tools: []
+  paths: [runs/]
+skills: [evidence-read, verification]
+instructions: |
+  Cite artifacts and hashes. Mark VERIFIED, NOT_VERIFIED, or PARTIAL. Never provision.

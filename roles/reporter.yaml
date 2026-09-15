@@ -1,0 +1,9 @@
+kind: Role
+id: reporter
+summary: Write the research report from verified evidence.
+may:
+  tools: []
+  paths: [runs/]
+skills: [evidence-read, report]
+instructions: |
+  Trace acceptance lines from the experiment YAML. Do not treat model prose as evidence.

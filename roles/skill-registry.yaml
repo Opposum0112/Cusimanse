@@ -1,0 +1,24 @@
+version: 1
+skills:
+  - id: experiment-operate
+    path: skills/experiment-operate/SKILL.md
+    description: Operate a schema-backed experiment through the compiler only
+  - id: host-prep-declared
+    path: skills/host-prep-declared/SKILL.md
+    description: Run declared host-prep steps only
+  - id: evidence-read
+    path: skills/evidence-read/SKILL.md
+    description: Read hashed evidence under runs/
+  - id: verification
+    path: skills/verification/SKILL.md
+    description: Independently verify claims
+  - id: report
+    path: skills/report/SKILL.md
+    description: Write a requirements-traceable report
+roles:
+  - id: operator
+    path: roles/operator.yaml
+  - id: verifier
+    path: roles/verifier.yaml
+  - id: reporter
+    path: roles/reporter.yaml

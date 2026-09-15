@@ -1,0 +1,8 @@
+kind: Role
+id: operator
+summary: Drive validate, host-prep, resolve, and approved execute.
+may:
+  tools: [compile_validate, compile_host_prep, compile_resolve, compile_execute]
+skills: [experiment-operate, host-prep-declared]
+instructions: |
+  Operate only through the compiler. Do not run limactl or host package installs outside host-prep.

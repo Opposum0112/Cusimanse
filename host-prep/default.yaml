@@ -1,0 +1,66 @@
+kind: HostPrep
+id: default
+version: 1
+description: Declared host bootstrap Goose may operate. Steps are allow-listed.
+fallback: skip-optional-and-record-NOT_DEPLOYED
+categories:
+  essential:
+    - id: git
+      check: git --version
+      install: scripts/install.sh
+    - id: go
+      check: go version
+      install: scripts/install.sh
+    - id: node
+      check: node --version
+      install: scripts/install.sh
+    - id: npm
+      check: npm --version
+      install: scripts/install.sh
+    - id: yq
+      check: yq --version
+      install: scripts/install.sh
+    - id: goose
+      check: goose --version
+      install: scripts/install.sh
+      required: true
+  compute:
+    - id: lima
+      check: limactl --version
+      install: scripts/install.sh
+      distributions: [linux, macos]
+      fallback: multipass
+    - id: qemu
+      check: qemu-system-x86_64 --version
+      install: scripts/install.sh
+      distributions: [linux, macos]
+    - id: multipass
+      check: multipass version
+      optional: true
+      distributions: [linux, macos, windows]
+      fallback: lima
+  observability:
+    - id: clawmetry
+      check: true
+      notes: Goose-native / localhost UI when configured
+      optional: true
+    - id: numbat
+      check: true
+      optional: true
+    - id: phoenix
+      check: true
+      optional: true
+      access: http://127.0.0.1:6006
+  gateway:
+    - id: litellm
+      check: true
+      optional: true
+      access: http://127.0.0.1:4000
+    - id: omniroute
+      check: true
+      optional: true
+      access: http://127.0.0.1:20128
+rules:
+  - Do not install undeclared packages.
+  - Missing optional tools are NOT_DEPLOYED, not a prompt to invent alternatives.
+  - Compute fallback is lima <-> multipass only when the compiler provider interface supports it.
