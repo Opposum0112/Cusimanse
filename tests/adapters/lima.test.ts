@@ -1,4 +1,5 @@
-import { describe, expect, it } from "node:test";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
 import { LimaLifecycle } from "../../src/adapters/lima.js";
 
 describe("lima lifecycle", () => {
@@ -12,11 +13,11 @@ describe("lima lifecycle", () => {
     const lifecycle = new LimaLifecycle(provider);
     await lifecycle.create({ name: "research", cpus: 2, memory: "4GiB" });
     await lifecycle.destroy("research");
-    expect(calls).toEqual(["create", "destroy"]);
+    assert.deepEqual(calls, ["create", "destroy"]);
   });
 
   it("rejects invalid profiles", async () => {
     const lifecycle = new LimaLifecycle({ create: async () => {}, exec: async () => ({ stdout: "", stderr: "", exitCode: 0 }), destroy: async () => {} });
-    await expect(lifecycle.create({ name: "", cpus: 0, memory: "" })).rejects.toThrow();
+    await assert.rejects(lifecycle.create({ name: "", cpus: 0, memory: "" }));
   });
 });
