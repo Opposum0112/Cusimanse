@@ -2,6 +2,13 @@
 
 ![Cusimanse mascot and logo](docs/images/cusimanse-mascot-logo.svg)
 
+[![Validation](https://github.com/Opposum0112/Cusimanse/actions/workflows/validate.yml/badge.svg?branch=main)](https://github.com/Opposum0112/Cusimanse/actions/workflows/validate.yml)
+[![Go](https://img.shields.io/badge/Go-1.22%2B-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![ShellCheck](https://img.shields.io/badge/ShellCheck-enabled-4EAA25?logo=gnu-bash&logoColor=white)](https://www.shellcheck.net/)
+[![Goose](https://img.shields.io/badge/Goose-native%20agent-111827?logo=github&logoColor=white)](https://github.com/aaif-goose/goose)
+[![AI](https://img.shields.io/badge/AI-agentic%20security%20research-7C3AED?logo=openai&logoColor=white)](https://github.com/Opposum0112/Cusimanse)
+[![Beta](https://img.shields.io/badge/status-beta-F59E0B)](https://github.com/Opposum0112/Cusimanse)
+
 > **Status: Beta — Research Framework & Runtime Kit**
 >
 > Cusimanse is actively being developed. **Fork it, test it, run the reference experiments, report bugs, and submit pull requests.** Expect APIs, recipes, documentation and integrations to evolve during beta.
