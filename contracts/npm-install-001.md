@@ -3,6 +3,9 @@
 ## Purpose and scope
 Observe a pinned npm project bootstrap/install inside the disposable Lima VM. Do not access unrelated host files, credentials or mounts.
 
+## Scope
+The experiment is limited to the disposable Linux guest, the pinned local npm workload and declared instrumentation. Lifecycle scripts are intentionally disabled, and external destinations are out of scope.
+
 ## Configuration layers
 
 ```text
