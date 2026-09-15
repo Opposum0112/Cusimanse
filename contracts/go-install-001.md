@@ -3,6 +3,9 @@
 ## Purpose and scope
 Observe an approved Go installation and harmless local binary execution inside the disposable Lima VM. Do not access unrelated host files, credentials or mounts.
 
+## Scope
+The experiment is limited to the repository's disposable Linux guest, the declared Go workload, required instrumentation and preserved session evidence. Host execution and unrelated resources are out of scope.
+
 ## Configuration layers
 
 ```text
