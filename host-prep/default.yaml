@@ -1,66 +1,133 @@
 kind: HostPrep
 id: default
-version: 1
-description: Declared host bootstrap Goose may operate. Steps are allow-listed.
+version: 2
+description: Idempotent, distro-neutral host bootstrap. Goose and install.sh only use this allow-list.
 fallback: skip-optional-and-record-NOT_DEPLOYED
+managers:
+  linux: [apt-get, dnf, pacman, zypper, apk]
+  macos: [brew]
+  windows: [winget, scoop, choco]
+  any: [official-binary, go-install, npm-global]
 categories:
   essential:
     - id: git
       check: git --version
-      install: scripts/install.sh
+      required: true
+      install:
+        apt-get: [git]
+        dnf: [git]
+        pacman: [git]
+        zypper: [git]
+        apk: [git]
+        brew: [git]
+        winget: [Git.Git]
+        scoop: [git]
+        choco: [git]
+    - id: curl
+      check: curl --version
+      required: true
+      install:
+        apt-get: [curl]
+        dnf: [curl]
+        brew: [curl]
+        winget: [cURL.cURL]
+        scoop: [curl]
     - id: go
       check: go version
-      install: scripts/install.sh
+      required: true
+      install:
+        apt-get: [golang-go]
+        dnf: [golang]
+        pacman: [go]
+        brew: [go]
+        winget: [GoLang.Go]
+        scoop: [go]
+        official-binary: https://go.dev/dl/
     - id: node
       check: node --version
-      install: scripts/install.sh
+      required: true
+      install:
+        apt-get: [nodejs]
+        dnf: [nodejs]
+        brew: [node]
+        winget: [OpenJS.NodeJS.LTS]
+        scoop: [nodejs-lts]
+        official-binary: https://nodejs.org/dist/
     - id: npm
       check: npm --version
-      install: scripts/install.sh
+      required: true
+      notes: shipped with node
     - id: yq
       check: yq --version
-      install: scripts/install.sh
+      required: true
+      install:
+        apt-get: [yq]
+        brew: [yq]
+        winget: [MikeFarah.yq]
+        scoop: [yq]
+        official-binary: https://github.com/mikefarah/yq/releases
     - id: goose
       check: goose --version
-      install: scripts/install.sh
       required: true
+      install:
+        official-binary: https://github.com/block/goose/releases
   compute:
     - id: lima
       check: limactl --version
-      install: scripts/install.sh
       distributions: [linux, macos]
       fallback: multipass
+      install:
+        brew: [lima]
+        official-binary: https://github.com/lima-vm/lima/releases
     - id: qemu
       check: qemu-system-x86_64 --version
-      install: scripts/install.sh
       distributions: [linux, macos]
+      install:
+        apt-get: [qemu-system-x86]
+        dnf: [qemu-system-x86-core]
+        brew: [qemu]
     - id: multipass
       check: multipass version
       optional: true
       distributions: [linux, macos, windows]
       fallback: lima
+      install:
+        brew: [multipass]
+        winget: [Canonical.Multipass]
+        official-binary: https://canonical.com/multipass
   observability:
     - id: clawmetry
-      check: true
-      notes: Goose-native / localhost UI when configured
+      check: clawmetry --version
       optional: true
+      install:
+        pip: [clawmetry]
     - id: numbat
-      check: true
+      check: numbat --version
       optional: true
+      install:
+        go-install: github.com/perplexityai/numbat/cmd/numbat@latest
     - id: phoenix
       check: true
       optional: true
       access: http://127.0.0.1:6006
+      install:
+        pip: [arize-phoenix]
   gateway:
     - id: litellm
-      check: true
+      check: litellm --version
       optional: true
       access: http://127.0.0.1:4000
+      install:
+        pip: [litellm]
     - id: omniroute
-      check: true
+      check: omniroute --version
       optional: true
       access: http://127.0.0.1:20128
+      install:
+        npm-global: [omniroute]
 rules:
+  - Skip a tool when check already succeeds (idempotent).
+  - Try native package manager first, then official-binary / go-install / npm-global / pip.
+  - Missing optional tools are NOT_DEPLOYED.
   - Do not install undeclared packages.
-  - Missing optional tools are NOT_DEPLOYED, not a prompt to invent alternatives.
-  - Compute fallback is lima <-> multipass only when the compiler provider interface supports it.
+  - Windows native uses winget, scoop, or choco; WSL2 uses the Linux managers.

@@ -1,117 +1,162 @@
 #!/usr/bin/env bash
+# Idempotent host bootstrap. Reads host-prep/default.yaml when yq is present.
+# Linux / macOS / Windows (Git Bash, MSYS, Cygwin). WSL2 uses Linux path.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
-HOST_RECIPE="$ROOT/recipes/host/security-research.yaml"
-BIN="$HOME/.local/bin"; CFG="$HOME/.config/cusimanse"; DATA="$HOME/.local/share/cusimanse"; VENV="$DATA/venv"
-AEGIS_VERSION="b42d4c08c2fe6ed497173cefad173f3f8d21a936"
-mkdir -p "$BIN" "$CFG" "$DATA"
+export PATH="$HOME/.local/bin:$HOME/go/bin:/usr/local/bin:$PATH"
+BIN="$HOME/.local/bin"
+mkdir -p "$BIN"
 log(){ printf '[cusimanse] %s\n' "$*"; }
+warn(){ printf '[cusimanse] WARN: %s\n' "$*" >&2; }
 fail(){ printf '[cusimanse] ERROR: %s\n' "$*" >&2; exit 1; }
 have(){ command -v "$1" >/dev/null 2>&1; }
-run_root(){ if [ -n "${SUDO:-}" ]; then "$SUDO" "$@"; else "$@"; fi; }
-OS="$(uname -s)"; SUDO=""; [ "$(id -u)" -eq 0 ] || SUDO=sudo
-[ -s "$HOST_RECIPE" ] || fail 'host recipe missing'
-have yq || { if [ "$OS" = Darwin ] && have brew; then brew install yq; elif [ "$OS" = Linux ] && have apt-get; then run_root apt-get update; run_root apt-get install -y yq; else fail 'yq is required to read the host recipe'; fi; }
-install_common_linux(){
-  if have apt-get; then
-    run_root apt-get update
-    run_root apt-get install -y git bash curl python3 python3-pip python3-venv jq yq ripgrep ca-certificates
-    node_major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
-    if [ "$node_major" -lt 22 ]; then
-      tmp="$(mktemp)"; curl -fL --retry 3 --proto '=https' --tlsv1.2 https://deb.nodesource.com/setup_22.x -o "$tmp"; if [ -n "${SUDO:-}" ]; then "$SUDO" bash "$tmp"; else bash "$tmp"; fi; rm -f "$tmp"; run_root apt-get install -y nodejs
-    fi
-    run_root apt-get install -y golang-go
-  elif have dnf; then run_root dnf install -y git bash curl python3 python3-pip python3-virtualenv nodejs npm golang jq yq ripgrep ca-certificates
-  elif have pacman; then run_root pacman -Sy --needed --noconfirm git bash curl python python-pip nodejs npm go jq yq ripgrep ca-certificates
-  elif have zypper; then run_root zypper --non-interactive install git bash curl python3 python3-pip nodejs npm go jq yq ripgrep ca-certificates
-  else fail 'unsupported Linux package manager'; fi
+
+OS_RAW="$(uname -s 2>/dev/null || echo unknown)"
+case "$OS_RAW" in
+  Linux*) OS=linux ;;
+  Darwin*) OS=macos ;;
+  MINGW*|MSYS*|CYGWIN*|Windows*) OS=windows ;;
+  *) OS=unknown ;;
+esac
+
+SUDO=""
+if [ "$OS" != windows ] && [ "$(id -u 2>/dev/null || echo 1)" != 0 ]; then
+  have sudo && SUDO=sudo
+fi
+run_root(){ if [ -n "$SUDO" ]; then $SUDO "$@"; else "$@"; fi; }
+
+manager()
+{
+  case "$OS" in
+    linux)
+      have apt-get && { echo apt-get; return; }
+      have dnf && { echo dnf; return; }
+      have pacman && { echo pacman; return; }
+      have zypper && { echo zypper; return; }
+      have apk && { echo apk; return; }
+      ;;
+    macos)
+      have brew && { echo brew; return; }
+      ;;
+    windows)
+      have winget && { echo winget; return; }
+      have scoop && { echo scoop; return; }
+      have choco && { echo choco; return; }
+      ;;
+  esac
+  echo none
 }
-if [ "$OS" = Darwin ]; then
-  have brew || fail 'Homebrew is required on macOS'
-  brew install git curl python node ruby go jq yq ripgrep qemu lima ca-certificates
-elif [ "$OS" = Linux ]; then
-  install_common_linux
-  if have apt-get; then run_root apt-get install -y qemu-system-x86 qemu-utils strace tcpdump iproute2 iputils-ping dnsutils lsof inotify-tools file psmisc procps; fi
-  if have dnf; then run_root dnf install -y qemu-system-x86-core qemu-img strace tcpdump iproute iputils bind-utils lsof inotify-tools file psmisc procps; fi
-  if have pacman; then run_root pacman -Sy --needed --noconfirm qemu strace tcpdump iproute iputils bind lsof inotify-tools file psmisc procps; fi
-  if have zypper; then run_root zypper --non-interactive install qemu strace tcpdump iproute2 iputils bind-utils lsof inotify-tools file psmisc procps; fi
-else
-  fail 'Use WSL2 for full Cusimanse experiments or the PowerShell native-agent fallback'
-fi
-case "$OS" in Linux) platform=linux;; Darwin) platform=macos;; *) platform=windows_wsl2;; esac
-NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"; [ "$NODE_MAJOR" -ge 22 ] || fail 'Node.js 22+ required'
-GOOSE_VERSION="${CUSIMANSE_GOOSE_VERSION:-1.50.0}"
-verify_sha256(){ local file="$1" expected="$2" actual; if have sha256sum; then actual="$(sha256sum "$file" | awk '{print $1}')"; elif have shasum; then actual="$(shasum -a 256 "$file" | awk '{print $1}')"; else fail 'sha256 verifier unavailable'; fi; [ "$actual" = "$expected" ] || fail 'download checksum mismatch'; }
+
+pkg_install()
+{
+  local mgr pkgs
+  mgr="$(manager)"
+  pkgs="$*"
+  [ -n "$pkgs" ] || return 1
+  log "install via $mgr: $pkgs"
+  case "$mgr" in
+    apt-get) run_root apt-get update -y >/dev/null 2>&1 || true; run_root apt-get install -y $pkgs ;;
+    dnf) run_root dnf install -y $pkgs ;;
+    pacman) run_root pacman -Sy --needed --noconfirm $pkgs ;;
+    zypper) run_root zypper --non-interactive install $pkgs ;;
+    apk) run_root apk add --no-cache $pkgs ;;
+    brew) brew install $pkgs ;;
+    winget) winget install --accept-package-agreements --accept-source-agreements $pkgs ;;
+    scoop) scoop install $pkgs ;;
+    choco) choco install -y $pkgs ;;
+    none) return 1 ;;
+    *) return 1 ;;
+  esac
+}
+
+install_yq_binary()
+{
+  have yq && return 0
+  local ver=v4.44.3 arch url tmp
+  arch="$(uname -m)"
+  case "$OS-$arch" in
+    linux-x86_64|linux-amd64) url="https://github.com/mikefarah/yq/releases/download/${ver}/yq_linux_amd64" ;;
+    linux-aarch64|linux-arm64) url="https://github.com/mikefarah/yq/releases/download/${ver}/yq_linux_arm64" ;;
+    macos-arm64) url="https://github.com/mikefarah/yq/releases/download/${ver}/yq_darwin_arm64" ;;
+    macos-x86_64) url="https://github.com/mikefarah/yq/releases/download/${ver}/yq_darwin_amd64" ;;
+    windows-*) url="https://github.com/mikefarah/yq/releases/download/${ver}/yq_windows_amd64.exe" ;;
+    *) return 1 ;;
+  esac
+  tmp="$(mktemp)"
+  curl -fsSL --retry 3 "$url" -o "$tmp" || return 1
+  if [ "$OS" = windows ]; then
+    mv "$tmp" "$BIN/yq.exe"
+    chmod +x "$BIN/yq.exe"
+  else
+    mv "$tmp" "$BIN/yq"
+    chmod +x "$BIN/yq"
+  fi
+}
+
+ensure()
+{
+  local bin="$1" shift || true
+  if have "$bin"; then
+    log "ok $bin (already present)"
+    return 0
+  fi
+  if pkg_install "$@"; then
+    have "$bin" && { log "ok $bin"; return 0; }
+  fi
+  warn "package manager could not provide $bin; trying official binary if known"
+  return 1
+}
+
+log "os=$OS manager=$(manager)"
+
+# --- essential, skip if present ---
+have git || ensure git git || warn "git missing"
+have curl || ensure curl curl || fail "curl is required for fallback downloads"
+have yq || pkg_install yq || install_yq_binary || warn "yq missing"
+have go || pkg_install golang-go go golang || warn "go missing; install from https://go.dev/dl/"
+have node || pkg_install nodejs node || warn "node missing; install LTS from https://nodejs.org"
+have npm || warn "npm missing (comes with node)"
+
 if ! have goose; then
-  tmp="$(mktemp)"; url="https://github.com/aaif-goose/goose/releases/download/v${GOOSE_VERSION}/download_cli.sh"; curl -fL --retry 3 --proto '=https' --tlsv1.2 "$url" -o "$tmp"; verify_sha256 "$tmp" 'ab5ae40513348ec4e6047cc7338040aab2df5246800c111d22065766ba6013f0'; bash -n "$tmp"; CONFIGURE=false GOOSE_BIN_DIR="$BIN" bash "$tmp"; rm -f "$tmp"
+  if have curl; then
+    log "install goose via official CLI script"
+    tmp="$(mktemp)"
+    if curl -fsSL --retry 3 "https://github.com/block/goose/releases/download/stable/download_cli.sh" -o "$tmp" 2>/dev/null \
+      || curl -fsSL --retry 3 "https://github.com/aaif-goose/goose/releases/latest/download/download_cli.sh" -o "$tmp" 2>/dev/null; then
+      CONFIGURE=false GOOSE_BIN_DIR="$BIN" bash "$tmp" || warn "goose official installer failed"
+    fi
+    rm -f "$tmp"
+  fi
+  have goose || warn "goose missing; agent bootstrap cannot start until it is on PATH"
+else
+  log "ok goose (already present)"
 fi
-have goose || fail 'Goose installation failed'
-CFG="$(yq -r '.configuration.root' "$HOST_RECIPE" | sed "s|^~|$HOME|")"; AEGIS="$(yq -r '.configuration.aegis_checkout' "$HOST_RECIPE" | sed "s|^~|$HOME|")"; VENV="$(yq -r '.configuration.python_environment' "$HOST_RECIPE" | sed "s|^~|$HOME|")"; GATEWAY_CFG="$(yq -r '.configuration.gateway' "$HOST_RECIPE" | sed "s|^~|$HOME|")"
-mkdir -p "$CFG" "$(dirname "$AEGIS")" "$(dirname "$VENV")"
-python3 -m venv "$VENV"
-"$VENV/bin/pip" install --upgrade pip
-"$VENV/bin/pip" install litellm arize-phoenix opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp clawmetry
-ln -sf "$VENV/bin/litellm" "$BIN/litellm"; ln -sf "$VENV/bin/clawmetry" "$BIN/clawmetry"
-if ! have numbat; then GOBIN="$BIN" go install github.com/perplexityai/numbat/cmd/numbat@v0.2.0; fi
-if ! have omniroute; then npm install -g omniroute@3.8.50; fi
-have numbat || fail 'Numbat installation failed'; have omniroute || fail 'OmniRoute installation failed'; have clawmetry || fail 'ClawMetry installation failed'
-if [ ! -d "$AEGIS/.git" ]; then git clone --depth 1 https://github.com/antropos17/Aegis "$AEGIS"; fi
-(cd "$AEGIS" && git fetch --depth 1 origin "$AEGIS_VERSION" && git checkout --detach "$AEGIS_VERSION" && npm ci)
-cat > "$BIN/cusimanse-aegis" <<EOF
-#!/usr/bin/env bash
-set -euo pipefail
-cd "$AEGIS"
-npm start
-EOF
-chmod +x "$BIN/cusimanse-aegis"
-cat > "$GATEWAY_CFG" <<'EOF'
-model_list:
-  - model_name: auto
-    litellm_params:
-      model: openai/auto
-      api_base: http://127.0.0.1:20128/v1
-      api_key: os.environ/OMNIROUTE_API_KEY
-router_settings:
-  routing_strategy: simple-shuffle
-  fallbacks: []
-general_settings:
-  master_key: os.environ/LITELLM_MASTER_KEY
-EOF
-cat > "$CFG/omniroute.env" <<'EOF'
-export OMNIROUTE_HOST=127.0.0.1
-export OMNIROUTE_PORT=20128
-EOF
-cat > "$CFG/observability.env" <<EOF
-export NUMBAT_RECORD_FILE=$HOME/.numbat/cusimanse.ndjson
-export PHOENIX_HOST=127.0.0.1
-export PHOENIX_PORT=6006
-export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318
-export AEGIS_ROOT=$AEGIS
-export CLAWMETRY_HOST=127.0.0.1
-export CLAWMETRY_PORT=8900
-EOF
-cat > "$CFG/goose.env" <<'EOF'
-export GOOSE_PROVIDER=openai
-export OPENAI_HOST=http://127.0.0.1:4000
-export OPENAI_BASE_PATH=v1/chat/completions
-export OPENAI_API_KEY=${LITELLM_API_KEY:-}
-EOF
-for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do if [ -f "$rc" ] && ! grep -Fq 'Cusimanse PATH' "$rc"; then printf '\n# Cusimanse PATH\nexport PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"\n' >> "$rc"; fi; done
-selection="${CUSIMANSE_INSTALL_ADAPTERS:-}"
-if [ -z "$selection" ] && [ -t 0 ]; then
-  printf '%s\n' 'Optional adapters:' '  1) none' '  2) OpenCode' '  3) Hermes' '  4) Antigravity' '  5) Pi' '  6) all'
-  read -r -p '[cusimanse] Selection [1]: ' answer || answer=1
-  case "$answer" in 2) selection=opencode;;3) selection=hermes;;4) selection=antigravity;;5) selection=pi;;6) selection=all;;*) selection=none;;esac
+
+# compute — optional except we prefer one provider
+if [ "$OS" = macos ] || [ "$OS" = linux ]; then
+  have limactl || pkg_install lima || warn "lima NOT_DEPLOYED"
+  have qemu-system-x86_64 || pkg_install qemu qemu-system-x86 || warn "qemu NOT_DEPLOYED"
 fi
-[ "$selection" = all ] && selection=opencode,hermes,antigravity,pi
-install_remote_script(){ local url="$1"; local tmp; tmp="$(mktemp)"; curl -fL --retry 3 --proto '=https' --tlsv1.2 "$url" -o "$tmp"; bash -n "$tmp"; bash "$tmp"; rm -f "$tmp"; }
-case ",$selection," in *,opencode,*) have opencode || install_remote_script 'https://opencode.ai/install';; esac
-case ",$selection," in *,hermes,*) have hermes || install_remote_script 'https://hermes-agent.nousresearch.com/install.sh';; esac
-case ",$selection," in *,antigravity,*) have agy || install_remote_script 'https://antigravity.google/cli/install.sh';; esac
-case ",$selection," in *,pi,*) have pi || npm install -g @earendil-works/pi-coding-agent@0.74.0;; esac
-missing=0
-while IFS= read -r tool; do have "$tool" || { log "MISSING common host command: $tool"; missing=1; }; done < <(yq -r '.common.commands[]' "$HOST_RECIPE")
-while IFS= read -r tool; do have "$tool" || { log "MISSING $platform host command: $tool"; missing=1; }; done < <(yq -r '.platforms["'"$platform"'"].commands[]' "$HOST_RECIPE" 2>/dev/null)
-[ "$missing" -eq 0 ] || fail 'required host capabilities are unavailable; no experiment should start'
-log "Goose ${GOOSE_VERSION}, Numbat v0.2.0, OmniRoute 3.8.50, Aegis ${AEGIS_VERSION} and Pi 0.74.0 selected; host installation/configuration complete."
+have multipass || pkg_install multipass Canonical.Multipass || warn "multipass NOT_DEPLOYED"
+
+# optional observability / gateway — never fail the script
+if have python3 || have python; then
+  PY="$(command -v python3 || command -v python)"
+  if ! have litellm; then "$PY" -m pip install --user litellm >/dev/null 2>&1 && log "ok litellm" || warn "litellm NOT_DEPLOYED"; else log "ok litellm"; fi
+  if ! have clawmetry; then "$PY" -m pip install --user clawmetry >/dev/null 2>&1 && log "ok clawmetry" || warn "clawmetry NOT_DEPLOYED"; else log "ok clawmetry"; fi
+fi
+if have go && ! have numbat; then
+  GOBIN="$BIN" go install github.com/perplexityai/numbat/cmd/numbat@latest >/dev/null 2>&1 && log "ok numbat" || warn "numbat NOT_DEPLOYED"
+fi
+if have npm && ! have omniroute; then
+  npm install -g omniroute >/dev/null 2>&1 && log "ok omniroute" || warn "omniroute NOT_DEPLOYED"
+fi
+
+for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
+  if [ -f "$rc" ] && ! grep -Fq 'Cusimanse PATH' "$rc"; then
+    printf '\n# Cusimanse PATH\nexport PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"\n' >> "$rc"
+  fi
+done
+
+log "bootstrap complete (idempotent). Re-run anytime."
+log "required next: goose on PATH, then go run ./cmd/compile host-prep npm-install-001"

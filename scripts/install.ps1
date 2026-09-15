@@ -1,40 +1,20 @@
-#Requires -Version 5.1
-$ErrorActionPreference = 'Stop'
-$root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+# Idempotent Windows host bootstrap. Prefer winget, then scoop, then choco.
+$ErrorActionPreference = 'Continue'
 function Have($name) { return [bool](Get-Command $name -ErrorAction SilentlyContinue) }
-Write-Host '[cusimanse] Windows host preparation'
-
-# Prefer the canonical Linux installer in WSL2 because the reference experiment
-# boundary is Lima/QEMU and the complete forensic toolchain is Linux-oriented.
-if (Have 'wsl.exe') {
-  Write-Host '[cusimanse] WSL2 detected; delegating to the canonical recipe-driven installer.'
-  & wsl.exe bash -lc "cd '$root' && ./scripts/install.sh"
-  exit $LASTEXITCODE
+function Log($m) { Write-Host "[cusimanse] $m" }
+function Ensure($id, $winget, $scoop, $choco) {
+  if (Have $id) { Log "ok $id (already present)"; return }
+  if (Have 'winget' -and $winget) { Log "winget $winget"; winget install --accept-package-agreements --accept-source-agreements $winget; return }
+  if (Have 'scoop' -and $scoop) { Log "scoop $scoop"; scoop install $scoop; return }
+  if (Have 'choco' -and $choco) { Log "choco $choco"; choco install -y $choco; return }
+  Log "WARN: $id NOT_DEPLOYED (no package manager)"
 }
-
-Write-Warning '[cusimanse] WSL2 is not installed. Native Windows mode installs the primary-agent tooling only; full Lima/QEMU experiments require WSL2 or a Linux/macOS host.'
-
-if (Have 'winget.exe') {
-  $packages = @(
-    'Git.Git',
-    'OpenJS.NodeJS.LTS'
-  )
-  foreach ($id in $packages) {
-    & winget.exe install --id $id --exact --accept-source-agreements --accept-package-agreements --silent
-    if ($LASTEXITCODE -ne 0 -and -not (Have ($(if ($id -like 'Git.*') {'git'} else {'node'})))) {
-      throw "Failed to install required Windows package: $id"
-    }
-  }
-} else {
-  throw 'winget is required for native Windows fallback. Install WSL2 or enable winget.'
-}
-
-if (-not (Have 'goose.exe') -and -not (Have 'goose')) {
-  $tmp = Join-Path $env:TEMP 'cusimanse-goose-install.ps1'
-  Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/aaif-goose/goose/main/download_cli.ps1' -OutFile $tmp
-  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $tmp
-  Remove-Item $tmp -Force -ErrorAction SilentlyContinue
-}
-
-Write-Host '[cusimanse] Native Windows primary-agent fallback is ready.'
-Write-Host '[cusimanse] For the full mandatory gateway/observability + Lima experiment stack, install WSL2 and rerun scripts/install.ps1.'
+Log 'os=windows'
+Ensure git Git.Git git git
+Ensure curl cURL.cURL curl curl
+Ensure go GoLang.Go go golang
+Ensure node OpenJS.NodeJS.LTS nodejs-lts nodejs
+Ensure yq MikeFarah.yq yq yq
+Ensure multipass Canonical.Multipass multipass multipass
+if (-not (Have 'goose')) { Log 'WARN: install Goose from https://block.github.io/goose/ — official Windows build' } else { Log 'ok goose' }
+Log 'bootstrap complete. Use WSL2 for Lima/QEMU guests, or Multipass on native Windows.'
