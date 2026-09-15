@@ -11,7 +11,7 @@ for f in contracts/*.md recipes/*/recipe.yaml recipes/experiments/*.yaml recipes
 [ -s manifest/PACKAGE-MANIFEST.json ] || fail 'package manifest missing'
 [ -s docs/architecture/cusimanse-architecture.mmd ] || fail 'architecture source missing'
 [ -s docs/architecture/cusimanse-architecture.svg ] || fail 'architecture image missing'
-! grep -R -n 'filecite' README.md docs .agents recipes scripts 2>/dev/null || fail 'ChatGPT filecite markers leaked into repository text'
+! grep -R -n --exclude='validate.sh' 'filecite' README.md docs .agents recipes scripts 2>/dev/null || fail 'ChatGPT filecite markers leaked into repository text'
 ./scripts/policyctl validate >/dev/null || fail 'policy validation failed'
 go test ./...
 python3 - <<'PY'
