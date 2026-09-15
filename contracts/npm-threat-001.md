@@ -9,9 +9,9 @@ The workload runs only inside disposable Lima compute. The fixture writes a mark
 ## Authorization and policy
 This is a local, deterministic security-research fixture. Do not replace it with a public package, add credentials, contact external infrastructure, or execute it on the host.
 
-Every run must validate `policies/host-policy.yaml` through `scripts/policyctl` before provisioning. The required controls are VM creation, network scope, credentials and host mounts. Denied actions are never bypassed. Approval-required actions require explicit researcher approval and an auditable `policyctl require ... --approved` decision.
+Every run must validate `policies/host-policy.yaml` through the native Go policy engine before provisioning. The required controls are VM creation, network scope, credentials and host mounts. Denied actions are never bypassed. Approval-required actions require explicit researcher approval and an auditable decision recorded by the Go runtime.
 
-The mount denylist (`policies/mount-denylist.yaml`) and permission tiers (`policies/permission-tiers.yaml`) are additional policy inputs. The policy CLI is a control interface; it does not replace Lima/QEMU isolation.
+The mount denylist (`policies/mount-denylist.yaml`) and permission tiers (`policies/permission-tiers.yaml`) are additional policy inputs. Policy is authoritative; shell wrappers are compatibility entrypoints only.
 
 ## Researcher/operator procedure
 
@@ -23,14 +23,14 @@ cusimanse doctor
 cusimanse validate
 goose recipe validate recipes/npm-threat-001/recipe.yaml
 cusimanse resolve npm-threat-001
-scripts/policyctl explain vm
-scripts/policyctl explain network
-scripts/policyctl check-all
-scripts/policyctl require vm --approved
-scripts/policyctl require network
+cusimanse policy explain vm
+cusimanse policy explain network
+cusimanse policy check-all
+cusimanse policy require vm --approved
+cusimanse policy require network
 cusimanse --approved run npm-threat-001 <session-id>
 cusimanse observability report <session-id>
-scripts/policyctl audit
+cusimanse policy audit
 ```
 
 The adapter/operator must read this contract and the experiment requirements before using its own tools. Goose is the reference native operator. OpenCode, Hermes, Antigravity and Pi are handoff adapters and must not replace the Cusimanse capability boundary with host commands.
@@ -39,7 +39,7 @@ The adapter/operator must read this contract and the experiment requirements bef
 A run is successful when:
 
 1. the Goose recipe validates;
-2. `scripts/policyctl validate` succeeds;
+2. native Go policy validation succeeds;
 3. required policy checks are recorded before VM provisioning;
 4. the disposable VM is created before workload execution;
 5. collectors start before the workload;
