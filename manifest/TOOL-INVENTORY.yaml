@@ -1,0 +1,117 @@
+kind: cusimanse-tool-inventory
+version: 1
+purpose: >-
+  Single declarative inventory of host, agent, control-plane, execution and
+  evidence/observability tooling used by the reference security-research stack.
+source_of_truth:
+  host_recipe: recipes/host/security-research.yaml
+  gateway_recipe: recipes/gateway/mandatory.yaml
+  observability_recipe: recipes/observability/mandatory.yaml
+  policy: policies/host-policy.yaml
+  capability_registry: recipes/profiles/registry.yaml
+  adapters: recipes/agents/adapter-matrix.yaml
+  experiments: recipes/experiments/
+planes:
+  research_agent:
+    required:
+      - name: goose
+        role: reference_primary_operator
+      - name: roles-and-skills
+        role: specialist_planning_analysis
+    optional:
+      - opencode
+      - hermes
+      - antigravity
+      - pi
+    rule: >-
+      Agents may plan, delegate and analyze, but execution must cross the
+      Cusimanse Go capability boundary.
+  control_policy:
+    required:
+      - name: cusimanse
+        implementation: Go
+        entrypoint: cmd/cusimanse
+      - name: policy-engine
+        implementation: internal/policy
+      - name: capability-resolver
+        implementation: internal/capability
+      - name: preflight
+        implementation: internal/preflight
+      - name: validation
+        implementation: internal/validation
+  capability_execution:
+    required:
+      - lima
+      - qemu
+      - linux-guest
+    guest_instrumentation:
+      - strace
+      - tcpdump
+      - ss
+      - ip
+      - dig
+      - getent
+      - lsof
+      - find
+      - stat
+      - sha256sum
+      - inotifywait
+      - file
+      - ps
+      - pgrep
+    workloads:
+      - go-install-001
+      - npm-install-001
+      - npm-lifecycle-001
+      - npm-threat-001
+  gateway:
+    required:
+      - name: litellm
+        endpoint: 127.0.0.1:4000
+      - name: omniroute
+        endpoint: 127.0.0.1:20128
+    rule: localhost_only
+  evidence_observability:
+    required:
+      - name: numbat
+        records: ~/.numbat/cusimanse.ndjson
+      - name: aegis
+        records: ~/.local/share/cusimanse/aegis/
+      - name: phoenix
+        endpoint: 127.0.0.1:6006
+      - name: opentelemetry
+        endpoint: 127.0.0.1:4318
+      - name: clawmetry
+        endpoint: 127.0.0.1:8900
+host_bootstrap:
+  required_commands: [git, bash, curl, python3, node, npm, go, jq, yq, rg]
+  installers:
+    unix: scripts/install.sh
+    windows: scripts/install.ps1
+  path: "$HOME/.local/bin:$HOME/go/bin"
+external_boundaries:
+  host_shell:
+    purpose: bootstrap_compatibility_and_external_tools
+    authority: none
+  agent_shell:
+    purpose: native_agent_tools_and_handoff
+    authority: none
+  guest_shell:
+    purpose: commands_inside_disposable_compute
+    authority: constrained_by_policy_and_runtime
+  go_api:
+    purpose: capability_execution_boundary
+    authority: policy_and_lifecycle
+inventory_commands:
+  list: cusimanse tools list
+  versions: cusimanse tools versions
+  config: cusimanse tools config
+  observability: cusimanse observability status
+safety:
+  credentials: denied
+  unrestricted_mounts: denied
+  public_mcp: denied
+  public_gateway: denied
+  untrusted_host_execution: denied
+  evidence_hashing: required
+  preserve_before_destroy: required
