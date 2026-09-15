@@ -23,7 +23,11 @@ if go run ./cmd/cusimanse policy require vm >/dev/null 2>&1; then fail 'approval
 go run ./cmd/cusimanse policy require vm --approved >/dev/null || fail 'approved VM action rejected'
 for recipe in recipes/*/recipe.yaml; do goose recipe validate "$recipe" >/dev/null; done
 for recipe in recipes/subrecipes/*.yaml; do goose recipe validate "$recipe" >/dev/null; done
-for experiment in go-install-001 npm-install-001 npm-lifecycle-001 npm-threat-001; do go run ./cmd/cusimanse resolve "$experiment" >/dev/null || fail "capability resolution failed: $experiment"; done
+for experiment in go-install-001 npm-install-001 npm-lifecycle-001 npm-threat-001; do go run ./cmd/cusimanse resolve "$experiment" >/dev/null || fail "capability resolution failed: $experiment"; test -s "prompts/experiments/$experiment.md" || fail "experiment prompt missing: $experiment"; done
+for operator in opencode hermes antigravity pi; do test -s "prompts/operators/$operator.md" || fail "operator handoff guide missing: $operator"; done
+grep -q 'prompt_reference: prompts/experiments/<experiment>.md' recipes/agents/adapter-matrix.yaml || fail 'adapter matrix missing shared prompt reference'
+for operator in opencode hermes antigravity pi; do grep -q "adapter_guidance: prompts/operators/$operator.md" recipes/agents/adapter-matrix.yaml || fail "adapter matrix missing $operator guide"; done
+grep -q 'prompt_file_required: true' recipes/agents/adapter-matrix.yaml || fail 'prompt file requirement missing'
 go run ./cmd/cusimanse capability skill list >/dev/null || fail 'skill management unavailable'
 go run ./cmd/cusimanse capability role list >/dev/null || fail 'role management unavailable'
 go run ./cmd/cusimanse capability list | grep -q 'skill role' || fail 'capability registry missing role/skill operations'
@@ -54,7 +58,7 @@ test -s "$sid_dir/session.yaml" || fail 'session missing'
 test -s "$sid_dir/evidence/audit/events.jsonl" || fail 'audit events missing'
 test -s "$sid_dir/evidence/audit/manifest.sha256" || fail 'evidence hash missing'
 test -s "$sid_dir/provenance/manifest.sha256" || fail 'provenance hash missing'
-echo 'INTEGRATION PASS: Go validation/preflight/policy → external adapters → Goose recipes → role/skill management → capability resolution → session/evidence hashing'
+echo 'INTEGRATION PASS: Go validation/preflight/policy → prompt handoff → alternate adapters → Goose recipes → role/skill management → capability resolution → session/evidence hashing'
 if [ "${CUSIMANSE_RUN_VM_TEST:-0}" = 1 ]; then
   command -v limactl >/dev/null 2>&1 || fail 'limactl missing for VM integration'
   name="cusimanse-integration-$$"
