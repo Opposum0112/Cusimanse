@@ -40,7 +40,7 @@ The contract defines authorization, scope and acceptance. The experiment YAML de
 cusimanse validate
 ```
 
-This checks the required control-plane files, parses JSON/YAML control artifacts, validates policy and checks the repository for stale refactor markers. Contract validation also confirms that every experiment contract has its matching experiment configuration, Goose recipe and shared prompt.
+This checks the required control-plane files, parses JSON/YAML control artifacts, validates policy and checks the repository for obsolete migration markers. Contract validation also confirms that every experiment contract has its matching experiment configuration, Goose recipe and shared prompt.
 
 ## 4. Stage 2 — preflight the host
 
