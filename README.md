@@ -6,22 +6,29 @@ CAR is an LLM-augmented, domain-specific runtime for security-research contracts
 
 ## Commit 2 — Contract and semantic compiler
 
-This increment establishes the declarative contract boundary and deterministic compilation path:
+This increment establishes the declarative contract boundary and deterministic compilation path.
+
+## Commit 3 — Research state and event model
+
+CAR now has a runtime-owned materialized state plus an append-only event history. State captures the experiment phase, active intent, operations, observations, and evidence references. Events record lifecycle and execution facts without granting authority to the reasoning layer.
 
 ```text
-LinkML-governed YAML / JSON
-          |
-          v
-   Contract validation
-          |
-          v
-     Semantic compiler
-          |
-          v
-      Cusimanse IR
+Recipe / IR
+     ↓
+Research State
+     ↕
+Event History
+     ↓
+Planner / Reasoner
 ```
 
-The compiler performs structural and semantic checks at the runtime boundary and normalizes recipe intents into the IR used by later runtime layers. LLM reasoning is deliberately outside this validation boundary.
+### State invariants
+
+- Every event belongs to exactly one experiment.
+- State revisions advance when events are appended.
+- Lifecycle transitions are represented explicitly as events.
+- Approval has an explicit `awaiting-approval` phase; it is not collapsed into operation denial.
+- Observations and evidence are first-class runtime state rather than unstructured LLM context.
 
 ## Repository layout
 
@@ -64,7 +71,7 @@ Semantic Compiler
       ↓
 Cusimanse IR
       ↓
-Research State
+Research State + Event History
       ↓
 Planner ───────────────┐
                        ├──→ Capability Resolution
@@ -99,9 +106,9 @@ The LLM never grants itself privileges, changes policy, accesses host credential
 
 ## Build sequence
 
-1. Contract and LinkML validation — **current**
-2. Semantic compiler and normalized IR — **current**
-3. Research state and event model
+1. Contract and LinkML validation — **complete**
+2. Semantic compiler and normalized IR — **complete**
+3. Research state and event model — **current**
 4. Planner and deterministic dependency graph
 5. Capability registry and resolver
 6. Policy and approval state machine
