@@ -1,11 +1,13 @@
 kind: cusimanse-tool-inventory
-version: 1
+version: 2
 purpose: >-
-  Single declarative inventory of host, agent, control-plane, execution and
-  evidence/observability tooling used by the reference security-research stack.
+  Single declarative inventory of host, agent, control-plane, gateway,
+  disposable-compute, guest-instrumentation and evidence tooling used by the
+  reference security-research stack.
 source_of_truth:
   host_recipe: recipes/host/security-research.yaml
   gateway_recipe: recipes/gateway/mandatory.yaml
+  instrumentation_recipe: recipes/instrumentation/security-research.yaml
   observability_recipe: recipes/observability/mandatory.yaml
   policy: policies/host-policy.yaml
   capability_registry: recipes/profiles/registry.yaml
@@ -13,95 +15,49 @@ source_of_truth:
   experiments: recipes/experiments/
 planes:
   research_agent:
-    required:
-      - name: goose
-        role: reference_primary_operator
-      - name: roles-and-skills
-        role: specialist_planning_analysis
-    optional:
-      - opencode
-      - hermes
-      - antigravity
-      - pi
-    rule: >-
-      Agents may plan, delegate and analyze, but execution must cross the
-      Cusimanse Go capability boundary.
+    required: [goose]
+    optional: [opencode, hermes, antigravity, pi]
+    authority: none
   control_policy:
-    required:
-      - name: cusimanse
-        implementation: Go
-        entrypoint: cmd/cusimanse
-      - name: policy-engine
-        implementation: internal/policy
-      - name: capability-resolver
-        implementation: internal/capability
-      - name: preflight
-        implementation: internal/preflight
-      - name: validation
-        implementation: internal/validation
+    required: [cusimanse, policy-engine, capability-resolver, preflight, validation]
+    authority: policy_and_lifecycle
   capability_execution:
-    required:
-      - lima
-      - qemu
-      - linux-guest
-    guest_instrumentation:
-      - strace
-      - tcpdump
-      - ss
-      - ip
-      - dig
-      - getent
-      - lsof
-      - find
-      - stat
-      - sha256sum
-      - inotifywait
-      - file
-      - ps
-      - pgrep
-    workloads:
-      - go-install-001
-      - npm-install-001
-      - npm-lifecycle-001
-      - npm-threat-001
+    required: [lima, qemu, linux-guest]
+    authority: constrained_by_go_runtime_and_policy
   gateway:
     required:
       - name: litellm
         endpoint: 127.0.0.1:4000
+        role: model_gateway_and_normalization
       - name: omniroute
         endpoint: 127.0.0.1:20128
-    rule: localhost_only
+        role: provider_routing_and_fallback
+    access: localhost_only
+    data: model_requests_and_routing_metadata
+    configuration: ~/.config/cusimanse/
+    installation: scripts/install.sh
+    authority: none
+  instrumentation:
+    scope: disposable_linux_guest
+    process: [ps, pgrep, lsof]
+    syscall: [strace]
+    network: [ss, ip, tcpdump]
+    dns: [dig, getent]
+    filesystem: [find, stat, sha256sum, inotifywait, file]
+    security: [dmesg, journalctl]
+    optional: [bpftrace]
+    access: agent_and_go_runtime_managed
+    installation: recipes/lima/security-research.yaml
   evidence_observability:
-    required:
-      - name: numbat
-        records: ~/.numbat/cusimanse.ndjson
-      - name: aegis
-        records: ~/.local/share/cusimanse/aegis/
-      - name: phoenix
-        endpoint: 127.0.0.1:6006
-      - name: opentelemetry
-        endpoint: 127.0.0.1:4318
-      - name: clawmetry
-        endpoint: 127.0.0.1:8900
+    required: [numbat, aegis, phoenix, opentelemetry, clawmetry]
 host_bootstrap:
-  required_commands: [git, bash, curl, python3, node, npm, go, jq, yq, rg]
-  installers:
-    unix: scripts/install.sh
-    windows: scripts/install.ps1
-  path: "$HOME/.local/bin:$HOME/go/bin"
+  required_commands: [git, bash, curl, python3, node, npm, go, jq, yq, rg, goose]
+  installers: [scripts/install.sh, scripts/install.ps1]
 external_boundaries:
-  host_shell:
-    purpose: bootstrap_compatibility_and_external_tools
-    authority: none
-  agent_shell:
-    purpose: native_agent_tools_and_handoff
-    authority: none
-  guest_shell:
-    purpose: commands_inside_disposable_compute
-    authority: constrained_by_policy_and_runtime
-  go_api:
-    purpose: capability_execution_boundary
-    authority: policy_and_lifecycle
+  host_shell: bootstrap_compatibility_and_external_tools_only
+  agent_shell: planning_handoff_and_analysis_only
+  guest_shell: disposable_guest_execution
+  go_api: authoritative_capability_boundary
 inventory_commands:
   list: cusimanse tools list
   versions: cusimanse tools versions
