@@ -36,13 +36,13 @@ type CapabilityRequest struct {
 	Parameters   map[string]string
 }
 
-type PolicyDecision string
+type PolicyDecision = string
 
 const (
-	PolicyAllow           PolicyDecision = "allow"
+	PolicyAllow            PolicyDecision = "allow"
 	PolicyApprovalRequired PolicyDecision = "approval-required"
-	PolicyDeny            PolicyDecision = "deny"
-	PolicyRequired        PolicyDecision = "required"
+	PolicyDeny             PolicyDecision = "deny"
+	PolicyRequired         PolicyDecision = "required"
 )
 
 type Decision struct {
@@ -78,8 +78,8 @@ type Session struct {
 }
 
 type EvidenceItem struct {
-	Path      string
-	SHA256    string
+	Path       string
+	SHA256     string
 	CollectedAt time.Time
 	Capability string
 }
