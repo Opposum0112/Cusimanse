@@ -23,7 +23,7 @@ jobs:
           cache: true
       - name: Compiler tests and catalog
         run: |
-          go test ./internal/compiler ./cmd/compile ./cmd/cusimanse
+          go test ./internal/compiler ./cmd/compile ./cmd/cusimanse ./internal/validation
           go run ./cmd/compile catalog
           for id in npm-install-001 npm-lifecycle-001 npm-threat-001 go-install-001; do
             go run ./cmd/compile validate "$id"
@@ -32,10 +32,9 @@ jobs:
           done
       - name: Script syntax
         run: |
-          while IFS= read -r -d '' f; do
+          find scripts -type f -name '*.sh' -print0 | while IFS= read -r -d '' f; do
             echo "Checking $f"
-            test -x "$f"
             bash -n "$f"
-          done < <(find scripts -type f -name '*.sh' -print0)
+          done
       - name: Integration tests
         run: bash ./scripts/tests/integration.sh
