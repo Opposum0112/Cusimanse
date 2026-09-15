@@ -6,29 +6,37 @@ CAR is an LLM-augmented, domain-specific runtime for security-research contracts
 
 ## Commit 2 — Contract and semantic compiler
 
-This increment establishes the declarative contract boundary and deterministic compilation path.
+The declarative contract boundary and deterministic compilation path are established:
+
+```text
+LinkML-governed YAML / JSON
+          ↓
+   Contract validation
+          ↓
+     Semantic compiler
+          ↓
+      Cusimanse IR
+```
 
 ## Commit 3 — Research state and event model
 
-CAR now has a runtime-owned materialized state plus an append-only event history. State captures the experiment phase, active intent, operations, observations, and evidence references. Events record lifecycle and execution facts without granting authority to the reasoning layer.
+CAR now maintains runtime-owned materialized research state plus append-only event history. State captures experiment phase, active intent, operations, observations, and evidence references. Events record lifecycle and execution facts without granting authority to the reasoning layer.
+
+## Commit 4 — Deterministic planner and dependency graph
+
+The planner validates the IR dependency graph, rejects duplicate IDs, missing dependencies, self-dependencies, and cycles, then produces a deterministic topological execution order. Independent nodes are sorted lexicographically so planning is repeatable. The planner also exposes ready intents from a completed-intent set.
 
 ```text
-Recipe / IR
-     ↓
-Research State
-     ↕
-Event History
-     ↓
-Planner / Reasoner
+Cusimanse IR
+      ↓
+Dependency Graph
+      ↓
+Deterministic Plan
+      ↓
+Ready Intents
 ```
 
-### State invariants
-
-- Every event belongs to exactly one experiment.
-- State revisions advance when events are appended.
-- Lifecycle transitions are represented explicitly as events.
-- Approval has an explicit `awaiting-approval` phase; it is not collapsed into operation denial.
-- Observations and evidence are first-class runtime state rather than unstructured LLM context.
+Planning is side-effect free and does not resolve capabilities, authorize operations, execute adapters, or allow an LLM to choose execution order.
 
 ## Repository layout
 
@@ -73,43 +81,39 @@ Cusimanse IR
       ↓
 Research State + Event History
       ↓
-Planner ───────────────┐
-                       ├──→ Capability Resolution
-Vercel AI SDK 7 ───────┘
-                       ↓
-                 Policy / Approval
-                       ↓
-                 Operation Engine
-                       ↓
-                 Adapter Registry
-                       ↓
-        Tool / API / Shell / VM
-                       ↓
-             Observation + Evidence
-                       ↓
-                State / Provenance
-                       ↓
-                Next reasoning cycle
+Deterministic Planner ───────┐
+                             ├──→ Capability Resolution
+Vercel AI SDK 7 Reasoner ────┘
+                                      ↓
+                              Policy + Approval
+                                      ↓
+                              Operation Engine
+                                      ↓
+                              Adapter Registry
+                                      ↓
+                    Tool / API / Shell / VM / File / Network
+                                      ↓
+                         Observation + Evidence
+                                      ↓
+                              State / Provenance
+                                      ↓
+                              Next reasoning cycle
 ```
 
 ### Authority boundary
 
 - **LLM:** reason, analyze, and propose declarative intents.
-- **CAR:** validate contracts, compile IR, resolve capabilities, enforce policy, manage approval, execute operations, preserve evidence, and control lifecycle.
+- **CAR:** validate contracts, compile IR, plan deterministically, resolve capabilities, enforce policy, manage approval, execute operations, preserve evidence, and control lifecycle.
 - **Adapters:** perform only operations authorized by CAR against registered capabilities.
 
 The LLM never grants itself privileges, changes policy, accesses host credentials, bypasses approval, or turns YAML directly into arbitrary shell commands.
-
-## Example
-
-`recipes/examples/npm-install.yaml` demonstrates a LinkML-shaped recipe with a research question, explicit scope, operation kinds, and ordered capability intents.
 
 ## Build sequence
 
 1. Contract and LinkML validation — **complete**
 2. Semantic compiler and normalized IR — **complete**
-3. Research state and event model — **current**
-4. Planner and deterministic dependency graph
+3. Research state and event model — **complete**
+4. Planner and deterministic dependency graph — **current**
 5. Capability registry and resolver
 6. Policy and approval state machine
 7. Validated operation engine

@@ -18,3 +18,8 @@ export interface ExperimentRecipe {
   source: { format: "yaml" | "json"; path: string };
   intents: CapabilityIntent[];
 }
+
+export interface DependencyGraph {
+  nodes: string[];
+  dependencies: Record<string, string[]>;
+}
