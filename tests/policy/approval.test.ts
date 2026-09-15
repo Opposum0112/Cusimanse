@@ -1,11 +1,12 @@
-import { describe, expect, it } from "node:test";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
 import { ApprovalManager, PolicyEngine } from "../../src/policy/index.js";
 
 describe("policy", () => {
   const context = { experimentId: "e1", intentId: "i1", capability: "vm.create", operationKind: "vm", parameters: {} };
 
   it("defaults to deny", () => {
-    expect(new PolicyEngine([]).evaluate(context).decision).toBe("deny");
+    assert.equal(new PolicyEngine([]).evaluate(context).decision, "deny");
   });
 
   it("returns the deterministic matching rule", () => {
@@ -13,15 +14,15 @@ describe("policy", () => {
       { id: "z", capability: "vm.create", decision: "deny", reason: "z" },
       { id: "a", capability: "vm.create", decision: "approval-required", reason: "approval" },
     ]);
-    expect(engine.evaluate(context).decision).toBe("approval-required");
-    expect(engine.evaluate(context).ruleId).toBe("a");
+    assert.equal(engine.evaluate(context).decision, "approval-required");
+    assert.equal(engine.evaluate(context).ruleId, "a");
   });
 
   it("keeps approval pending until explicitly decided", () => {
     const approvals = new ApprovalManager();
     const request = approvals.request(context);
-    expect(request.status).toBe("pending");
-    expect(approvals.grant(request.id, "operator").status).toBe("granted");
-    expect(() => approvals.grant(request.id, "operator")).toThrow();
+    assert.equal(request.status, "pending");
+    assert.equal(approvals.grant(request.id, "operator").status, "granted");
+    assert.throws(() => approvals.grant(request.id, "operator"));
   });
 });
