@@ -35,73 +35,148 @@ Beta. Not a certified sandbox.
 
 ## Architecture
 
+Control plane is stacked. Authority flows **down**. Evidence flows **up**. Sidecars never authorize a run.
+
 ```mermaid
-flowchart LR
-  subgraph Declare["1. Declare"]
-    Schema["LinkML + JSON Schema"]
-    Exp["experiments/*.yaml"]
-    Prep["host-prep/*.yaml"]
-    Roles["roles + SKILL.md"]
-    Schema --> Exp
+block-beta
+  columns 4
+
+  block:contract:4
+    columns 4
+    S["LinkML / JSON Schema"]
+    E["Experiment YAML"]
+    P["Host-prep catalog"]
+    R["Roles + skills"]
   end
 
-  subgraph Operate["2. Goose operates"]
-    Recipe["session.yaml"]
-    Plan["plan + approve"]
-    Summon["verifier / reporter"]
-    Recipe --> Plan
-    Plan --> Summon
+  space:4
+
+  block:control:4
+    columns 3
+    G["Goose session"]
+    A["Human approval"]
+    V["Verifier / reporter"]
   end
 
-  subgraph Compile["3. Compiler interprets"]
-    Cat["catalog"]
-    Val["validate / resolve"]
-    HP["host-prep checks"]
-    Ex["execute --approved"]
-    Cat --> Val --> HP --> Ex
+  space:4
+
+  block:compile:4
+    columns 4
+    C1["catalog"]
+    C2["validate / resolve"]
+    C3["host-prep"]
+    C4["execute --approved"]
   end
 
-  subgraph Run["4. Guest run"]
-    Engine["cusimanse + host-policy"]
-    VM["Lima / Multipass"]
-    Ev["runs/session evidence"]
-    Engine --> VM --> Ev
+  space:4
+
+  block:runtime:4
+    columns 3
+    EN["cusimanse + host-policy"]
+    VM["Lima / Multipass guest"]
+    EV["runs/ evidence"]
   end
 
-  subgraph Side["External only"]
+  space:4
+
+  block:side:4
+    columns 2
     GW["LiteLLM / OmniRoute"]
-    Obs["ClawMetry / Numbat / logs"]
+    OB["ClawMetry / Numbat / logs"]
   end
 
-  Exp --> Recipe
-  Roles --> Recipe
-  Prep --> HP
-  Plan --> Cat
-  Ex --> Engine
-  Ev --> Summon
-  GW -.-> Recipe
-  Obs -.-> Recipe
+  E --> G
+  R --> G
+  G --> A
+  A --> C1
+  C4 --> EN
+  EN --> VM
+  VM --> EV
+  EV --> V
+  GW --> G
+  OB --> G
 ```
 
-Same drawing: `docs/architecture/agentic-native-goose.mmd`.
+If `block-beta` does not render in your viewer, the equivalent layered flowchart is in `docs/architecture/agentic-native-goose.mmd`.
 
-**Read left to right.** The researcher writes YAML. Goose is the only session operator. The compiler is the only thing allowed to turn YAML ids into host-prep, provision, and the pinned workload. Gateways and metrics sit beside Goose; they do not authorize a run.
+```mermaid
+flowchart TB
+  classDef contract fill:#0f2744,stroke:#7eb6ff,color:#e8f1ff
+  classDef control fill:#123524,stroke:#7dcea0,color:#eafff3
+  classDef compile fill:#2b2110,stroke:#e8c47a,color:#fff6e0
+  classDef runtime fill:#2a1420,stroke:#e8a0b8,color:#ffeef4
+  classDef side fill:#1a1d24,stroke:#9aa3b2,color:#d7dde6
+
+  subgraph CONTRACT["CONTRACT LAYER"]
+    direction LR
+    S["Schema<br/>LinkML + JSON Schema"]
+    E["Experiment<br/>experiments/*.yaml"]
+    H["Host-prep<br/>host-prep/*.yaml"]
+    R["Roles / skills<br/>roles + SKILL.md"]
+  end
+
+  subgraph CONTROL["CONTROL LAYER — Goose"]
+    direction LR
+    G["Session recipe<br/>plan · orchestrate · operate"]
+    AP["Researcher approval"]
+    VR["Verifier + reporter"]
+  end
+
+  subgraph COMPILE["COMPILER LAYER — fail-closed"]
+    direction LR
+    CA["catalog"]
+    VA["validate / resolve"]
+    HP["host-prep check"]
+    EX["execute --approved"]
+  end
+
+  subgraph RUNTIME["RUNTIME LAYER"]
+    direction LR
+    EN["cusimanse + host-policy"]
+    VM["Disposable guest<br/>Lima or Multipass"]
+    EV["runs/<session><br/>hashed evidence"]
+  end
+
+  subgraph SIDE["SIDECARS — no authority"]
+    direction LR
+    GW["LiteLLM / OmniRoute"]
+    OB["ClawMetry / Numbat / Goose logs"]
+  end
+
+  E --> G
+  R --> G
+  H --> HP
+  G --> AP
+  AP --> CA
+  CA --> VA --> HP --> EX
+  EX --> EN --> VM --> EV
+  EV --> VR
+  GW -.-> G
+  OB -.-> G
+  OB -.-> EV
+
+  class S,E,H,R contract
+  class G,AP,VR control
+  class CA,VA,HP,EX compile
+  class EN,VM,EV runtime
+  class GW,OB side
+```
 
 ## Components
 
-| Component | Short job |
-|---|---|
-| **LinkML schema** | Legal fields and enums (`workload`, `os`, `roles`, …). |
-| **Experiment YAML** | One study: question, scope, workload id, acceptance. |
-| **Goose recipe** | Plans the session, asks for approval, Summons specialists. |
-| **Roles + skills** | Operator may call compile. Verifier/reporter only read `runs/`. |
-| **Host-prep YAML** | Allow-listed host tools (essential, compute, observability, gateway). |
-| **Compiler** | `catalog` / `validate` / `host-prep` / `resolve` / `execute`. Fail-closed. |
-| **cusimanse + policy** | After `--approved`, start the guest and enforce `policies/host-policy.yaml`. |
-| **Disposable VM** | Where `npm-install` (or other handler) actually runs. |
-| **runs/** | Hashed evidence, verification, research report. |
-| **LiteLLM / OmniRoute** | Model transport only. |
-| **ClawMetry / Numbat** | Observe the agent and the session; optional. |
+| Layer | Component | Responsibility |
+|---|---|---|
+| Contract | Schema | Legal fields and enums |
+| Contract | Experiment YAML | One study: question, scope, workload id, acceptance |
+| Contract | Host-prep YAML | Allow-listed host tools |
+| Contract | Roles + skills | Who may compile vs who may only read `runs/` |
+| Control | Goose session | Plan, approve, Summon specialists |
+| Compiler | `cmd/compile` | Only interpreter of declarative YAML |
+| Runtime | cusimanse + policy | Approved provision and guest lifecycle |
+| Runtime | Disposable VM | Where the pinned workload runs |
+| Runtime | `runs/` | Evidence, verification, report |
+| Sidecar | LiteLLM / OmniRoute | Model transport |
+| Sidecar | ClawMetry / Numbat | Optional observability |
 
 ## Repository structure
 
@@ -131,49 +206,29 @@ scripts/tests/        compiler + integration
 
 ## Install
 
-Normal shell:
-
 ```bash
 git clone https://github.com/Opposum0112/Cusimanse.git
 cd Cusimanse
 git checkout agentic-native-goose
 ./scripts/install.sh
 export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
-go version
-goose --version
 ```
 
 ## Example: npm-install-001 end to end
 
-### 1. Contract (already in repo)
-
-See `experiments/npm-install-001.yaml`. Workload id `npm-install` maps to a trusted handler. Do not put npm flags in that file.
-
-### 2. Validate the catalog (normal shell)
+See `experiments/npm-install-001.yaml`.
 
 ```bash
 go run ./cmd/compile catalog
 go run ./cmd/compile validate npm-install-001
-go run ./cmd/compile host-prep npm-install-001
-go run ./cmd/compile resolve npm-install-001
-```
-
-### 3. Operate in Goose
-
-```bash
-goose recipe validate recipes/goose/session.yaml
 goose run --recipe recipes/goose/session.yaml --params experiment=npm-install-001
 ```
 
-Goose calls validate → host-prep → resolve → you approve → `compile execute --approved`. Evidence lands under `runs/<session>/`.
-
-### 4. Report
-
-Verifier writes `runs/<session>/verification/result.md`. Reporter writes `runs/<session>/research-report/report.md` from hashed evidence.
+Verifier writes `runs/<session>/verification/result.md`. Reporter writes `runs/<session>/research-report/report.md`.
 
 ## Access and observability
 
-Declared on the experiment (`spec.observability`) and in `host-prep/default.yaml`. They do not authorize `execute`.
+Declared on the experiment and in `host-prep/default.yaml`. They do not authorize `execute`.
 
 ## Report generation
 
