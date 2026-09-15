@@ -30,28 +30,40 @@ Cusimanse owns:
 - preservation-before-destroy enforcement;
 - runtime/session observability and provenance.
 
+## Prompt library and handoff
+
+The canonical agent-neutral handoff is `prompts/experiments/<experiment>.md`. If a researcher selects an operator other than Goose, that operator must receive the same experiment prompt plus its operator-specific guide under `prompts/operators/`. The adapter matrix `recipes/agents/adapter-matrix.yaml` defines these references.
+
+The handoff contains intent/workflow context and file references. It does **not** authorize execution. The contract, experiment configuration and trusted recipes remain the sources of truth; the Go capability API and policy remain the execution authority.
+
+```text
+contract + experiment requirements
+              ↓
+shared experiment prompt
+              ↓
+selected operator
+  ├── Goose native + Summon
+  └── alternate adapter + operator guide
+              ↓
+      Cusimanse Go runtime
+              ↓
+       policy + trusted plan
+              ↓
+       disposable capability
+              ↓
+             evidence
+              ↓
+       specialist analysis
+```
+
 ## Goose and Summon
 
 Goose is the native reference agent. Summon provides delegation to specialist subagents. Delegation is an intelligence/orchestration mechanism, not an alternative execution authority.
 
-A specialist should request a registered capability rather than invoke a host shell directly:
-
-```text
-Goose/Summon specialist
-        ↓
-capability request
-        ↓
-Cusimanse Go runtime
-        ↓
-policy + trusted execution plan
-        ↓
-disposable capability
-        ↓
-evidence
-        ↓
-agent analysis
-```
+A specialist should request a registered capability rather than invoke a host shell directly.
 
 ## Other agents
 
-OpenCode, Hermes, Antigravity and Pi are adapter candidates. Their prompts establish the same boundary: they can provide intent and analysis, but capability execution remains inside Cusimanse. An adapter is not considered deployed until runtime evidence demonstrates that it respects this boundary.
+OpenCode, Hermes, Antigravity and Pi are supported adapter candidates. Their shared experiment prompt and operator guides establish the same boundary: native tools may be used for planning and analysis, but capability execution remains inside Cusimanse. An adapter must record unavailable capabilities as `PARTIAL` and cannot create trusted profiles, mutate recipes/policy, widen authority or execute the workload directly on the host.
+
+An adapter is not considered deployed until runtime evidence demonstrates that it respects this boundary and independent verification passes.
