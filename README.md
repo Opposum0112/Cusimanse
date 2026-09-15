@@ -4,27 +4,28 @@ CAR is an LLM-augmented, domain-specific runtime for security-research contracts
 
 **The model proposes. CAR validates and authorizes. Adapters execute.**
 
-## Build sequence
+## Build status
 
-1. Contract and LinkML validation — complete
-2. Semantic compiler and normalized IR — complete
-3. Research state and event model — complete
-4. Planner and deterministic dependency graph — complete
-5. Capability registry and resolver — complete
-6. Policy and approval state machine — complete
-7. Validated operation engine — complete
-8. Adapter contracts — complete
-9. Lima lifecycle and disposable compute — complete
-10. Shell, file, process and npm workload adapters — complete
-11. Evidence and provenance — complete
-12. Vercel AI SDK 7 reasoning layer
-13. Observe → reason → propose → validate → authorize → execute loop
-14. End-to-end disposable-VM research workflow
+1. Contract and semantic compiler — complete
+2. Research state and event model — complete
+3. Deterministic planner and dependency graph — complete
+4. Capability registry and resolver — complete
+5. Policy and approval state machine — complete
+6. Validated operation engine — complete
+7. Adapter contracts — complete
+8. Lima lifecycle — complete
+9. Shell/file/process/npm workload contracts — complete
+10. Evidence and provenance — complete
+11. Vercel AI SDK 7 proposal reasoning — complete
+12. Observe → reason → propose → validate → authorize → execute orchestration — complete
+13. Disposable research workflow with guaranteed cleanup — complete
 
 ## Architecture
 
 ```text
-LinkML Contract → Compiler → IR → Planner
+LinkML Contract
+      ↓
+Compiler → Cusimanse IR → Deterministic Planner
                               ↓
                        Capability Registry
                               ↓
@@ -34,28 +35,45 @@ LinkML Contract → Compiler → IR → Planner
                               ↓
                          Adapter Registry
                               ↓
-                Lima / Shell / File / Process / npm
+                 Lima / Shell / File / Process / npm
                               ↓
                      Observation + Evidence
                               ↓
                          Runtime State
                               ↓
-                      LLM Reasoning Layer
+                 Vercel AI SDK 7 Reasoner
                               ↓
-                     Next Intent Proposal
+                    Declarative Proposal
+                              ↺
 ```
 
 ### Authority boundary
 
-- **LLM:** reason, analyze, and propose declarative intents.
+- **LLM:** reason, analyze, and propose declarative intent only.
 - **CAR:** validate contracts, compile IR, plan deterministically, resolve capabilities, enforce policy, manage approval, execute operations, preserve evidence, and control lifecycle.
-- **Adapters:** perform only operations authorized by CAR against registered capabilities.
+- **Adapters:** perform only operations that CAR has authorized.
 
-The LLM never grants itself privileges, changes policy, accesses host credentials, bypasses approval, or turns YAML directly into arbitrary shell commands.
+The reasoning layer exposes no execution tools. Model output must re-enter CAR's validation and authorization path before it can cause an operation. The LLM never grants itself privileges, changes policy, accesses host credentials, bypasses approval, or turns YAML directly into arbitrary shell commands.
+
+## Disposable research lifecycle
+
+```text
+Create Lima compute
+      ↓
+Run CAR orchestration
+      ↓
+Observe + hash evidence
+      ↓
+Optional reasoning proposal
+      ↓
+Destroy compute (finally)
+      ↓
+Return research state + provenance
+```
 
 ## Evidence
 
-Evidence is recorded with SHA-256 content identity, size, URI, and experiment/operation provenance. See `docs/evidence.md`.
+Evidence records contain SHA-256 content identity, size, URI, evidence kind, and experiment/operation provenance. See `docs/evidence.md`.
 
 ## Safety invariant
 
