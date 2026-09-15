@@ -1,22 +1,27 @@
-flowchart TD
-  YAML["experiments/*.yaml\nLinkML contract instance"]
-  Schema["schemas/cusimanse.yaml\n+ experiment.schema.json"]
-  Goose["Goose session recipe\nrecipes/goose/session.yaml"]
-  Roles["roles + skills registry"]
-  Prep["host-prep/default.yaml"]
-  Comp["compiler\ncmd/compile + internal/compiler"]
-  Run["existing cusimanse run\nLima or Multipass"]
-  GW["LiteLLM / OmniRoute"]
-  Obs["ClawMetry / Numbat / token logs"]
-  Ev["runs/session evidence"]
+flowchart TB
+  researcher[Researcher]
+  yaml[experiments/*.yaml]
+  schema[schemas/cusimanse.yaml]
+  goose[Goose session recipe]
+  roles[roles + skills registry]
+  prep[host-prep/default.yaml]
+  compile[cmd/compile]
+  engine[cusimanse run]
+  vm[Lima or Multipass guest]
+  runs[runs/session]
+  gw[LiteLLM / OmniRoute]
+  obs[ClawMetry / Numbat / Goose logs]
 
-  Schema --> YAML
-  YAML --> Goose
-  Goose --> Comp
-  Prep --> Comp
-  Roles --> Goose
-  Comp --> Run
-  Goose --> GW
-  Goose --> Obs
-  Run --> Ev
-  Goose --> Ev
+  researcher --> yaml
+  schema --> yaml
+  yaml --> goose
+  roles --> goose
+  gw -.-> goose
+  goose -->|validate host-prep resolve execute| compile
+  prep --> compile
+  compile -->|approved| engine
+  engine --> vm
+  vm --> runs
+  goose --> runs
+  obs -.-> goose
+  obs -.-> runs

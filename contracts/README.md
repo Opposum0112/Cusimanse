@@ -1,7 +1,3 @@
-# Contracts
+Legacy Markdown contract copies.
 
-Contracts define the research question, authorization, safety, workload, evidence requirements and acceptance criteria. They do not duplicate Goose recipe instructions.
-
-- `go-install-001.md`
-- `npm-install-001.md`
-- `acceptance.md`
+Source of truth on this branch is `experiments/<id>.yaml` validated by LinkML/JSON Schema and `cmd/compile`.

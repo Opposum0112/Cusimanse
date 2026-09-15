@@ -27,10 +27,19 @@ func main() {
 	switch cmd {
 	case "validate":
 		fmt.Printf("valid %s\n", doc.Metadata.ID)
-	case "resolve", "host-prep":
+	case "resolve":
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
 		_ = enc.Encode(doc.Resolve())
+	case "host-prep":
+		hp, err := compiler.LoadHostPrep(root, doc.Spec.HostPrep)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "compile host-prep: %v\n", err)
+			os.Exit(1)
+		}
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		_ = enc.Encode(hp.Check(root))
 	case "execute":
 		approved := false
 		for _, a := range os.Args[3:] {
@@ -38,12 +47,10 @@ func main() {
 				approved = true
 			}
 		}
-		if !approved {
-			fmt.Fprintf(os.Stderr, "compile execute requires --approved\n")
+		if err := compiler.Execute(root, doc, approved); err != nil {
+			fmt.Fprintf(os.Stderr, "compile execute: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Fprintf(os.Stderr, "compile execute: provision is delegated to existing cusimanse run for %s\n", id)
-		fmt.Printf("approved execute plan for %s handler=%s\n", id, doc.Spec.Requirements.Workload)
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command %s\n", cmd)
 		os.Exit(2)
