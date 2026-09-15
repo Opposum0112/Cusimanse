@@ -7,10 +7,8 @@ fail(){ echo "SANITY FAIL: $*" >&2; exit 1; }
 command -v go >/dev/null 2>&1 || fail 'Go is required'
 command -v yq >/dev/null 2>&1 || fail 'yq is required'
 
-# Validate the capability registry as data, not merely by file existence.
 yq -e '.kind == "capability-registry" and .resolver == "cmd/cusimanse" and .rules.deterministic == true and .rules.fail_on_no_match == true and .rules.fail_on_ambiguous_match == true and .rules.agent_may_create_profiles == false' recipes/profiles/registry.yaml >/dev/null || fail 'invalid capability registry'
 
-# Every experiment must reference an existing contract and registered profile-compatible workload.
 for exp in recipes/experiments/*.yaml; do
   contract="$(yq -r '.contract' "$exp")"
   [ -s "$contract" ] || fail "$exp references missing contract: $contract"
@@ -24,14 +22,14 @@ for exp in recipes/experiments/*.yaml; do
   yq -e '.requirements.execution == "disposable" and .requirements.os == "linux" and (.requirements.instrumentation | length > 0)' "$exp" >/dev/null || fail "$exp has incomplete execution requirements"
 done
 
-# Goose recipes must explicitly declare summon when they use subagents/delegation.
+# Goose sub_recipes provide Summon automatically. If a recipe has an explicit
+# extensions block and uses delegate/load, require an explicit summon entry.
 for recipe in recipes/*/recipe.yaml; do
-  if grep -Eq '\b(delegate|load)\s*\(' "$recipe" || yq -e '.sub_recipes | length > 0' "$recipe" >/dev/null 2>&1; then
-    yq -e '.extensions[] | select(.name == "summon")' "$recipe" >/dev/null || fail "$recipe uses delegation/subrecipes but does not explicitly enable summon"
+  if grep -Eq '\b(delegate|load)\s*\(' "$recipe" && yq -e '.extensions' "$recipe" >/dev/null 2>&1; then
+    yq -e '.extensions[] | select(.name == "summon")' "$recipe" >/dev/null || fail "$recipe uses delegate/load with explicit extensions but omits summon"
   fi
 done
 
-# Contracts and experiments must agree on the required policy actions.
 for contract in contracts/*.md; do
   id="$(basename "$contract" .md)"
   exp="recipes/experiments/$id.yaml"
@@ -42,10 +40,9 @@ for contract in contracts/*.md; do
   done
 done
 
-# Static inventory is not runtime readiness. Record both concepts separately.
 yq -e '.common.commands and .platforms and .guest and .mandatory_services' recipes/host/security-research.yaml >/dev/null || fail 'host inventory schema incomplete'
 yq -e '.gateways and .observability and .research_reporting' recipes/observability/mandatory.yaml >/dev/null || fail 'observability inventory schema incomplete'
 yq -e '.omniroute and .litellm' recipes/gateway/mandatory.yaml >/dev/null || fail 'gateway inventory schema incomplete'
 
 go test ./cmd/cusimanse
-printf '%s\n' 'SANITY PASS: runtime compiles/tests, experiments map to contracts/profiles/policy, Goose summon is explicit, and inventories are schema-checked without treating inventory as runtime readiness.'
+printf '%s\n' 'SANITY PASS: runtime compiles/tests, experiments map to contracts/profiles/policy, Goose summon semantics are checked correctly, and inventories are schema-checked without treating inventory as runtime readiness.'
