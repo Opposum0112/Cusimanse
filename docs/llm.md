@@ -4,4 +4,4 @@ CAR uses Vercel AI SDK structured output through `generateText` and `Output.obje
 
 The proposal must enter CAR's normal validation, planning, capability-resolution, policy, approval, and operation path before any side effect can occur.
 
-This follows the AI SDK structured-output API documented by Vercel: `Output.object({ schema })` supplies a schema-validated structured result to `generateText`. citeturn0search0turn0search1
+The integration targets the AI SDK 7 structured-output API: `Output.object({ schema })` supplies a schema-validated structured result to `generateText`.
