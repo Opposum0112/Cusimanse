@@ -279,6 +279,8 @@ test
 integration-test
 doctor
 observability
+policy
+learning
 ```
 
 Operational API mapping:
@@ -292,8 +294,10 @@ Operational API mapping:
 | `integration-test` | integration helper | cross-layer repository/control-plane validation; optional VM smoke path |
 | `doctor` | validate + preflight | single diagnostic gate |
 | `observability ...` | observability helper | status/report access |
+| `policy ...` | `scripts/policyctl` compatibility adapter | show, validate, explain, check, approval/enforcement and audit |
+| `learning ...` | `scripts/learningctl` compatibility adapter | status, candidate creation and approved promotion |
 
-This is intentionally a **single operational API with compatibility adapters**, not two competing implementations. The next hardening step is to migrate the deterministic validation/preflight logic into Go packages and retain shell only for OS/package-manager bootstrap and unavoidable external tools.
+This is intentionally a **single operational API with compatibility adapters**, not two competing implementations. The next hardening step is to migrate the deterministic validation/preflight/policy logic into Go packages and retain shell only for OS/package-manager bootstrap and unavoidable external tools.
 
 Examples:
 
@@ -301,6 +305,13 @@ Examples:
 go run ./cmd/cusimanse capability list
 go run ./cmd/cusimanse capability skill list
 go run ./cmd/cusimanse capability role list
+go run ./cmd/cusimanse policy show
+go run ./cmd/cusimanse policy validate
+go run ./cmd/cusimanse policy explain vm
+go run ./cmd/cusimanse policy check-all
+go run ./cmd/cusimanse policy require vm
+go run ./cmd/cusimanse policy require vm --approved
+go run ./cmd/cusimanse learning status <session-id>
 go run ./cmd/cusimanse validate
 cusimanse preflight
 cusimanse test
@@ -317,19 +328,233 @@ The managed source of truth is `recipes/agents/role-skill-registry.json`; genera
 
 Learning is **disabled by default** and requires independent verification plus human approval before promotion.
 
+Files and controls:
+
+```text
+recipes/session/learning-workflow.yaml  # learning contract and gates
+recipes/session/session-state.yaml      # per-session learning.enabled state
+scripts/learningctl                     # current learning operator helper
+skills/candidate/                       # candidate skills
+skills/validated/                       # approved reusable skills
+runs/<session-id>/learning/              # learning artifacts
+```
+
+Inspect a session:
+
+```bash
+cusimanse learning status <session-id>
+# compatibility form:
+./scripts/learningctl status <session-id>
+```
+
+Learning is enabled only after the normal experiment, research report and independent verification are complete. The session contract uses:
+
+```text
+runs/<session-id>/session.yaml
+learning.enabled=true
+```
+
+Then create and promote through the controlled workflow:
+
+```bash
+cusimanse learning candidate <session-id> <candidate-id> <candidate-file>
+cusimanse learning promote <session-id> <candidate-id> --approved
+```
+
+Equivalent helper commands remain available:
+
+```bash
+./scripts/learningctl candidate <session-id> <candidate-id> <candidate-file>
+./scripts/learningctl promote <session-id> <candidate-id> --approved
+```
+
+The learning recipe requires retrieve → propose → execute → evaluate → refine → replay → independent verification → human approval → promote, with rollback available for regression/safety impact. Learned Skills cannot mutate the base contract, trusted profiles, execution boundary or security policy and cannot grant privileges automatically.
+
 ## Profiles and requirements
 
-The registry is deterministic, permits agent selection and forbids agent-created profiles. Resolution fails closed on no match or ambiguity. Host profiles forbid model-generated provisioning/instrumentation; workload profiles use fixed handlers and cannot be modified by the agent.
+The researcher declares requirements; the agent selects a registered profile. The agent does not create trusted profiles or add infrastructure fields to experiments.
+
+### Capability registry
+
+`recipes/profiles/registry.yaml` is the profile source of truth and references:
+
+```text
+recipes/profiles/host/linux-lima.yaml
+recipes/profiles/workload/go-install.yaml
+recipes/profiles/workload/npm-install.yaml
+recipes/profiles/workload/npm-lifecycle.yaml
+recipes/profiles/workload/npm-threat.yaml
+```
+
+The registry requires deterministic resolution, fails on no match or ambiguous match, permits agent selection, and forbids agent-created profiles.
+
+### Requirements and supporting files
+
+Experiment requirements live in `recipes/experiments/*.yaml`. For example, `recipes/experiments/npm-threat-001.yaml` declares disposable Linux execution, the `npm-threat` workload, localhost-only networking and process/syscall/filesystem/network instrumentation. It references the contract, policy, session, agent, gateway, observability, Skills and MCP configuration instead of duplicating infrastructure.
+
+Use these files to understand the complete requirement-to-capability path:
+
+```text
+contracts/<experiment>.md                      # research intent, authorization, scope, acceptance
+recipes/experiments/<experiment>.yaml          # declarative requirements and references
+recipes/profiles/registry.yaml                  # capability registry/resolution rules
+recipes/profiles/host/*.yaml                    # reusable host capability profiles
+recipes/profiles/workload/*.yaml                # fixed workload handlers/profiles
+recipes/host/security-research.yaml             # host/guest tool inventory
+recipes/lima/security-research.yaml             # disposable Lima/QEMU compute definition
+recipes/instrumentation/security-research.yaml # required collectors/instrumentation
+```
+
+Resolve the requirements without manually constructing infrastructure:
+
+```bash
+cusimanse resolve npm-threat-001
+```
+
+Resolution is deterministic and fails closed when no profile matches or multiple profiles match. Host profiles prohibit model-generated provisioning/instrumentation, and workload profiles use fixed handlers that the agent cannot modify.
 
 ## Policy and safety
 
-The policy definition remains declarative in `policies/host-policy.yaml`. The current Go runtime owns the capability lifecycle and invokes `scripts/policyctl` as its enforcement/approval compatibility helper. Therefore `policyctl` is still required for the current implementation, but it is **not a second policy authority**.
+The authoritative policy is `policies/host-policy.yaml`. The current Go runtime exposes `cusimanse policy ...` but delegates to `scripts/policyctl`; `policyctl` is an enforcement/approval compatibility helper, not a second policy authority.
+
+Policy-related files:
+
+```text
+policies/host-policy.yaml       # declarative policy decisions
+policies/mount-denylist.yaml    # host mount restrictions
+policies/permission-tiers.yaml  # permission-tier constraints
+scripts/policyctl               # current policy command/enforcement helper
+cmd/cusimanse/                   # Go capability boundary
+runs/policy-decisions.jsonl     # policy decision audit stream
+```
+
+### Policy commands
+
+```bash
+cusimanse policy show
+cusimanse policy validate
+cusimanse policy explain vm
+cusimanse policy explain network
+cusimanse policy check vm
+cusimanse policy check-all
+cusimanse policy require vm
+cusimanse policy require vm --approved
+cusimanse policy enforce vm --approved
+cusimanse policy audit
+```
+
+The equivalent direct compatibility helper is:
+
+```bash
+scripts/policyctl show
+scripts/policyctl validate
+scripts/policyctl explain <action>
+scripts/policyctl check <action>
+scripts/policyctl check-all
+scripts/policyctl require <action> [--approved]
+scripts/policyctl enforce <action> [--approved]
+scripts/policyctl audit
+```
+
+Available policy actions include `credentials`, `mounts`, `host-root`, `sudo`, `vm`, `lima`, `qemu`, `network`, `public-mcp`, `public-gateway`, `git-read`, `git-write`, `push`, `learning`, `host-execution` and `network-reconfig`.
+
+Decision handling is fail-closed:
+
+| Decision | Action |
+|---|---|
+| `allow` / `allowed` / `controlled` | Continue inside the declared boundary. |
+| `required` | Required control is satisfied; continue. |
+| `approval-required` | Stop, obtain explicit researcher approval, then use `--approved`. |
+| `deny` / `denied` | Stop; do not bypass or substitute a host action. |
+
+`require` and `enforce` return `0` when allowed, `3` when approval is required but not supplied, `4` when denied, and `2` for invalid/unknown policy or action.
+
+Typical approval flow:
+
+```bash
+cusimanse policy validate
+cusimanse policy explain vm
+cusimanse policy check vm
+cusimanse policy require vm
+# obtain explicit researcher approval
+cusimanse policy require vm --approved
+```
+
+The current policy denies credentials, unrestricted mounts and untrusted host execution; allows Lima/QEMU and localhost services; denies public MCP/public gateway access; requires approval for disposable VM creation and selected privileged/Git/learning operations; and requires evidence preservation and hashing.
 
 The intended future migration is a native Go evaluator over the same declarative policy file, followed by removal of the shell dependency after equivalent tests and independent verification.
 
 ## Evidence and reproducibility
 
 Evidence is hashed and provenance preserved before destruction. Model output is analysis, not raw evidence. Final conclusions require independent verification.
+
+### Canonical session evidence/report structure
+
+```text
+runs/<session-id>/
+├── session.yaml
+├── evidence/
+│   ├── index.yaml
+│   ├── raw/                              # raw collected observations/artifacts
+│   └── audit/
+│       ├── events.jsonl                  # append-only lifecycle/policy audit
+│       └── manifest.sha256               # evidence hash manifest
+├── provenance/
+│   └── manifest.sha256                   # provenance/input/tool hash manifest
+├── analysis/
+│   └── summary.md                        # specialist analysis synthesis
+├── verification/
+│   └── result.md                         # independent verification result
+├── research-report/
+│   ├── report.md                         # final human-readable report
+│   └── report.yaml                       # structured report metadata/results
+├── preservation/
+│   └── manifest.yaml                     # preserved artifact inventory/status
+├── observability/
+│   ├── token-usage.yaml                  # token/cost telemetry
+│   └── dashboard.yaml                    # final dashboard snapshot/status
+└── learning/                             # only when learning is enabled/used
+    ├── candidates/
+    ├── evaluations/
+    ├── replays/
+    ├── verification/
+    └── promotions/
+```
+
+The durable artifact contract is `recipes/session/session-state.yaml`. It requires session identity, append-only audit, evidence index, provenance, analysis, independent verification, report, preservation and observability artifacts, with raw evidence and hashes completed before disposable compute is destroyed.
+
+### Evidence rules
+
+1. Collect raw observations inside the disposable execution boundary.
+2. Index and hash evidence before destruction.
+3. Preserve provenance for recipe/config/tool/agent inputs and versions.
+4. Record requested, approved, executed and observed decisions where applicable.
+5. Never treat model output as raw evidence.
+6. Independently verify evidence and conclusions.
+7. Generate the final report from requirements, preserved evidence, specialist analysis, verification and observability metadata.
+8. Complete preservation before destroying disposable compute.
+9. Treat missing mandatory telemetry or required evidence as failure/partial according to the session contract.
+
+Useful lifecycle/evidence commands:
+
+```bash
+cusimanse observability report <session-id>
+./scripts/session.sh create <experiment> <agent> <session-id>
+./scripts/session.sh checkpoint <session-id> <STATE>
+./scripts/session.sh hash <session-id>
+./scripts/session.sh verify-layout <session-id>
+```
+
+### Report outputs
+
+The `report-generator` role consumes requirements, preserved evidence, specialist analysis, independent verification and observability metadata. The canonical outputs are:
+
+```text
+runs/<session-id>/research-report/report.md
+runs/<session-id>/research-report/report.yaml
+```
+
+A report is not complete merely because a model produced prose; it must be backed by preserved evidence, provenance and independent verification.
 
 ## Reference experiments
 
@@ -396,6 +621,7 @@ Cusimanse/
 ├── scripts/                    # bootstrap/compatibility helpers and tests
 ├── docs/architecture/          # Mermaid source + rendered architecture
 ├── docs/OBSERVABILITY.md       # observability/report access guide
+├── docs/OPERATOR-WORKFLOW.md   # operator commands, policy, profiles, learning and evidence workflow
 ├── manifest/                   # package/source-of-truth manifest
 ├── packages/                   # controlled workload fixtures
 └── runs/                       # generated research sessions
