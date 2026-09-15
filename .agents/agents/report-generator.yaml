@@ -1,9 +1,0 @@
-version: 2
-name: report-generator
-description: "Synthesize verified findings and limitations into a research-requirements-traceable report"
-skills: ["report-generation", "evidence-analysis", "verification"]
-capabilities: ["collect"]
-inputs: ["research requirements", "evidence", "specialist analysis", "independent verification", "observability"]
-outputs: ["runs/<session-id>/research-report/report.md", "runs/<session-id>/research-report/report.yaml"]
-constraints: ["no execution authority", "no policy mutation", "no evidence invention", "cite preserved evidence"]
-managed_by: cmd/cusimanse

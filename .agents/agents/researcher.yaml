@@ -1,6 +1,0 @@
-version: 1
-name: researcher
-description: "Operate experiments and interpret evidence"
-skills: ["experiment-run", "evidence-analysis"]
-capabilities: ["resolve", "provision", "configure", "execute", "collect", "destroy"]
-managed_by: cmd/cusimanse

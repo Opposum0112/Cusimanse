@@ -1,6 +1,0 @@
-version: 1
-name: detection-analyst
-description: "Analyze behavioral indicators and security findings"
-skills: ["evidence-analysis"]
-capabilities: ["collect"]
-managed_by: cmd/cusimanse

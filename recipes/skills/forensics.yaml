@@ -1,6 +1,0 @@
-version: 1
-name: forensics
-description: "Analyze filesystem, process and timeline artifacts"
-capabilities: ["collect"]
-required_tools: ["find", "stat", "lsof", "ps"]
-managed_by: cmd/cusimanse
