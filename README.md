@@ -26,34 +26,19 @@ Beta. Not a certified sandbox.
 
 | Layer | Files | Who runs it |
 |---|---|---|
-| Contract schema | `schemas/cusimanse.yaml` | Maintainer |
 | Experiment | `experiments/<id>.yaml` | Researcher |
-| Host bootstrap catalog | `host-prep/default.yaml` | Goose *or* normal shell via compiler |
+| Host bootstrap | `host-prep/default.yaml` + `scripts/install.sh` | Normal shell first, then Goose check |
 | Roles / skills | `roles/`, `skills/` | Goose Summon |
 | Operator recipe | `recipes/goose/session.yaml` | Goose session |
-| Compiler | `cmd/compile` | Goose session *or* normal shell |
-| Provision | `cmd/cusimanse` after `--approved` | Compiler |
-| Guest | Lima or Multipass | Engine |
+| Compiler | `cmd/compile` | Goose *or* normal shell |
 
 ## Architecture
 
-Five planes: contract → Goose control → compiler → runtime → sidecars. Authority down. Evidence up.
+Five planes: contract → Goose → compiler → runtime → sidecars.
 
 ![Cusimanse layered architecture](docs/architecture/agentic-native-layers.svg)
 
-```mermaid
-flowchart TB
-  E[Experiment YAML] --> G[Goose session]
-  G --> AP[Human approval]
-  AP --> C[compile host-prep / execute]
-  C --> VM[Disposable guest]
-  VM --> R[runs/session]
-  R --> VR[verifier + reporter]
-```
-
 ## Components
-
-Specialist work lives in `roles/*.yaml` plus `skills/*/SKILL.md`. Goose Summons those roles. There is no separate `.agents` tree.
 
 | Role | Skills |
 |---|---|
@@ -63,97 +48,58 @@ Specialist work lives in `roles/*.yaml` plus `skills/*/SKILL.md`. Goose Summons 
 
 ## Research outputs (`runs/`)
 
-```text
-runs/<session-id>/
-  session.yaml
-  evidence/  provenance/  analysis/
-  verification/result.md
-  research-report/report.md
-  preservation/  observability/
-```
-
-Chat is not evidence.
+`session.yaml`, `evidence/`, hashes, `verification/result.md`, `research-report/report.md`.
 
 ## Repository structure
 
 ```text
-experiments/          researcher contracts
-host-prep/default.yaml
-roles/                operator, verifier, reporter
-skills/               SKILL.md used by those roles
-recipes/goose/session.yaml
-cmd/compile  cmd/cusimanse
-policies/host-policy.yaml
-scripts/install.sh    first-time host tools (normal shell)
-scripts/tests/
-runs/                 generated
+host-prep/default.yaml     allow-list + per-OS install fallbacks
+scripts/install.sh         Linux / macOS / Git-Bash Windows
+scripts/install.ps1        native Windows (winget/scoop/choco)
 ```
 
 ## Which shell
 
-Two surfaces. Do not mix them by habit.
-
-| Task | Surface | Command |
-|---|---|---|
-| Clone repo | **Normal shell** (bash/zsh/Windows terminal) | `git clone` … `git checkout` |
-| First-time tool install (git, go, goose, lima…) | **Normal shell** | `./scripts/install.sh` |
-| Unit / integration tests | **Normal shell** | `go test` / `bash scripts/tests/integration.sh` |
-| Compile catalog / validate / resolve | **Either** | `go run ./cmd/compile …` |
-| Check declared host-prep | **Either** | `go run ./cmd/compile host-prep npm-install-001` |
-| Drive the session (plan, approve, Summon) | **Goose** | `goose run --recipe recipes/goose/session.yaml …` |
-| Guest workload | **Guest VM only** | compiler after `--approved` |
-| Read `runs/` | **Normal shell** | `ls runs/` |
-
-**Goose session** means: you started Goose (`goose` / Goose desktop) and it is following `recipes/goose/session.yaml`. Commands Goose types are still `go run ./cmd/compile …` or `cusimanse compile …` — there is no separate Goose-only binary for compile.
-
-**Normal shell** means: your laptop terminal, not inside Goose and not inside the guest.
+| Task | Surface |
+|---|---|
+| Clone + first install | **Normal shell** (`./scripts/install.sh` or `scripts/install.ps1`) |
+| Tests | **Normal shell** |
+| `compile host-prep` check | **Either** |
+| Plan / approve / Summon | **Goose session** |
+| Guest workload | **Guest VM** |
 
 ## Host bootstrap
 
-Host-prep is **declared** in `host-prep/default.yaml`. Two ways to apply it:
+Declared in `host-prep/default.yaml` (`managers` + per-tool `install` maps). The installer is **idempotent**: if `check` already succeeds, that tool is skipped.
 
-### A. First clone — normal shell (required once)
+Order per tool:
 
-Goose is not installed yet, so it cannot bootstrap itself.
+1. Already on `PATH` → skip
+2. Native manager — Linux `apt-get`/`dnf`/`pacman`/`zypper`/`apk`, macOS `brew`, Windows `winget` then `scoop` then `choco`
+3. Fallback `official-binary` / `go-install` / `npm-global` / `pip` as written in the YAML
+4. Optional miss → `NOT_DEPLOYED` (script does not abort)
 
 ```bash
-# normal shell
+# Linux / macOS / WSL2 / Git Bash — normal shell
 ./scripts/install.sh
-export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
-goose --version
-limactl --version || multipass version
+./scripts/install.sh          # safe to repeat
 ```
 
-That script is what `host-prep/default.yaml` lists under `install:`.
-
-### B. Before each experiment — Goose *or* normal shell (check only)
-
-The compiler **does not invent packages**. It checks the allow-list. Missing optional tools are `NOT_DEPLOYED`.
+```powershell
+# native Windows — PowerShell
+.\scripts\install.ps1
+```
 
 ```bash
-# normal shell — same check Goose will run
+# Goose or bash — check only, no surprise packages
 go run ./cmd/compile host-prep npm-install-001
 ```
 
-```text
-# Goose session — agent command (inside goose run)
-go run ./cmd/compile host-prep {{ experiment }}
-```
-
-Goose may **re-run** `scripts/install.sh` only when that path is the declared `install:` for a missing *required* tool (goose itself). It must not `apt install` random extras.
-
-| Question | Answer |
-|---|---|
-| Can Goose provision the VM? | No. It calls `compile execute --approved`. |
-| Can Goose install host git/go/lima? | Only by running the declared `scripts/install.sh`. Prefer doing that once in a normal shell. |
-| Can I skip Goose and only use the compiler? | Yes. Catalog → validate → host-prep → execute `--approved` in bash. |
+Compute: Lima/QEMU on Linux and macOS; Multipass is the Windows-native fallback. Guests for npm experiments still prefer Lima on Unix or WSL2.
 
 ## Install
 
 ```bash
-# normal shell
-git clone https://github.com/Opposum0112/Cusimanse.git
-cd Cusimanse
 git checkout agentic-native-goose
 ./scripts/install.sh
 export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
@@ -161,48 +107,33 @@ export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
 
 ## Researcher workflow (npm-install-001)
 
-1. Author `experiments/npm-install-001.yaml` (repo already has it).
-2. **Normal shell:** `go run ./cmd/compile validate npm-install-001` and `host-prep`.
-3. **Goose:** `goose run --recipe recipes/goose/session.yaml --params experiment=npm-install-001`
-4. Approve when Goose asks. Compiler starts the guest.
-5. **Normal shell:** read `runs/<session>/research-report/report.md`.
+Normal shell validate → Goose `session.yaml` → approve → read `runs/`.
 
 ## YAML configuration set
 
-| File | Kind |
-|---|---|
-| `experiments/npm-install-001.yaml` | Study |
-| `host-prep/default.yaml` | Host allow-list |
-| `recipes/goose/session.yaml` | Goose operator |
-| `roles/*.yaml` + `skills/*/SKILL.md` | Specialists |
-| `policies/host-policy.yaml` | Execute-time policy |
+`experiments/npm-install-001.yaml`, `host-prep/default.yaml`, `recipes/goose/session.yaml`, `roles/` + `skills/`, `policies/host-policy.yaml`.
 
 ## Access and observability
 
-Missing collectors → `NOT_DEPLOYED` in `evidence/index.yaml`.
+Missing optional tools stay `NOT_DEPLOYED`.
 
 ## Report generation
 
-Acceptance lines in the experiment YAML. Cite hashed evidence.
+Cite hashed evidence. Acceptance lines are the checklist.
 
 ## Compiler commands
-
-Same binaries in Goose or bash:
 
 ```bash
 go run ./cmd/compile catalog
 go run ./cmd/compile validate <id>
 go run ./cmd/compile host-prep <id>
-go run ./cmd/compile resolve <id>
 go run ./cmd/compile execute <id> --approved
 ```
 
 ## Validation and integration tests
 
 ```bash
-# normal shell
-go test ./internal/compiler ./cmd/compile ./cmd/cusimanse ./internal/validation
-bash ./scripts/tests/validate.sh
+go test ./internal/compiler ./cmd/compile ./cmd/cusimanse
 bash ./scripts/tests/integration.sh
 ```
 
