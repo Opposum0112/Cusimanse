@@ -7,16 +7,17 @@ fail(){ echo "INTEGRATION FAIL: $*" >&2; exit 1; }
 command -v go >/dev/null 2>&1 || fail 'go missing'
 command -v goose >/dev/null 2>&1 || fail 'goose missing'
 for f in scripts/install.sh scripts/preflight.sh scripts/tools.sh scripts/session.sh scripts/run-experiment.sh scripts/policyctl scripts/observability.sh scripts/learningctl; do [ -x "$f" ] || fail "not executable: $f"; done
+go test ./... >/dev/null || fail 'Go tests failed'
 go run ./cmd/cusimanse validate >/dev/null || fail 'native validation failed'
 go run ./cmd/cusimanse preflight >/dev/null || fail 'native preflight failed'
 go run ./cmd/cusimanse policy validate >/dev/null || fail 'native policy validation failed'
 go run ./cmd/cusimanse policy explain vm >/dev/null || fail 'native policy explain failed'
 go run ./cmd/cusimanse policy explain network >/dev/null || fail 'native policy explain failed'
-go run ./cmd/cusimanse policy check-all --audit "${TMPDIR:-/tmp}/cusimanse-policy-integration-$$.jsonl" >/dev/null || fail 'native policy check-all failed'
+audit="${TMPDIR:-/tmp}/cusimanse-policy-integration-$$.jsonl"
+go run ./cmd/cusimanse policy check-all --audit "$audit" >/dev/null || fail 'native policy check-all failed'
 ./scripts/tools.sh list >/dev/null
 ./scripts/tools.sh config >/dev/null
 ./scripts/tools.sh path >/dev/null
-for action in credentials mounts vm network git-write; do go run ./cmd/cusimanse policy check "$action" >/dev/null 2>&1 || true; done
 if go run ./cmd/cusimanse policy require host-execution >/dev/null 2>&1; then fail 'denied host execution unexpectedly allowed'; fi
 if go run ./cmd/cusimanse policy require vm >/dev/null 2>&1; then fail 'approval-required VM unexpectedly allowed without approval'; fi
 go run ./cmd/cusimanse policy require vm --approved >/dev/null || fail 'approved VM action rejected'
@@ -31,8 +32,6 @@ for generated in planner researcher runtime-analyst forensics-analyst detection-
 ./scripts/observability.sh phoenix >/dev/null
 ./scripts/observability.sh clawmetry >/dev/null
 ./scripts/learningctl --help >/dev/null 2>&1 || true
-
-audit="${TMPDIR:-/tmp}/cusimanse-policy-integration-$$.jsonl"
 sid="integration-contract-$$"
 cleanup(){ rm -rf "runs/$sid" "$audit"; }
 trap cleanup EXIT
@@ -55,7 +54,7 @@ test -s "$sid_dir/session.yaml" || fail 'session missing'
 test -s "$sid_dir/evidence/audit/events.jsonl" || fail 'audit events missing'
 test -s "$sid_dir/evidence/audit/manifest.sha256" || fail 'evidence hash missing'
 test -s "$sid_dir/provenance/manifest.sha256" || fail 'provenance hash missing'
-echo 'INTEGRATION PASS: native validation/preflight/policy → adapters/prompts → Goose recipes → role/skill management → capability resolution → session/evidence hashing'
+echo 'INTEGRATION PASS: Go validation/preflight/policy → external adapters → Goose recipes → role/skill management → capability resolution → session/evidence hashing'
 if [ "${CUSIMANSE_RUN_VM_TEST:-0}" = 1 ]; then
   command -v limactl >/dev/null 2>&1 || fail 'limactl missing for VM integration'
   name="cusimanse-integration-$$"
