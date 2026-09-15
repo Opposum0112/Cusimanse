@@ -19,38 +19,71 @@ enums:
 
 classes:
   CapabilityIntent:
+    description: Declarative intent compiled into a normalized CAR IR node.
     attributes:
       id:
         identifier: true
         range: string
-      capability:
         required: true
+      capability:
         range: string
+        required: true
       parameters:
-        range: Any
+        range: JsonObject
       depends_on:
+        range: string
+        multivalued: true
+
+  ResearchQuestion:
+    attributes:
+      id:
+        identifier: true
+        range: string
+        required: true
+      question:
+        range: string
+        required: true
+
+  ResearchScope:
+    attributes:
+      networks:
+        range: string
+        multivalued: true
+      paths:
+        range: string
+        multivalued: true
+      hosts:
         range: string
         multivalued: true
 
   ExperimentRecipe:
     tree_root: true
+    description: LinkML-governed security-research contract consumed by CAR.
     attributes:
       api_version:
-        required: true
         range: string
+        required: true
       kind:
-        required: true
         range: string
+        required: true
       experiment_id:
         identifier: true
+        range: string
         required: true
+      description:
         range: string
       research_question:
-        range: string
+        range: ResearchQuestion
       scope:
-        range: Any
+        range: ResearchScope
       intents:
         range: CapabilityIntent
         multivalued: true
-      approval:
-        range: boolean
+      operation_kinds:
+        range: OperationKind
+        multivalued: true
+
+slots:
+  JsonObject:
+    range: string
+    description: JSON-serializable object represented as structured recipe data.

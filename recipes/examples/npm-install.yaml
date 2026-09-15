@@ -1,11 +1,32 @@
 api_version: v1
 kind: ExperimentRecipe
-experiment_id: npm-install-baseline
-research_question: Observe the declared npm workload in disposable compute.
+experiment_id: npm-install-example
+description: Install a declared npm workload inside disposable research compute.
+research_question:
+  id: rq-npm-install
+  question: What observable process, filesystem, and network behavior occurs during npm install?
+scope:
+  networks:
+    - declared-test-network
+  paths:
+    - /workspace
+  hosts:
+    - disposable-vm
+operation_kinds:
+  - vm
+  - tool
+  - evidence
 intents:
-  - id: prepare
+  - id: provision-research-vm
+    capability: vm.create
+    parameters:
+      provider: lima
+      profile: research-default
+    depends_on: []
+  - id: run-npm-install
     capability: workload.npm.install
     parameters:
-      package: example-package
-    depends_on: []
-approval: false
+      working_directory: /workspace
+      package_manager: npm
+    depends_on:
+      - provision-research-vm
