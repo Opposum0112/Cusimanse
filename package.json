@@ -5,8 +5,9 @@
   "type": "module",
   "engines": { "node": ">=22" },
   "scripts": {
+    "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "node --test"
+    "test": "npm run build && node --test dist/tests"
   },
   "dependencies": {
     "ai": "^7.0.0",
