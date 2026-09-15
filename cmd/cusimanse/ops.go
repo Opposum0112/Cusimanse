@@ -30,6 +30,7 @@ func init() {
  case "run-experiment": mustHandleCLICommand(func(root string)error{return runHelperArgs(root,"scripts/run-experiment.sh",os.Args[2:]...)})
  }
 }
+}
 
 type OperationalAPI struct{Command string;Helper string;Bootstrap bool}
 func OperationalAPIs()[]OperationalAPI{return []OperationalAPI{{"install","scripts/install.sh",true},{"validate","native:validation",false},{"preflight","native:preflight",false},{"test","go test ./...",false},{"integration-test","scripts/tests/integration.sh",false},{"tools","scripts/tools.sh",false},{"session","scripts/session.sh",false},{"policy","native:policy",false},{"learning","scripts/learningctl",false},{"observability","scripts/observability.sh",false},{"run-experiment","scripts/run-experiment.sh",false}}}
