@@ -7,6 +7,13 @@ fail(){ echo "INTEGRATION FAIL: $*" >&2; exit 1; }
 command -v go >/dev/null 2>&1 || fail 'go missing'
 command -v goose >/dev/null 2>&1 || fail 'goose missing'
 for f in scripts/install.sh scripts/preflight.sh scripts/tools.sh scripts/session.sh scripts/run-experiment.sh scripts/policyctl scripts/observability.sh scripts/learningctl; do [ -x "$f" ] || fail "not executable: $f"; done
+for f in recipes/host/security-research.yaml recipes/gateway/mandatory.yaml recipes/observability/mandatory.yaml recipes/lima/security-research.yaml recipes/instrumentation/security-research.yaml recipes/session/learning-workflow.yaml docs/HOST-TOOLCHAIN.md prompts/README.md; do [ -s "$f" ] || fail "required integration artifact missing: $f"; done
+grep -q 'litellm' recipes/gateway/mandatory.yaml || fail 'gateway recipe incomplete'
+grep -q 'omniroute' recipes/gateway/mandatory.yaml || fail 'OmniRoute recipe incomplete'
+grep -q 'numbat' recipes/observability/mandatory.yaml || fail 'Numbat observability recipe incomplete'
+grep -q 'phoenix' recipes/observability/mandatory.yaml || fail 'Phoenix observability recipe incomplete'
+grep -q 'default: false' recipes/session/learning-workflow.yaml || fail 'learning must be disabled by default'
+grep -q 'human_approval_required: true' recipes/session/learning-workflow.yaml || fail 'learning promotion must require approval'
 go test ./... >/dev/null || fail 'Go tests failed'
 go run ./cmd/cusimanse validate >/dev/null || fail 'native validation failed'
 go run ./cmd/cusimanse preflight >/dev/null || fail 'native preflight failed'
@@ -35,9 +42,9 @@ for generated in experiment-run evidence-analysis forensics report-generation ve
 for generated in planner researcher runtime-analyst forensics-analyst detection-analyst verifier report-generator; do test -s ".agents/agents/$generated.yaml" || fail "generated role YAML missing: $generated"; done
 ./scripts/observability.sh phoenix >/dev/null
 ./scripts/observability.sh clawmetry >/dev/null
-./scripts/learningctl --help >/dev/null 2>&1 || true
 sid="integration-contract-$$"
-cleanup(){ rm -rf "runs/$sid" "$audit"; }
+candidate="integration-learning-$$"
+cleanup(){ rm -rf "runs/$sid" "$audit" "skills/validated/$candidate.yaml"; }
 trap cleanup EXIT
 ./scripts/session.sh create npm-threat-001 goose "$sid" >/dev/null
 ./scripts/session.sh checkpoint "$sid" VALIDATED >/dev/null
@@ -58,11 +65,19 @@ test -s "$sid_dir/session.yaml" || fail 'session missing'
 test -s "$sid_dir/evidence/audit/events.jsonl" || fail 'audit events missing'
 test -s "$sid_dir/evidence/audit/manifest.sha256" || fail 'evidence hash missing'
 test -s "$sid_dir/provenance/manifest.sha256" || fail 'provenance hash missing'
-echo 'INTEGRATION PASS: Go validation/preflight/policy → prompt handoff → alternate adapters → Goose recipes → role/skill management → capability resolution → session/evidence hashing'
+mkdir -p "$sid_dir/learning/candidates" "$sid_dir/learning/replays" "$sid_dir/learning/verification"
+printf '%s\n' 'version: 1' "id: $candidate" 'scope: integration-test-only' > "$sid_dir/learning/candidate.yaml"
+./scripts/learningctl candidate "$sid" "$candidate" "$sid_dir/learning/candidate.yaml" >/dev/null
+printf '%s\n' 'version: 1' "candidate: $candidate" > "$sid_dir/learning/replays/replay.yaml"
+printf '%s\n' 'version: 1' "candidate: $candidate" > "$sid_dir/learning/verification/verification.yaml"
+./scripts/learningctl status "$sid" >/dev/null
+./scripts/learningctl promote "$sid" "$candidate" --approved >/dev/null
+test -s "skills/validated/$candidate.yaml" || fail 'learning promotion did not produce validated skill'
+echo 'INTEGRATION PASS: Go validation/preflight/policy → host tooling → gateways/observability → prompt handoff → alternate adapters → Goose recipes → role/skill management → capability resolution → session/evidence hashing → gated learning'
 if [ "${CUSIMANSE_RUN_VM_TEST:-0}" = 1 ]; then
   command -v limactl >/dev/null 2>&1 || fail 'limactl missing for VM integration'
   name="cusimanse-integration-$$"
-  trap 'limactl delete --force "$name" >/dev/null 2>&1 || true; rm -rf "runs/'"$sid"'" "$audit"' EXIT
+  trap 'limactl delete --force "$name" >/dev/null 2>&1 || true; rm -rf "runs/'"$sid"'" "skills/validated/'"$candidate"'.yaml" "$audit"' EXIT
   limactl validate recipes/lima/security-research.yaml >/dev/null
   limactl start --name="$name" recipes/lima/security-research.yaml >/dev/null
   limactl shell "$name" -- bash -lc 'go version && node --version && npm --version && strace -V >/dev/null && tcpdump --version >/dev/null'
