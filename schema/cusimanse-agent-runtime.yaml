@@ -27,7 +27,7 @@ classes:
         required: true
         range: string
       parameters:
-        range: string
+        range: Any
       depends_on:
         range: string
         multivalued: true
@@ -42,8 +42,15 @@ classes:
         required: true
         range: string
       experiment_id:
+        identifier: true
         required: true
         range: string
+      research_question:
+        range: string
+      scope:
+        range: Any
       intents:
         range: CapabilityIntent
         multivalued: true
+      approval:
+        range: boolean

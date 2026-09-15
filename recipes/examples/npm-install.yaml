@@ -1,0 +1,11 @@
+api_version: v1
+kind: ExperimentRecipe
+experiment_id: npm-install-baseline
+research_question: Observe the declared npm workload in disposable compute.
+intents:
+  - id: prepare
+    capability: workload.npm.install
+    parameters:
+      package: example-package
+    depends_on: []
+approval: false
