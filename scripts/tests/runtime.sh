@@ -18,8 +18,9 @@ if ./scripts/session.sh checkpoint "$sid" COMPLETE >/dev/null 2>&1; then fail 'i
 ./scripts/session.sh checkpoint "$sid" AWAITING_APPROVAL
 ./scripts/session.sh checkpoint "$sid" APPROVED
 ./scripts/session.sh checkpoint "$sid" PARTIAL
-./scripts/session.sh verify-layout "$sid"
 ./scripts/session.sh hash "$sid"
+./scripts/session.sh verify-layout "$sid"
+test -s "runs/$sid/evidence/audit/manifest.sha256" || fail 'evidence audit manifest missing'
 test -s "runs/$sid/provenance/manifest.sha256" || fail 'provenance manifest missing'
 grep -q '"state":"PARTIAL"' "runs/$sid/evidence/audit/events.jsonl" || fail 'lifecycle audit event missing'
 for exp in go-install-001 npm-install-001 npm-lifecycle-001 npm-threat-001; do go run ./cmd/cusimanse resolve "$exp" >/dev/null || fail "profile resolution failed: $exp"; done
