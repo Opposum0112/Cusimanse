@@ -34,8 +34,15 @@ jobs:
             bash -n "$f"
             shellcheck --severity=error "$f" || { shellcheck "$f"; exit 1; }
           done < <(find scripts -type f \( -name '*.sh' -o -name 'policyctl' \) -print0)
-      - name: Validate project and Goose recipes
+      - name: Validate project and control plane
         run: bash ./scripts/tests/validate.sh
+      - name: Validate Goose recipes explicitly
+        run: |
+          set -euo pipefail
+          for f in recipes/*/recipe.yaml recipes/subrecipes/*.yaml; do
+            echo "Validating Goose recipe: $f"
+            goose recipe validate "$f"
+          done
       - name: Run functional control-plane tests
         run: bash ./scripts/tests/runtime.sh
       - name: Run integration tests
