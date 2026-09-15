@@ -9,6 +9,9 @@ skills:
   - id: evidence-read
     path: skills/evidence-read/SKILL.md
     description: Read hashed evidence under runs/
+  - id: evidence-analysis
+    path: skills/evidence-analysis/SKILL.md
+    description: Correlate hashed evidence without mutating it
   - id: verification
     path: skills/verification/SKILL.md
     description: Independently verify claims
