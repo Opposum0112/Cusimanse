@@ -108,7 +108,7 @@ cusimanse learning candidate <session-id> <candidate-id> <file>
 cusimanse learning promote <session-id> <candidate-id> --approved
 ```
 
-**Implementation note:** the policy and learning command forms above are the desired Go operator surface. The current repository's policy enforcement implementation is still `scripts/policyctl`, while learning operations are implemented by `scripts/learningctl`. Until native Go commands are wired to those helpers, use the helper commands shown in the sections below; do not invent a second policy or learning implementation.
+**Implementation note:** the policy and learning command forms above are the desired Go operator surface. The current repository's policy enforcement implementation is still `scripts/policyctl`, while learning operations are implemented by `scripts/learningctl`. Until native Go commands are wired to those helpers, use the helper commands shown below; do not invent a second policy or learning implementation.
 
 The current operational commands use compatibility adapters for several shell helpers while deterministic logic is being migrated into Go. The API surface remains stable during that migration.
 
@@ -125,7 +125,7 @@ The authoritative policy is:
 - `cmd/cusimanse/` — Go capability boundary that invokes policy checks during lifecycle operations.
 - `runs/policy-decisions.jsonl` — default append-only policy decision audit stream.
 
-The current policy denies credentials, unrestricted mounts and untrusted host execution; requires approval for privileged/default actions, disposable VM creation, selected Git writes/pushes and learning helpers; allows Lima/QEMU and localhost services; denies public MCP and public gateway access; and requires evidence preservation and hashing. fileciteturn407file0L2-L2
+The current policy denies credentials, unrestricted mounts and untrusted host execution; requires approval for privileged/default actions, disposable VM creation, selected Git writes/pushes and learning helpers; allows Lima/QEMU and localhost services; denies public MCP and public gateway access; and requires evidence preservation and hashing.
 
 ### Policyctl commands
 
@@ -175,8 +175,6 @@ Use `explain` before `require` when the reason for a gate is unclear. Use `check
 | `deny`, `denied` | Stop. Do not bypass, weaken or substitute an equivalent host action. | 4 |
 | invalid/unknown | Stop and fix policy/action configuration. | 2 |
 
-The helper's command syntax and exit-code contract are defined in `scripts/policyctl`. fileciteturn408file0L2-L2
-
 ### Typical approval flow
 
 ```bash
@@ -196,7 +194,7 @@ The researcher declares requirements; the agent selects a registered profile. Th
 
 ### Capability registry
 
-The source of truth is `recipes/profiles/registry.yaml`. It points to the host profile and four fixed workload profiles, and explicitly requires deterministic resolution, fail-closed no-match/ambiguous-match behavior, agent selection without agent-created profiles. fileciteturn409file0L2-L2
+The source of truth is `recipes/profiles/registry.yaml`. It points to the host profile and four fixed workload profiles and requires deterministic resolution, fail-closed no-match/ambiguous-match behavior, agent selection without agent-created profiles.
 
 Relevant files:
 
@@ -214,18 +212,18 @@ recipes/instrumentation/security-research.yaml
 
 ### Requirements source
 
-Experiment requirements live in `recipes/experiments/*.yaml`. For example, `npm-threat-001.yaml` declares disposable Linux execution, the `npm-threat` workload, localhost-only networking and process/syscall/filesystem/network instrumentation. It references its contract, policy files, session state, adapter/orchestration recipes, gateways, observability, Skills and MCP registry rather than duplicating infrastructure configuration. fileciteturn411file0L2-L2
+Experiment requirements live in `recipes/experiments/*.yaml`. For example, `npm-threat-001.yaml` declares disposable Linux execution, the `npm-threat` workload, localhost-only networking and process/syscall/filesystem/network instrumentation. It references its contract, policy files, session state, adapter/orchestration recipes, gateways, observability, Skills and MCP registry rather than duplicating infrastructure configuration.
 
 Related researcher-facing files:
 
 ```text
-contracts/<experiment>.md                 # intent, authorization, scope, acceptance
-recipes/experiments/<experiment>.yaml     # requirements and references
-recipes/profiles/registry.yaml             # capability registry
-recipes/profiles/host/*.yaml               # reusable host capability
-recipes/profiles/workload/*.yaml           # fixed workload capability
-recipes/host/security-research.yaml        # host tool inventory
-recipes/lima/security-research.yaml        # disposable compute definition
+contracts/<experiment>.md                      # intent, authorization, scope, acceptance
+recipes/experiments/<experiment>.yaml          # requirements and references
+recipes/profiles/registry.yaml                  # capability registry
+recipes/profiles/host/*.yaml                    # reusable host capability
+recipes/profiles/workload/*.yaml                # fixed workload capability
+recipes/host/security-research.yaml             # host tool inventory
+recipes/lima/security-research.yaml             # disposable compute definition
 recipes/instrumentation/security-research.yaml # collectors/instrumentation
 ```
 
@@ -239,21 +237,21 @@ The resolver must fail closed when no profile matches or when more than one prof
 
 ## Learning loop — disabled by default
 
-Learning is opt-in. The default is explicitly `false`; it requires a completed research report and independent verification, then a disposable replay and explicit human approval before promotion. The learning contract also forbids base-contract mutation, trusted-profile mutation, automatic privilege grants and automatic security-policy changes. fileciteturn410file0L2-L2
+Learning is opt-in. The default is explicitly `false`; it requires a completed research report and independent verification, then a disposable replay and explicit human approval before promotion. The learning contract also forbids base-contract mutation, trusted-profile mutation, automatic privilege grants and automatic security-policy changes.
 
 ### Learning files
 
 ```text
-recipes/session/learning-workflow.yaml       # learning contract and gates
-recipes/session/session-state.yaml            # per-session learning.enabled state
-scripts/learningctl                          # current learning operator helper
-skills/candidate/                            # candidate skills
-skills/validated/                            # approved reusable skills
-runs/<session-id>/learning/                  # candidate/evaluation/replay/verification/promotion artifacts
-runs/<session-id>/evidence/                  # source evidence
+recipes/session/learning-workflow.yaml  # learning contract and gates
+recipes/session/session-state.yaml      # per-session learning.enabled state
+scripts/learningctl                     # current learning operator helper
+skills/candidate/                       # candidate skills
+skills/validated/                       # approved reusable skills
+runs/<session-id>/learning/              # candidate/evaluation/replay/verification/promotion artifacts
+runs/<session-id>/evidence/              # source evidence
 ```
 
-The session-state contract explicitly records learning as opt-in, with `learning.enabled=true` as the enable mechanism and `recipes/session/learning-workflow.yaml` as the recipe. fileciteturn412file0L2-L2
+The session-state contract records learning as opt-in, with `learning.enabled=true` as the enable mechanism and `recipes/session/learning-workflow.yaml` as the recipe.
 
 ### Inspect and enable
 
@@ -293,7 +291,7 @@ Learning never becomes a hidden privilege escalation path. A learned Skill is re
 
 ## Evidence and report structure
 
-Every research session is rooted at `runs/<session-id>/`. The session-state contract defines the durable artifacts and requires evidence/provenance hashing before destruction. fileciteturn412file0L2-L2
+Every research session is rooted at `runs/<session-id>/`. The session-state contract defines the durable artifacts and requires evidence/provenance hashing before destruction.
 
 ### Canonical structure
 
@@ -302,25 +300,25 @@ runs/<session-id>/
 ├── session.yaml
 ├── evidence/
 │   ├── index.yaml
-│   ├── raw/                         # collected observations/artifacts
+│   ├── raw/                              # collected observations/artifacts
 │   └── audit/
-│       ├── events.jsonl             # append-only lifecycle/policy audit
-│       └── manifest.sha256          # evidence hash manifest
+│       ├── events.jsonl                  # append-only lifecycle/policy audit
+│       └── manifest.sha256               # evidence hash manifest
 ├── provenance/
-│   └── manifest.sha256              # provenance/input/tool hash manifest
+│   └── manifest.sha256                   # provenance/input/tool hash manifest
 ├── analysis/
-│   └── summary.md                   # specialist analysis synthesis
+│   └── summary.md                        # specialist analysis synthesis
 ├── verification/
-│   └── result.md                    # independent verification result
+│   └── result.md                         # independent verification result
 ├── research-report/
-│   ├── report.md                    # final human-readable report
-│   └── report.yaml                  # structured report metadata/results
+│   ├── report.md                         # final human-readable report
+│   └── report.yaml                        # structured report metadata/results
 ├── preservation/
-│   └── manifest.yaml                 # preserved artifact inventory/status
+│   └── manifest.yaml                     # preserved artifact inventory/status
 ├── observability/
-│   ├── token-usage.yaml              # token/cost-oriented telemetry
-│   └── dashboard.yaml                # final dashboard snapshot/status
-└── learning/                         # only when learning is enabled/used
+│   ├── token-usage.yaml                   # token/cost-oriented telemetry
+│   └── dashboard.yaml                     # final dashboard snapshot/status
+└── learning/                              # only when learning is enabled/used
     ├── candidates/
     ├── evaluations/
     ├── replays/
@@ -344,11 +342,6 @@ runs/<session-id>/
 
 ```bash
 cusimanse observability report <session-id>
-```
-
-The session helper also provides lifecycle/evidence operations used by the runtime and integration tests:
-
-```bash
 ./scripts/session.sh create <experiment> <agent> <session-id>
 ./scripts/session.sh checkpoint <session-id> <STATE>
 ./scripts/session.sh hash <session-id>
