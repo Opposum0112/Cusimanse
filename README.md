@@ -38,6 +38,24 @@ Ready Intents
 
 Planning is side-effect free and does not resolve capabilities, authorize operations, execute adapters, or allow an LLM to choose execution order.
 
+## Commit 5 — Capability registry and resolver
+
+CAR now has a deterministic capability registry. Capabilities are explicitly registered by stable name and version, with declared operation kinds and optional parameter validation. Resolution is exact-name, side-effect free, and separate from policy authorization and adapter execution.
+
+```text
+CapabilityIntent
+      ↓
+Capability Registry
+      ↓
+Exact-name Resolution
+      ↓
+ResolvedCapability
+      ↓
+Policy + Approval
+```
+
+Unknown capabilities and duplicate registrations are rejected. Registry inspection is lexicographically ordered for deterministic behavior. See `docs/capabilities.md` for the contract and security boundary.
+
 ## Repository layout
 
 ```text
@@ -49,6 +67,8 @@ Cusimanse/
 │   └── cusimanse-agent-runtime.yaml
 ├── recipes/
 │   └── examples/
+├── docs/
+│   └── capabilities.md
 ├── src/
 │   ├── compiler/
 │   ├── ir/
@@ -65,7 +85,8 @@ Cusimanse/
     ├── compiler/
     ├── policy/
     ├── runtime/
-    └── adapters/
+    ├── adapters/
+    └── capabilities/
 ```
 
 ## Architecture
@@ -113,9 +134,9 @@ The LLM never grants itself privileges, changes policy, accesses host credential
 1. Contract and LinkML validation — **complete**
 2. Semantic compiler and normalized IR — **complete**
 3. Research state and event model — **complete**
-4. Planner and deterministic dependency graph — **current**
-5. Capability registry and resolver
-6. Policy and approval state machine
+4. Planner and deterministic dependency graph — **complete**
+5. Capability registry and resolver — **complete**
+6. Policy and approval state machine — next
 7. Validated operation engine
 8. Adapter contracts
 9. Lima lifecycle and disposable compute
