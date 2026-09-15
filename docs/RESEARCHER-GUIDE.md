@@ -1,29 +1,21 @@
 # Cusimanse Researcher Guide
 
-This guide is the practical path from a clean system to a complete controlled experiment. It does not change the README structure or replace the repository contracts, recipes, or policy sources of truth.
+This guide is the practical path from a clean system to a complete controlled experiment. It does not replace the repository contracts, recipes or policy sources of truth.
 
 ## 1. Clean-system bootstrap
-
-Use a Linux host, macOS host, or Windows WSL2 environment supported by `recipes/host/security-research.yaml`. Start with Git and a network connection for installation dependencies.
 
 ```bash
 git clone https://github.com/Opposum0112/Cusimanse.git
 cd Cusimanse
 git checkout goose-refactor
-
 ./scripts/install.sh
 export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
-
 cusimanse doctor
 ```
 
-`doctor` is the first deterministic health gate. If it fails, stop and fix the reported dependency or configuration before starting an experiment.
+## 2. Understand the reference experiment
 
-## 2. Understand the experiment before running it
-
-The reference experiment is `npm-threat-001`. It is a local, deterministic fixture; it is not a public malicious package and must not be changed into one for routine testing.
-
-Read the four source-of-truth artifacts together:
+Read the contract, experiment configuration, Goose recipe and shared prompt together:
 
 ```bash
 less contracts/npm-threat-001.md
@@ -32,27 +24,18 @@ less recipes/npm-threat-001/recipe.yaml
 less prompts/experiments/npm-threat-001.md
 ```
 
-The contract defines authorization, scope and acceptance. The experiment YAML defines requirements. The Goose recipe is the native agent handoff. The shared prompt gives the agent its research objective without granting authority.
-
-## 3. Stage 1 — validate the repository
+## 3. Validate
 
 ```bash
 cusimanse validate
-```
-
-This checks the required control-plane files, parses JSON/YAML control artifacts, validates policy and checks the repository for obsolete migration markers. Contract validation also confirms that every experiment contract has its matching experiment configuration, Goose recipe and shared prompt.
-
-## 4. Stage 2 — preflight the host
-
-```bash
 cusimanse preflight
 cusimanse tools list
 cusimanse tools versions
 ```
 
-Preflight checks the deterministic host/profile prerequisites. The tool inventory separates host control-plane tools from guest instrumentation.
+Contract validation checks required sections and the matching experiment YAML, Goose recipe and shared prompt.
 
-## 5. Stage 3 — validate the Goose handoff
+## 4. Validate the Goose handoff
 
 ```bash
 goose recipe validate recipes/npm-threat-001/recipe.yaml
@@ -61,151 +44,156 @@ goose recipe validate recipes/subrecipes/verification.yaml
 goose recipe validate recipes/subrecipes/report.yaml
 ```
 
-Goose is the reference primary operator. Its `summon` extension provides delegation/orchestration capabilities; it does not override Cusimanse policy.
+Goose is the reference primary operator. Its Summon extension provides orchestration/delegation but does not override Cusimanse policy.
 
-## 6. Stage 4 — resolve requirements into capabilities
+## 5. Resolve and inspect policy
 
 ```bash
 cusimanse resolve npm-threat-001
-cusimanse capability list
-```
-
-The resolver matches the experiment requirements against trusted profiles. No-match and ambiguous-match conditions fail closed.
-
-## 7. Stage 5 — inspect and satisfy policy gates
-
-```bash
 cusimanse policy validate
 cusimanse policy explain vm
 cusimanse policy explain network
 cusimanse policy check-all
-
-# Researcher approval is an explicit action, not an agent decision.
 cusimanse policy require vm --approved
 ```
 
-The agent may request or explain an action, but only the Go capability API and declared policy can authorize execution. Public MCP, public gateways, credentials, unrestricted mounts and untrusted host execution remain denied.
+Only the Go capability API and declared policy authorize execution.
 
-## 8. Stage 6 — run the disposable experiment
+## 6. Run the experiment
 
-Create a unique session identifier and run only after the required approval has been granted:
+Create a unique session and let the agent/runtime manage the disposable environment:
 
 ```bash
 SESSION_ID="npm-threat-$(date +%Y%m%d-%H%M%S)"
 cusimanse --approved run npm-threat-001 "$SESSION_ID"
 ```
 
-The runtime lifecycle is:
+The runtime performs:
 
 ```text
-resolve
-  → provision disposable Lima/QEMU compute
-  → configure
-  → start instrumentation
-  → execute fixed workload
-  → collect raw evidence
-  → verify/hash
-  → hand off to analysis/reporting
-  → preserve
-  → destroy disposable compute
+resolve → policy → provision Lima/QEMU → configure → instrument
+→ execute workload → collect evidence → verify/hash → report
+→ preserve → destroy
 ```
 
-The fixture is intentionally bounded to disposable compute and localhost behavior. Do not add credentials, host mounts, public package sources or external destinations.
+### Lima diagnostic access
 
-## 9. Stage 7 — inspect evidence and observability
+Researchers normally do not operate Lima directly. For troubleshooting or a standalone smoke test, the underlying commands are:
+
+```bash
+limactl validate recipes/lima/security-research.yaml
+limactl start --name=cusimanse-smoke recipes/lima/security-research.yaml
+limactl shell cusimanse-smoke -- bash -lc 'go version && node --version && npm --version && strace -V'
+limactl delete --force cusimanse-smoke
+```
+
+These commands are diagnostic only. Normal VM creation, guest setup, instrumentation and destruction are controlled by the agent/Go runtime and policy.
+
+## 7. Instrumentation
+
+Instrumentation is guest-side and has one dedicated reference: `docs/INSTRUMENTATION.md`.
+
+```bash
+cat docs/INSTRUMENTATION.md
+```
+
+Do not maintain a second instrumentation inventory in experiment documentation. The authoritative declaration is `recipes/instrumentation/security-research.yaml`.
+
+## 8. Gateways
+
+The model gateway path is localhost-only:
+
+```text
+agent / Goose → LiteLLM :4000 → OmniRoute :20128 → configured provider
+```
+
+Configuration locations are generated by the installer:
+
+```text
+~/.config/cusimanse/litellm.yaml
+~/.config/cusimanse/omniroute.env
+```
+
+Gateways route/normalize model traffic; they are not security boundaries.
+
+## 9. Evidence and observability
 
 ```bash
 find "runs/$SESSION_ID" -maxdepth 3 -type f | sort
 cat "runs/$SESSION_ID/evidence/index.yaml"
 cat "runs/$SESSION_ID/verification/result.md"
 cat "runs/$SESSION_ID/research-report/report.md"
-
 cusimanse observability report "$SESSION_ID"
 cusimanse policy audit
 ```
 
-Evidence is the observation record. Model output is analysis and must not be treated as raw evidence. Independent verification must cite preserved evidence.
+Raw evidence is distinct from model analysis. Evidence and provenance are hashed and preserved before disposable compute is destroyed.
 
-## 10. Stage 8 — verify preservation before destruction
+## 10. Researcher versus platform ownership
 
-A valid session contains the audit and provenance SHA-256 manifests and the required report/verification artifacts. Destruction is allowed only after preservation and verification requirements are satisfied.
+| Researcher / agent | Cusimanse |
+|---|---|
+| Research question and hypothesis | Policy and authority |
+| Contract and declared requirements | Capability resolution |
+| Planning, delegation and specialist analysis | Trusted profiles and execution boundary |
+| Interpretation and report narrative | VM lifecycle and instrumentation |
+| | Evidence collection, hashing, verification and preservation |
 
-For a control-plane-only rehearsal, the repository test suite exercises this lifecycle without requiring Lima:
+The core rule is: **the agent decides what research to do; Cusimanse decides whether and how it may execute.**
+
+## 11. Architecture in planes
+
+```text
+RESEARCH / AGENT PLANE
+  Contract • Prompt • Goose/adapters • Roles • Skills
+  Hypothesis • Planning • Delegation • Analysis
+                 │
+                 ▼
+CONTROL / POLICY PLANE
+  Go API • Resolver • Policy • Approval • Lifecycle • Audit
+                 │
+                 ▼
+CAPABILITY / EXECUTION PLANE
+  Lima/QEMU • Linux guest • Workload • Instrumentation
+                 │
+                 ▼
+EVIDENCE / OBSERVABILITY PLANE
+  Evidence • Hashes • Verification • Reports • Telemetry
+```
+
+### Shell boundaries
+
+- **Host shell:** bootstrap, compatibility and unavoidable external-tool access.
+- **Agent shell:** native planning, delegation and analysis; no authority to bypass policy.
+- **Go capability boundary:** authoritative execution interface and policy/lifecycle enforcement.
+- **Guest shell:** constrained disposable execution environment.
+
+## 12. Reference experiments
+
+| Experiment | Researcher exercise |
+|---|---|
+| `go-install-001` | Go installation and harmless local binary observation |
+| `npm-install-001` | npm installation with lifecycle disabled |
+| `npm-lifecycle-001` | controlled local lifecycle behavior |
+| `npm-threat-001` | controlled adversarial-like local lifecycle fixture |
+
+Use the same gates for each: `validate → preflight → recipe validate → resolve → policy → approved run → evidence/observability → verification → preservation → destroy`.
+
+## 13. Control-plane testing
+
+For a control-plane rehearsal without a VM:
 
 ```bash
 cusimanse test
 cusimanse integration-test
 ```
 
-For an actual disposable VM smoke test, use:
+For the optional disposable VM smoke test:
 
 ```bash
 CUSIMANSE_RUN_VM_TEST=1 cusimanse test
 ```
 
-The optional VM test is deliberately separate because CI does not require a local hypervisor.
+## 14. Safety
 
-## 11. What the researcher owns vs. what the platform owns
-
-| Researcher / agent | Cusimanse control plane |
-|---|---|
-| Research question and hypothesis | Policy and authority decisions |
-| Contract and declared requirements | Capability resolution |
-| Planning and specialist analysis | Trusted profiles and execution boundary |
-| Agent delegation and reasoning | VM provisioning/configuration |
-| Interpretation of observations | Instrumentation and evidence collection |
-| Report narrative | Hashing, preservation and lifecycle guards |
-
-An adapter such as OpenCode, Hermes, Antigravity or Pi is a prompt-handoff interface. It can plan, delegate and analyze with its native features, but it must invoke Cusimanse for capability execution.
-
-## 12. Architecture in planes
-
-```text
-┌──────────────────────────────────────────────────────────────┐
-│ RESEARCH / AGENT PLANE                                      │
-│ Contract • Prompt • Goose/other agent • Roles • Skills      │
-│ Hypothesis • Planning • Delegation • Analysis • Reporting   │
-└──────────────────────────────┬───────────────────────────────┘
-                               │ request / handoff
-┌──────────────────────────────▼───────────────────────────────┐
-│ CONTROL / POLICY PLANE                                      │
-│ Go API • resolver • policy • approval • lifecycle • audit   │
-│ Trusted profiles • experiment requirements • registries     │
-└──────────────────────────────┬───────────────────────────────┘
-                               │ authorized capability call
-┌──────────────────────────────▼───────────────────────────────┐
-│ CAPABILITY / EXECUTION PLANE                                │
-│ Lima/QEMU • guest OS • fixed workload • instrumentation     │
-│ Process • syscall • filesystem • network observation         │
-└──────────────────────────────┬───────────────────────────────┘
-                               │ evidence / telemetry
-┌──────────────────────────────▼───────────────────────────────┐
-│ EVIDENCE / OBSERVABILITY PLANE                              │
-│ Raw evidence • hashes • provenance • verification • reports  │
-│ Numbat • Aegis • Phoenix • OTel • ClawMetry                  │
-└──────────────────────────────────────────────────────────────┘
-```
-
-### Shells and boundaries
-
-- **Host shell:** bootstrap and compatibility only. It installs prerequisites and invokes unavoidable external tools such as Git, Lima, QEMU and Goose.
-- **Agent shell:** the agent's native tool/command interface. It is not a security authority and must not bypass the Go capability API.
-- **Go capability boundary:** the authoritative execution interface. Policy is evaluated here and decisions are audited.
-- **Guest shell:** commands inside disposable compute. Workloads and collectors execute here rather than directly on the host.
-
-The core rule is: **the agent decides what research to do; Cusimanse decides whether and how it may execute.**
-
-## 13. Reference experiment variants
-
-| Experiment | Researcher exercise |
-|---|---|
-| `go-install-001` | Observe Go installation and harmless local binary execution |
-| `npm-install-001` | Observe pinned npm installation with lifecycle disabled |
-| `npm-lifecycle-001` | Observe controlled local lifecycle execution |
-| `npm-threat-001` | Observe the controlled adversarial-like local lifecycle fixture |
-
-For each experiment, repeat the same gates: `validate → preflight → recipe validate → resolve → policy → approved run → evidence/observability → verification → preservation → destroy`.
-
-## 14. Safety rule
-
-These experiments are research fixtures, not authorization to access third-party systems. Keep execution disposable, local and bounded to the declared contract. Never add credentials, unrestricted mounts, public package execution or external destinations to the reference experiments.
+These are bounded research fixtures, not authorization to access third-party systems. Keep execution disposable and within the declared contract. Do not add credentials, unrestricted host mounts, public MCP/gateway access or external destinations.
