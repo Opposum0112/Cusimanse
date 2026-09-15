@@ -1,0 +1,38 @@
+name: agentic-native
+
+on:
+  push:
+    branches: [agentic-native-goose]
+  pull_request:
+    branches: [agentic-native-goose, main]
+
+permissions:
+  contents: read
+
+jobs:
+  compile-and-schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version: '1.22.x'
+          cache: true
+      - name: Compiler unit tests
+        run: go test ./internal/compiler ./cmd/compile
+      - name: Validate all experiment documents
+        run: |
+          set -euo pipefail
+          for id in npm-install-001 npm-lifecycle-001 npm-threat-001 go-install-001; do
+            go run ./cmd/compile validate "$id"
+            go run ./cmd/compile resolve "$id"
+          done
+      - name: Check role and skill registry paths
+        run: |
+          set -euo pipefail
+          test -f roles/skill-registry.yaml
+          test -f roles/bindings.yaml
+          test -f host-prep/default.yaml
+          test -f recipes/goose/session.yaml
+          test -f skills/verification/SKILL.md
