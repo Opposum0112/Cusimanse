@@ -9,7 +9,7 @@ requirements:
   workload: npm-install
   instrumentation: [process, syscall, filesystem, network]
 policy:
-  enforcement: scripts/policyctl
+  enforcement: internal/policy
   policy_file: policies/host-policy.yaml
   mount_denylist: policies/mount-denylist.yaml
   permission_tiers: policies/permission-tiers.yaml
