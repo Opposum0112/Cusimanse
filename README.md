@@ -2,6 +2,10 @@
 
 ![Cusimanse mascot and logo](docs/images/cusimanse-mascot-logo.svg)
 
+> **Status: Beta — Research Framework & Runtime Kit**
+>
+> Cusimanse is actively being developed. **Fork it, test it, run the reference experiments, report bugs, and submit pull requests.** Expect APIs, recipes, documentation and integrations to evolve during beta.
+
 **Declarative, agent-operated security research on disposable compute.** Researchers declare intent and requirements; agents plan, select and analyze; the Go capability API and policy decide whether and how execution may occur.
 
 ![Cusimanse architecture](docs/architecture/cusimanse-architecture.svg)
@@ -26,6 +30,7 @@
 - [Evidence and reproducibility](#evidence-and-reproducibility)
 - [Reference experiments](#reference-experiments)
 - [Validation and integration testing](#validation-and-integration-testing)
+- [Credits and open source community](#credits-and-open-source-community)
 - [Repository map](#repository-map)
 
 ## What Cusimanse is
@@ -316,6 +321,19 @@ cusimanse integration-test
 ```
 
 Integration covers Go control-plane tests, project/contract/recipe validation, policy decisions, host toolchain declarations, gateway/observability configuration, Goose recipe validation, prompt/adapter handoff, role/Skill registries, capability resolution, session/evidence hashing and learning guards. Set `CUSIMANSE_RUN_VM_TEST=1` for the optional disposable Lima/QEMU smoke test.
+
+## Credits and open source community
+
+Cusimanse builds on the work of the broader open-source community. **Thank you to all the maintainers, contributors, reviewers, documentation authors and community members who make these projects possible.**
+
+Special thanks to the communities developing and maintaining:
+
+- **[goose](https://github.com/aaif-goose/goose)** — the open-source agent and native reference operator used by Cusimanse.
+- **[Agentic AI Foundation (AAIF)](https://github.com/aaif-goose)** — the open community and foundation ecosystem around goose and agentic AI infrastructure.
+- **[Numbat](https://github.com/perplexityai/numbat)** — agent observability and research tooling that informs the Cusimanse observability model.
+- **[Lima](https://github.com/lima-vm/lima)** — disposable Linux VM infrastructure used for the Cusimanse execution boundary.
+
+Cusimanse is grateful to these projects and to the wider open-source security, AI-agent, virtualization and observability communities. Please follow the upstream projects' contribution guidelines when reporting issues or contributing changes.
 
 ## Repository map
 
