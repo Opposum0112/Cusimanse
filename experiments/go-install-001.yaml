@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=../schemas/experiment.schema.json
+apiVersion: cusimanse.dev/v1
+kind: Experiment
+metadata:
+  id: go-install-001
+  title: Pinned Go install baseline
+spec:
+  question: Observe a pinned Go module install inside disposable Linux compute.
+  hostPrep: default
+  roles: [operator, verifier, reporter]
+  scope:
+    include: [disposable-linux-vm, pinned-go-module]
+    exclude: [host-execution, credentials, extra-mounts, agent-escape]
+  requirements:
+    execution: disposable
+    os: linux
+    workload: go-install
+    network: localhost-only
+    instrumentation: [process, syscall, filesystem, network]
+  policyChecks: [vm, network, mounts]
+  acceptance:
+    - resolve binds go-install handler
+    - install runs only in the guest
+    - evidence hashed before destroy
+  operator: goose
+  observability:
+    host: [clawmetry, goose-logs, token-usage]
+    experiment: [session, evidence-hash]

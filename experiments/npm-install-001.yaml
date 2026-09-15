@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=../schemas/experiment.schema.json
+apiVersion: cusimanse.dev/v1
+kind: Experiment
+metadata:
+  id: npm-install-001
+  title: Pinned npm install baseline
+spec:
+  question: Observe a pinned lodash install in a disposable Linux VM with lifecycle scripts disabled.
+  hostPrep: default
+  roles: [operator, verifier, reporter]
+  scope:
+    include: [disposable-linux-vm, pinned-local-npm, ignore-scripts]
+    exclude: [host-execution, credentials, extra-mounts, postinstall-payloads, agent-escape]
+  requirements:
+    execution: disposable
+    os: linux
+    workload: npm-install
+    network: localhost-only
+    instrumentation: [process, syscall, filesystem, network]
+  policyChecks: [vm, network, mounts]
+  acceptance:
+    - resolve binds linux disposable host and npm-install handler
+    - lodash@4.17.21 installed with --ignore-scripts in the guest
+    - evidence hashed before destroy
+  operator: goose
+  observability:
+    host: [clawmetry, goose-logs, token-usage]
+    experiment: [session, evidence-hash, numbat]

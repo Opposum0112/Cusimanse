@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=../schemas/experiment.schema.json
+apiVersion: cusimanse.dev/v1
+kind: Experiment
+metadata:
+  id: npm-threat-001
+  title: Controlled npm lifecycle fixture
+spec:
+  question: Observe a local postinstall marker and localhost connect attempt in disposable compute.
+  hostPrep: default
+  roles: [operator, verifier, reporter]
+  scope:
+    include: [disposable-linux-vm, local-fixture]
+    exclude: [host-execution, credentials, public-registry, extra-mounts, agent-escape]
+  requirements:
+    execution: disposable
+    os: linux
+    workload: npm-threat
+    network: localhost-only
+    instrumentation: [process, syscall, filesystem, network]
+  policyChecks: [vm, network, credentials, mounts]
+  acceptance:
+    - fixture runs only in the guest
+    - marker and localhost probe are observed when instrumentation is deployed
+    - evidence hashed before destroy
+  operator: goose
+  observability:
+    host: [clawmetry, goose-logs, token-usage]
+    experiment: [session, evidence-hash, numbat]

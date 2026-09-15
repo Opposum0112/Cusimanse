@@ -1,0 +1,154 @@
+id: https://cusimanse.dev/schema/agentic-native
+name: cusimanse
+description: Contract language for Goose-driven Cusimanse experiments.
+prefixes:
+  cusimanse: https://cusimanse.dev/schema/
+default_range: string
+
+enums:
+  Execution:
+    permissible_values:
+      disposable: {}
+  OS:
+    permissible_values:
+      linux: {}
+      macos: {}
+  Workload:
+    permissible_values:
+      npm-install:
+        description: Pinned npm install with lifecycle hooks disabled
+      npm-lifecycle:
+        description: Controlled local lifecycle execution
+      npm-threat:
+        description: Controlled local lifecycle fixture
+      go-install:
+        description: Pinned Go module install in disposable guest
+  Network:
+    permissible_values:
+      localhost-only: {}
+      none: {}
+      controlled: {}
+  PolicyCheck:
+    permissible_values:
+      vm: {}
+      network: {}
+      credentials: {}
+      mounts: {}
+  Operator:
+    permissible_values:
+      goose: {}
+      cli: {}
+  HostPrepId:
+    permissible_values:
+      default: {}
+      none: {}
+  RoleId:
+    permissible_values:
+      operator: {}
+      verifier: {}
+      reporter: {}
+  HostPrepCategory:
+    permissible_values:
+      essential: {}
+      observability: {}
+      gateway: {}
+      compute: {}
+
+classes:
+  Experiment:
+    tree_root: true
+    description: Researcher contract instance. Values only; no Lima or npm argv.
+    slots:
+      - apiVersion
+      - kind
+      - metadata
+      - spec
+  Metadata:
+    slots: [id, title]
+  Spec:
+    slots:
+      - question
+      - hostPrep
+      - roles
+      - scope
+      - requirements
+      - policyChecks
+      - acceptance
+      - operator
+      - observability
+  Scope:
+    slots: [include, exclude]
+  Requirements:
+    slots: [execution, os, workload, network, instrumentation]
+  Observability:
+    slots: [host, experiment]
+
+slots:
+  apiVersion:
+    required: true
+    equals_string: cusimanse.dev/v1
+  kind:
+    required: true
+    equals_string: Experiment
+  metadata:
+    range: Metadata
+    required: true
+  spec:
+    range: Spec
+    required: true
+  id:
+    required: true
+    pattern: '^[a-z0-9-]+$'
+  title:
+    required: true
+  question:
+    required: true
+  hostPrep:
+    range: HostPrepId
+    required: true
+  roles:
+    range: RoleId
+    multivalued: true
+    required: true
+  scope:
+    range: Scope
+    required: true
+  include:
+    multivalued: true
+  exclude:
+    multivalued: true
+    required: true
+  requirements:
+    range: Requirements
+    required: true
+  execution:
+    range: Execution
+    required: true
+  os:
+    range: OS
+    required: true
+  workload:
+    range: Workload
+    required: true
+  network:
+    range: Network
+    required: true
+  instrumentation:
+    multivalued: true
+    required: true
+  policyChecks:
+    range: PolicyCheck
+    multivalued: true
+    required: true
+  acceptance:
+    multivalued: true
+    required: true
+  operator:
+    range: Operator
+    required: true
+  observability:
+    range: Observability
+  host:
+    multivalued: true
+  experiment:
+    multivalued: true
