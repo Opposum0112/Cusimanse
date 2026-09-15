@@ -13,6 +13,8 @@
 >
 > Cusimanse is actively being developed. **Fork it, test it, run the reference experiments, report bugs, and submit pull requests.** Expect APIs, recipes, documentation and integrations to evolve during beta.
 
+> **AI use and responsible contribution:** Cusimanse uses AI-assisted development and agentic AI as part of its research framework, documentation, analysis workflows and engineering process. AI-generated or AI-assisted output is not automatically authoritative, secure, correct, original or suitable for production use. Contributors are responsible for reviewing, testing and validating AI-assisted changes before submission. Do not rely on an AI system as the sole authority for security decisions, authorization, evidence interpretation or safety-critical actions. Use Cusimanse only for authorized research, respect applicable laws and policies, protect credentials and sensitive data, and keep execution within the project's declared policy and disposable-compute boundaries. Contributions should clearly identify material AI assistance where appropriate, preserve human accountability, and follow the repository's tests, review requirements and responsible-use expectations.
+
 **Declarative, agent-operated security research on disposable compute.** Researchers declare intent and requirements; agents plan, select and analyze; the Go capability API and policy decide whether and how execution may occur.
 
 ![Cusimanse architecture](docs/architecture/cusimanse-architecture.svg)
