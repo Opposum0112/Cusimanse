@@ -1,0 +1,51 @@
+export { compileRecipe, RecipeValidationError } from "./compiler/index.js";
+export type { RecipeCompiler } from "./compiler/index.js";
+export {
+  evaluateContractIntent,
+  isEvidenceSealed,
+  listEvidenceKinds,
+  countProposedOperations,
+} from "./contract/index.js";
+export type { ContractDecision, ContractDenyCode } from "./contract/index.js";
+export type {
+  CapabilityIntent,
+  CusimanseIR,
+  ExperimentRecipe,
+  ResearchContract,
+  ResearchQuestion,
+  ResearchScope,
+  EvidenceRequirement,
+  StopConditions,
+  DestroyPolicy,
+  EvidenceKind,
+} from "./ir/index.js";
+export { planExecution, buildDependencyGraph, getReadyIntents, PlannerError } from "./planner/index.js";
+export { CapabilityRegistry, createCapabilityRegistry, CapabilityResolutionError } from "./capabilities/index.js";
+export type { CapabilityDescriptor, ResolvedCapability } from "./capabilities/index.js";
+export { PolicyEngine, ApprovalManager, PolicyError } from "./policy/index.js";
+export type { PolicyRule, PolicyDecision, PolicyContext, PolicyEvaluation } from "./policy/index.js";
+export { OperationEngine, OperationError } from "./operations/index.js";
+export type { Operation, OperationResult } from "./operations/index.js";
+export { AdapterRegistry } from "./adapters/index.js";
+export { EvidenceCollector } from "./evidence/index.js";
+export { createResearchState, appendEvent, transitionPhase } from "./state/index.js";
+export type { ResearchState } from "./state/index.js";
+export { RuntimeOrchestrator } from "./runtime/index.js";
+export type { RuntimeDependencies, RuntimeCycleResult } from "./runtime/index.js";
+export { DisposableResearchWorkflow } from "./runtime/workflow.js";
+export {
+  reasoningProposalSchema,
+  VercelAIReasoner,
+} from "./llm/index.js";
+export type { ReasoningProposal, Reasoner, VercelAIReasonerOptions } from "./llm/index.js";
+export { CARGateway } from "./gateway/server.js";
+export type { ResearchSession, CARGatewayOptions } from "./gateway/server.js";
+export type {
+  OperatorProposalRequest,
+  OperatorStateResponse,
+  OperatorEvidenceResponse,
+  OperatorIntentResponse,
+  OperatorPort,
+} from "./gateway/contracts.js";
+export { createLab, LabError } from "./lab/index.js";
+export type { CreateLabOptions, LabHandle } from "./lab/index.js";
