@@ -22,24 +22,9 @@ export class RuntimeOrchestrator {
       const intent = ir.intents.find((candidate) => candidate.id === intentId) as CapabilityIntent;
       const contractDecision = evaluateContractIntent(ir, intent, state);
       if (!contractDecision.allowed) {
-        const denied: Operation = {
-          id: `op_${crypto.randomUUID()}`,
-          experimentId: ir.experimentId,
-          intentId: intent.id,
-          kind: "contract",
-          capability: intent.capability,
-          parameters: intent.parameters,
-          requiresApproval: false,
-        };
-        this.deps.operations.register(denied);
-        this.deps.operations.deny(denied.id);
-        state = appendEvent(state, {
-          id: `evt-${crypto.randomUUID()}`,
-          type: "operation.proposed",
-          experimentId: ir.experimentId,
-          timestamp: new Date().toISOString(),
-          payload: { operation: denied, contract: contractDecision },
-        });
+        const denied: Operation = { id: `op_${crypto.randomUUID()}`, experimentId: ir.experimentId, intentId: intent.id, kind: "contract", capability: intent.capability, parameters: intent.parameters, requiresApproval: false };
+        this.deps.operations.register(denied); this.deps.operations.deny(denied.id);
+        state = appendEvent(state, { id: `evt-${crypto.randomUUID()}`, type: "operation.proposed", experimentId: ir.experimentId, timestamp: new Date().toISOString(), payload: { operation: denied, contract: contractDecision } });
         continue;
       }
       const resolved = this.deps.capabilities.resolve(intent.capability, intent.parameters);
@@ -51,27 +36,16 @@ export class RuntimeOrchestrator {
       this.deps.operations.register(operation);
       state = appendEvent(state, { id: `evt-${crypto.randomUUID()}`, type: "operation.proposed", experimentId: ir.experimentId, timestamp: new Date().toISOString(), payload: { operation, policy: evaluation, contract: contractDecision } });
       if (evaluation.decision === "deny") { this.deps.operations.deny(operation.id); continue; }
-      if (evaluation.decision === "approval-required") {
-        const approval = this.deps.approvals.request(context); this.deps.operations.authorize(operation, false); pendingApprovalIds.push(approval.id);
-        state = appendEvent(state, { id: `evt-${crypto.randomUUID()}`, type: "approval.requested", experimentId: ir.experimentId, timestamp: new Date().toISOString(), payload: { approval, operationId: operation.id } }); continue;
-      }
+      if (evaluation.decision === "approval-required") { const approval = this.deps.approvals.request(context); this.deps.operations.authorize(operation, false); pendingApprovalIds.push(approval.id); state = appendEvent(state, { id: `evt-${crypto.randomUUID()}`, type: "approval.requested", experimentId: ir.experimentId, timestamp: new Date().toISOString(), payload: { approval, operationId: operation.id } }); continue; }
       this.deps.operations.authorize(operation, true);
       state = transitionPhase(state, "executing", "operation.started", { operationId: operation.id });
       const result = await this.deps.adapters.resolve(operation.capability).execute({ experimentId: operation.experimentId, operationId: operation.id }, operation.parameters);
       if (result.status === "succeeded") {
-        this.deps.operations.succeed(operation.id);
-        executedOperationIds.push(operation.id);
-        completed.add(intent.id);
-        const newEvidence = (result.evidenceRefs ?? []).map((uri) => ({
-          id: `ev_${crypto.randomUUID()}`,
-          kind: "artifact" as const,
-          uri,
-          metadata: { source: operation.capability },
-        }));
+        this.deps.operations.succeed(operation.id); executedOperationIds.push(operation.id); completed.add(intent.id);
+        const newEvidence = (result.evidenceRefs ?? []).map((uri) => ({ id: `ev_${crypto.randomUUID()}`, kind: "artifact" as const, uri, metadata: { source: operation.capability } }));
         if (newEvidence.length) state = { ...state, evidence: [...state.evidence, ...newEvidence] };
         state = appendEvent(state, { id: `evt-${crypto.randomUUID()}`, type: "operation.succeeded", experimentId: ir.experimentId, timestamp: new Date().toISOString(), payload: { operationId: operation.id, evidenceRefs: result.evidenceRefs } });
-      }
-      else { this.deps.operations.fail(operation.id); state = appendEvent(state, { id: `evt-${crypto.randomUUID()}`, type: "operation.failed", experimentId: ir.experimentId, timestamp: new Date().toISOString(), payload: { operationId: operation.id, error: result.error } }); }
+      } else { this.deps.operations.fail(operation.id); state = appendEvent(state, { id: `evt-${crypto.randomUUID()}`, type: "operation.failed", experimentId: ir.experimentId, timestamp: new Date().toISOString(), payload: { operationId: operation.id, error: result.error } }); }
     }
     state = transitionPhase(state, "observing", "observation.recorded", { source: "runtime", data: { executedOperationIds, pendingApprovalIds } });
     if (this.deps.reasoner) proposals.push(await this.deps.reasoner.reason(state));
@@ -79,3 +53,13 @@ export class RuntimeOrchestrator {
     return { state, proposals, executedOperationIds, pendingApprovalIds };
   }
 }
+
+export { LocalExecutionRuntime } from "./local.js";
+export { TemporalExecutionRuntime } from "./temporal.js";
+export type { TemporalWorkflowDriver } from "./temporal.js";
+export { GraphExecutionRuntime } from "./graph.js";
+export type { GraphWorkflowDriver } from "./graph.js";
+export { ExecutionRuntimeRegistry } from "./types.js";
+export type { ExecutionRuntime, RuntimeContext } from "./types.js";
+export { DisposableResearchWorkflow } from "./workflow.js";
+export type { RuntimeDependencies, RuntimeCycleResult } from "./index.js";
