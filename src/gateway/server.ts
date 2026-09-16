@@ -13,11 +13,14 @@ export type RuntimeFactory = (ir: CusimanseIR) => Promise<RuntimeOrchestrator>;
 
 export class CARGateway implements ResearchSessionPort {
   private readonly sessions = new Map<string, ResearchSession>();
+  private readonly sessionRuntimes = new Map<string, RuntimeOrchestrator>();
   constructor(private readonly runtime?: RuntimeOrchestrator, private readonly runtimeFactory?: RuntimeFactory) {}
 
-  register(session: ResearchSession): void {
+  register(session: ResearchSession, runtime: RuntimeOrchestrator = this.runtime as RuntimeOrchestrator): void {
     if (this.sessions.has(session.ir.experimentId)) throw new Error(`Research session already registered: ${session.ir.experimentId}`);
+    if (!runtime) throw new Error("Execution runtime is not configured for this gateway.");
     this.sessions.set(session.ir.experimentId, session);
+    this.sessionRuntimes.set(session.ir.experimentId, runtime);
   }
   hasSession(experimentId: string): boolean { return this.sessions.has(experimentId); }
 
@@ -27,7 +30,7 @@ export class CARGateway implements ResearchSessionPort {
     const runtime = this.runtime ?? (this.runtimeFactory ? await this.runtimeFactory(ir) : undefined);
     if (!runtime) throw new Error("Execution runtime is not configured for this gateway.");
     const state = createResearchState(ir.experimentId);
-    this.register({ ir, state });
+    this.register({ ir, state }, runtime);
     return { experimentId: ir.experimentId, state };
   }
 
@@ -44,7 +47,7 @@ export class CARGateway implements ResearchSessionPort {
     if (!session) throw new Error(`Unknown research session: ${request.experimentId}`);
     const proposal = reasoningProposalSchema.parse(request.proposal);
     if (proposal.complete) return { experimentId: request.experimentId, accepted: false, proposal };
-    const runtime = this.runtime;
+    const runtime = this.sessionRuntimes.get(request.experimentId);
     if (!runtime) throw new Error("Execution runtime is not configured for this gateway.");
     if (!proposal.capability) throw new Error("Proposal capability is required for CAR execution.");
     const intent = { id: `op-${crypto.randomUUID()}`, capability: proposal.capability, parameters: proposal.parameters ?? {}, dependsOn: [] };
