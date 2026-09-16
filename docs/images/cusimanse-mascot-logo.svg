@@ -1,1 +1,35 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-labelledby="title desc"><title id="title">Cusimanse mascot and logo</title><desc id="desc">A friendly otter security researcher beside the Cusimanse wordmark and shield mark.</desc><defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#1d4ed8"/><stop offset="1" stop-color="#06b6d4"/></linearGradient></defs><rect width="720" height="300" rx="32" fill="#f7fbff"/><circle cx="120" cy="155" r="108" fill="#e0f2fe"/><path d="M72 221c-26-29-28-71-10-101 9-15 26-25 44-24 19 1 34 13 43 29 18 31 16 73-7 100-24 17-55 24-82 15-20-7-35-18-44-34z" fill="#8b5e3c"/><ellipse cx="108" cy="105" rx="48" ry="44" fill="#b8794f"/><ellipse cx="108" cy="113" rx="35" ry="31" fill="#f6dfc7"/><circle cx="91" cy="103" r="5" fill="#102a43"/><circle cx="125" cy="103" r="5" fill="#102a43"/><path d="M103 116q7 7 14 0" fill="none" stroke="#102a43" stroke-width="4" stroke-linecap="round"/><path d="M75 82q-12-25 7-37 17 5 22 27M141 82q12-25-7-37-17 5-22 27" fill="#8b5e3c"/><path d="M70 142h76l18 77H52z" fill="#102a43"/><path d="M102 153l17 13-17 22-17-22z" fill="url(#g)"/><path d="M80 219c-10 25-28 36-43 29-15-7-12-24 4-39" fill="none" stroke="#8b5e3c" stroke-width="20" stroke-linecap="round"/><path d="M178 104l53 20v52c0 43-31 63-53 73-22-10-53-30-53-73v-52z" fill="#102a43"/><path d="M178 119l38 14v43c0 30-20 46-38 56-18-10-38-26-38-56v-43z" fill="url(#g)"/><path d="M178 143l19 19-19 31-19-31z" fill="#fff" opacity=".95"/><text x="275" y="137" font-family="Arial,sans-serif" font-size="58" font-weight="800" fill="#102a43">Cusimanse</text><text x="279" y="178" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#1d4ed8">Explore. Experiment. Verify. Learn.</text><text x="279" y="211" font-family="Arial,sans-serif" font-size="16" fill="#486581">Declarative • Agent-neutral • Isolated • Observable • Verifiable</text><text x="279" y="238" font-family="Arial,sans-serif" font-size="16" fill="#486581">Security research amplified by AI agents.</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-labelledby="title desc">
+  <title id="title">Cusimanse mascot and logo</title>
+  <desc id="desc">A watchful African cusimanse beside the Cusimanse wordmark and research shield.</desc>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#0F766E"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="fur" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#C48454"/>
+      <stop offset="1" stop-color="#7A4A2A"/>
+    </linearGradient>
+  </defs>
+  <rect width="720" height="300" rx="32" fill="#F4FBF8"/>
+  <circle cx="128" cy="158" r="112" fill="#D1FAE5"/>
+  <ellipse cx="128" cy="188" rx="58" ry="70" fill="url(#fur)"/>
+  <ellipse cx="128" cy="112" rx="46" ry="40" fill="#D7A06A"/>
+  <ellipse cx="148" cy="118" rx="28" ry="16" fill="#E8C39A"/>
+  <path d="M170 118c22-4 38 10 42 24-16-2-30 4-42 14-6-12-8-26 0-38z" fill="#C48454"/>
+  <circle cx="158" cy="108" r="4.5" fill="#111827"/>
+  <circle cx="159.5" cy="106.8" r="1.3" fill="#fff"/>
+  <circle cx="186" cy="132" r="4.2" fill="#111827"/>
+  <path d="M188 140c8 6 8 14 1 18" fill="none" stroke="#111827" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M96 86c-8-22 8-36 24-28 2 14-6 24-24 28z" fill="#8B5A32"/>
+  <path d="M118 78c6-20 28-24 34-8-14 6-24 16-34 8z" fill="#8B5A32"/>
+  <path d="M84 200c-18 28-46 30-58 12 18-10 34-28 48-40 8 8 12 18 10 28z" fill="#7A4A2A"/>
+  <path d="M168 214c16 22 8 40-12 42-6-16-4-30 4-42z" fill="#7A4A2A"/>
+  <path d="M200 92l52 18v54c0 44-30 64-52 74-22-10-52-30-52-74v-54z" fill="#111827"/>
+  <path d="M200 108l38 13v44c0 30-20 46-38 56-18-10-38-26-38-56v-44z" fill="url(#g)"/>
+  <path d="M200 132l18 18-18 30-18-30z" fill="#fff" opacity=".95"/>
+  <text x="278" y="132" font-family="Arial,sans-serif" font-size="58" font-weight="800" fill="#111827">Cusimanse</text>
+  <text x="282" y="174" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#0F766E">Explore. Experiment. Verify. Learn.</text>
+  <text x="282" y="208" font-family="Arial,sans-serif" font-size="16" fill="#334155">Declarative · Goose-native · Isolated · Observable · Verifiable</text>
+  <text x="282" y="236" font-family="Arial,sans-serif" font-size="16" fill="#334155">Security research on disposable compute.</text>
+</svg>
