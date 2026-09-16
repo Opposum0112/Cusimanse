@@ -6,6 +6,7 @@ import { OperationEngine, type Operation } from "../operations/index.js";
 import { AdapterRegistry } from "../adapters/index.js";
 import { appendEvent, transitionPhase, type ResearchState } from "../state/index.js";
 import type { Reasoner, ReasoningProposal } from "../llm/index.js";
+import { evaluateContractIntent } from "../contract/index.js";
 
 export interface RuntimeDependencies { capabilities: CapabilityRegistry; policy: PolicyEngine; approvals: ApprovalManager; operations: OperationEngine; adapters: AdapterRegistry; reasoner?: Reasoner; }
 export interface RuntimeCycleResult { state: ResearchState; proposals: ReasoningProposal[]; executedOperationIds: string[]; pendingApprovalIds: string[]; }
@@ -13,12 +14,34 @@ export interface RuntimeCycleResult { state: ResearchState; proposals: Reasoning
 export class RuntimeOrchestrator {
   constructor(private readonly deps: RuntimeDependencies) {}
   async run(ir: CusimanseIR, initialState: ResearchState): Promise<RuntimeCycleResult> {
-    let state = transitionPhase(initialState, "planning", "intent.planned", { count: ir.intents.length });
+    let state = transitionPhase(initialState, "planning", "intent.planned", { count: ir.intents.length, contractHash: ir.contract.hash });
     const plan = planExecution(ir);
     const completed = new Set<string>(); const proposals: ReasoningProposal[] = [];
     const executedOperationIds: string[] = []; const pendingApprovalIds: string[] = [];
     for (const intentId of plan.orderedIntentIds) {
       const intent = ir.intents.find((candidate) => candidate.id === intentId) as CapabilityIntent;
+      const contractDecision = evaluateContractIntent(ir, intent, state);
+      if (!contractDecision.allowed) {
+        const denied: Operation = {
+          id: `op_${crypto.randomUUID()}`,
+          experimentId: ir.experimentId,
+          intentId: intent.id,
+          kind: "contract",
+          capability: intent.capability,
+          parameters: intent.parameters,
+          requiresApproval: false,
+        };
+        this.deps.operations.register(denied);
+        this.deps.operations.deny(denied.id);
+        state = appendEvent(state, {
+          id: `evt-${crypto.randomUUID()}`,
+          type: "operation.proposed",
+          experimentId: ir.experimentId,
+          timestamp: new Date().toISOString(),
+          payload: { operation: denied, contract: contractDecision },
+        });
+        continue;
+      }
       const resolved = this.deps.capabilities.resolve(intent.capability, intent.parameters);
       const operationKind = resolved.descriptor.operationKinds[0];
       if (!operationKind) throw new Error(`Capability has no operation kind: ${intent.capability}`);
@@ -26,7 +49,7 @@ export class RuntimeOrchestrator {
       const evaluation = this.deps.policy.evaluate(context);
       const operation: Operation = { id: `op_${crypto.randomUUID()}`, experimentId: ir.experimentId, intentId: intent.id, kind: operationKind, capability: intent.capability, parameters: resolved.parameters, requiresApproval: evaluation.decision === "approval-required" };
       this.deps.operations.register(operation);
-      state = appendEvent(state, { id: `evt-${crypto.randomUUID()}`, type: "operation.proposed", experimentId: ir.experimentId, timestamp: new Date().toISOString(), payload: { operation, policy: evaluation } });
+      state = appendEvent(state, { id: `evt-${crypto.randomUUID()}`, type: "operation.proposed", experimentId: ir.experimentId, timestamp: new Date().toISOString(), payload: { operation, policy: evaluation, contract: contractDecision } });
       if (evaluation.decision === "deny") { this.deps.operations.deny(operation.id); continue; }
       if (evaluation.decision === "approval-required") {
         const approval = this.deps.approvals.request(context); this.deps.operations.authorize(operation, false); pendingApprovalIds.push(approval.id);
@@ -35,7 +58,19 @@ export class RuntimeOrchestrator {
       this.deps.operations.authorize(operation, true);
       state = transitionPhase(state, "executing", "operation.started", { operationId: operation.id });
       const result = await this.deps.adapters.resolve(operation.capability).execute({ experimentId: operation.experimentId, operationId: operation.id }, operation.parameters);
-      if (result.status === "succeeded") { this.deps.operations.succeed(operation.id); executedOperationIds.push(operation.id); completed.add(intent.id); state = appendEvent(state, { id: `evt-${crypto.randomUUID()}`, type: "operation.succeeded", experimentId: ir.experimentId, timestamp: new Date().toISOString(), payload: { operationId: operation.id, evidenceRefs: result.evidenceRefs } }); }
+      if (result.status === "succeeded") {
+        this.deps.operations.succeed(operation.id);
+        executedOperationIds.push(operation.id);
+        completed.add(intent.id);
+        const newEvidence = (result.evidenceRefs ?? []).map((uri) => ({
+          id: `ev_${crypto.randomUUID()}`,
+          kind: "artifact" as const,
+          uri,
+          metadata: { source: operation.capability },
+        }));
+        if (newEvidence.length) state = { ...state, evidence: [...state.evidence, ...newEvidence] };
+        state = appendEvent(state, { id: `evt-${crypto.randomUUID()}`, type: "operation.succeeded", experimentId: ir.experimentId, timestamp: new Date().toISOString(), payload: { operationId: operation.id, evidenceRefs: result.evidenceRefs } });
+      }
       else { this.deps.operations.fail(operation.id); state = appendEvent(state, { id: `evt-${crypto.randomUUID()}`, type: "operation.failed", experimentId: ir.experimentId, timestamp: new Date().toISOString(), payload: { operationId: operation.id, error: result.error } }); }
     }
     state = transitionPhase(state, "observing", "observation.recorded", { source: "runtime", data: { executedOperationIds, pendingApprovalIds } });

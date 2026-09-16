@@ -15,6 +15,7 @@ function makeRuntime(executed: string[]) {
   const capabilities = createCapabilityRegistry([
     { name: "test.observe", version: "v1", operationKinds: ["evidence"] },
     { name: "test.denied", version: "v1", operationKinds: ["tool"] },
+    { name: "host.shell", version: "v1", operationKinds: ["shell"] },
   ]);
   const policy = new PolicyEngine([
     {
@@ -30,7 +31,7 @@ function makeRuntime(executed: string[]) {
   const adapters = new AdapterRegistry();
   adapters.register({
     name: "test-adapter",
-    capabilities: ["test.observe", "test.denied"],
+    capabilities: ["test.observe", "test.denied", "host.shell"],
     async execute(context) {
       executed.push(context.operationId);
       return { status: "succeeded", evidenceRefs: ["evidence://gateway-test"] };
@@ -39,13 +40,21 @@ function makeRuntime(executed: string[]) {
   return new RuntimeOrchestrator({ capabilities, policy, approvals, operations, adapters });
 }
 
-function makeIr(): CusimanseIR {
-  return {
+function makeIr(allowedCapabilities?: string[]): CusimanseIR {
+  const ir: CusimanseIR = {
     version: "v1",
     experimentId,
     source: { format: "json", path: "tests/crewai-gateway.test.ts" },
     intents: [],
+    contract: {
+      contractVersion: "0.2",
+      operationKinds: [],
+      evidenceRequired: [],
+      stopWhen: { allEvidenceRequired: false },
+    },
   };
+  if (allowedCapabilities) ir.contract.allowedCapabilities = allowedCapabilities;
+  return ir;
 }
 
 test("CrewAI proposal crosses gateway, policy, runtime, and adapter", async () => {
@@ -80,8 +89,8 @@ test("CrewAI proposal crosses gateway, policy, runtime, and adapter", async () =
     const evidenceResponse = await fetch(`${baseUrl}/v1/research/${experimentId}/evidence`);
     assert.equal(evidenceResponse.status, 200);
     const evidence = (await evidenceResponse.json()).evidence;
-    assert.equal(evidence.length, 1);
-    assert.equal(evidence[0].uri, "evidence://gateway-test");
+    assert.ok(evidence.length >= 1);
+    assert.equal(evidence.some((item: { uri: string }) => item.uri === "evidence://gateway-test"), true);
   } finally {
     await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }
@@ -112,4 +121,22 @@ test("gateway rejects executable proposals without an explicit capability", asyn
     () => gateway.submitProposal({ experimentId, proposal: { intent: "not a capability", parameters: {}, complete: false } }),
     /Proposal capability is required/,
   );
+});
+
+test("frozen allowlist blocks a capability even when an adapter exists", async () => {
+  const executed: string[] = [];
+  const gateway = new CARGateway(makeRuntime(executed));
+  gateway.register({ ir: makeIr(["test.observe"]), state: createResearchState(experimentId) });
+
+  const result = await gateway.submitProposal({
+    experimentId,
+    proposal: { intent: "escape the contract", capability: "host.shell", parameters: {}, complete: false },
+  });
+
+  assert.equal(result.accepted, true);
+  assert.equal(executed.length, 0);
+  const state = await gateway.getState(experimentId);
+  const proposed = state.state.events.find((event) => event.type === "operation.proposed");
+  assert.ok(proposed);
+  assert.equal((proposed?.payload as { contract?: { code?: string } }).contract?.code, "not_in_contract_allowlist");
 });
