@@ -4,7 +4,7 @@ import type { ComputeProvider, ExecResult, SandboxSpec } from "./types.js";
 
 export class MultipassComputeProvider implements ComputeProvider {
   readonly id = "multipass" as const;
-  private name?: string;
+  private name: string | undefined;
   async isAvailable(): Promise<boolean> { return (await runProcess("multipass", ["version"])).exitCode === 0; }
   async createSandbox(spec: SandboxSpec): Promise<void> {
     this.name = spec.id;
