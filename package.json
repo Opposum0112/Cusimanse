@@ -9,7 +9,8 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
-    "./gateway": { "types": "./dist/gateway/server.d.ts", "import": "./dist/gateway/server.js" }
+    "./gateway": { "types": "./dist/gateway/server.d.ts", "import": "./dist/gateway/server.js" },
+    "./mcp": { "types": "./dist/mcp/index.d.ts", "import": "./dist/mcp/index.js" }
   },
   "files": ["dist", "recipes", "labs", "skills", "schema", "README.md"],
   "scripts": {
@@ -17,6 +18,7 @@
     "typecheck": "tsc --noEmit",
     "test": "npm run build && tsx --test \"tests/**/*.test.ts\"",
     "cli": "npm run build && node dist/bin/cli.js",
+    "mcp": "npm run build && node dist/bin/cli.js mcp",
     "lab:npm-install": "npm run build && node dist/bin/serve-npm-install-lab.js"
   },
   "dependencies": {
