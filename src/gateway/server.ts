@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import type { RuntimeOrchestrator } from "../runtime/index.js";
 import type { CusimanseIR } from "../ir/index.js";
 import type { ResearchState } from "../state/index.js";
-import { reasoningProposalSchema } from "../llm/index.js";
+import { reasoningProposalSchema, type ReasoningProposal } from "../llm/index.js";
 import type { OperatorPort } from "./contracts.js";
 
 export interface ResearchSession {
@@ -87,8 +87,9 @@ export class CARGateway implements OperatorPort {
       if (request.method === "GET" && action === "evidence") return this.json(response, 200, await this.getEvidence(experimentId));
       if (request.method === "POST" && action === "proposals") {
         const body = await readJson(request);
-        if (!isProposalBody(body)) return this.json(response, 400, { error: "Request body must contain a proposal object." });
-        return this.json(response, 200, await this.submitProposal({ experimentId, proposal: body.proposal }));
+        const proposal = parseProposalBody(body);
+        if (!proposal) return this.json(response, 400, { error: "Request body must contain a proposal object." });
+        return this.json(response, 200, await this.submitProposal({ experimentId, proposal }));
       }
       return this.json(response, 405, { error: "Method not allowed" });
     } catch (error) {
@@ -104,8 +105,10 @@ export class CARGateway implements OperatorPort {
   }
 }
 
-function isProposalBody(value: unknown): value is { proposal: unknown } {
-  return typeof value === "object" && value !== null && "proposal" in value;
+function parseProposalBody(value: unknown): ReasoningProposal | undefined {
+  if (typeof value !== "object" || value === null || !("proposal" in value)) return undefined;
+  const parsed = reasoningProposalSchema.safeParse((value as { proposal: unknown }).proposal);
+  return parsed.success ? parsed.data : undefined;
 }
 
 function readJson(request: IncomingMessage): Promise<unknown> {
