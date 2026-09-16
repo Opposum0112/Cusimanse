@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/Opposum0112/Cusimanse/probe/internal/probe"
+	"github.com/Opposum0112/Cusimanse/probe/probe/internal/probe"
 )
 
 func main() {
