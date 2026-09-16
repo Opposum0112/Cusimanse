@@ -1,29 +1,19 @@
-# CAR Skill Registry
+# CAR skill registry
 
-The skill registry is a framework-neutral vocabulary for security-research capabilities consumed by agent integrations such as CrewAI.
-
-A skill describes **what research capability an agent may request**. It does not grant execution authority.
+Framework-neutral vocabulary. A skill names a capability and the **roles** that may request it. It does not execute.
 
 ```text
-Agent / Crew
-    ↓
-Skill Registry
-    ↓
-Declarative intent
-    ↓
-CAR capability resolution
-    ↓
-Policy + approval
-    ↓
-Operation + adapter
+role → skill id → capability → proposal → CAR
 ```
 
-## Rules
+Rules:
 
-- Skills reference CAR capabilities; they do not contain shell commands.
-- Skills do not contain credentials or policy overrides.
-- CrewAI agents should select skills rather than directly invoking host tools.
-- CAR remains authoritative for validation, authorization and execution.
-- New agent frameworks can reuse the same registry vocabulary.
+- No shell, credentials, or policy overrides in this file.
+- Any harness reads `registry.yaml`; none own it.
+- CAR policy and the experiment allowlist still decide execution.
 
-See `registry.yaml` for the initial skill catalog and `crewai/README.md` for CrewAI consumption guidance.
+| Skill | Capability | Roles |
+|---|---|---|
+| process-observation | evidence.collect | researcher, forensics-analyst, detection-engineer |
+| network-observation | network.observe | network-researcher, detection-engineer, threat-researcher |
+| npm-install-research | workload.npm.install | supply-chain-researcher, threat-researcher |
