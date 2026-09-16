@@ -28,6 +28,8 @@ export { OperationEngine, OperationError } from "./operations/index.js";
 export type { Operation, OperationResult } from "./operations/index.js";
 export { AdapterRegistry } from "./adapters/index.js";
 export type { Adapter, AdapterContext, AdapterExecutionResult } from "./adapters/index.js";
+export { ComputeProviderRegistry, ComputeProviderError, MockComputeProvider } from "./adapters/compute/index.js";
+export type { ComputeProvider, SandboxSpec, ExecResult } from "./adapters/compute/index.js";
 export {
   LimaLifecycle,
   validateLimaProfile,
@@ -50,6 +52,8 @@ export type { ResearchState } from "./state/index.js";
 export { RuntimeOrchestrator } from "./runtime/index.js";
 export type { RuntimeDependencies, RuntimeCycleResult } from "./runtime/index.js";
 export { DisposableResearchWorkflow } from "./runtime/workflow.js";
+export { LocalExecutionRuntime, TemporalExecutionRuntime, GraphExecutionRuntime, ExecutionRuntimeRegistry } from "./runtime/index.js";
+export type { ExecutionRuntime, RuntimeContext, TemporalWorkflowDriver, GraphWorkflowDriver } from "./runtime/index.js";
 export {
   reasoningProposalSchema,
   VercelAIReasoner,
