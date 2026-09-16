@@ -16,6 +16,14 @@ enums:
       file: {}
       network: {}
       evidence: {}
+  EvidenceKind:
+    permissible_values:
+      file: {}
+      network: {}
+      process: {}
+      log: {}
+      artifact: {}
+      other: {}
 
 classes:
   CapabilityIntent:
@@ -43,6 +51,10 @@ classes:
       question:
         range: string
         required: true
+      non_goals:
+        range: string
+        multivalued: true
+        description: Explicitly out-of-scope actions the agent must not pursue.
 
   ResearchScope:
     attributes:
@@ -55,10 +67,40 @@ classes:
       hosts:
         range: string
         multivalued: true
+      compute:
+        range: JsonObject
+      egress:
+        range: JsonObject
+
+  EvidenceRequirement:
+    attributes:
+      type:
+        range: EvidenceKind
+        required: true
+      produced_by:
+        range: string
+
+  StopConditions:
+    attributes:
+      all_evidence_required:
+        range: boolean
+      max_proposals:
+        range: integer
+      max_lifetime_minutes:
+        range: integer
+
+  DestroyPolicy:
+    attributes:
+      capability:
+        range: string
+        required: true
+      require_evidence_sealed:
+        range: boolean
+        required: true
 
   ExperimentRecipe:
     tree_root: true
-    description: LinkML-governed security-research contract consumed by CAR.
+    description: Frozen security-research contract consumed by CAR.
     attributes:
       api_version:
         range: string
@@ -70,18 +112,31 @@ classes:
         identifier: true
         range: string
         required: true
+      contract_version:
+        range: string
       description:
         range: string
       research_question:
         range: ResearchQuestion
       scope:
         range: ResearchScope
+      allowed_capabilities:
+        range: string
+        multivalued: true
+        description: Capabilities legal for this experiment. Omitted means no extra allowlist gate.
       intents:
         range: CapabilityIntent
         multivalued: true
       operation_kinds:
         range: OperationKind
         multivalued: true
+      evidence_required:
+        range: EvidenceRequirement
+        multivalued: true
+      stop_when:
+        range: StopConditions
+      destroy:
+        range: DestroyPolicy
 
 slots:
   JsonObject:

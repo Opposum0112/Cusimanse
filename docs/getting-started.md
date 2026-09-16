@@ -5,7 +5,7 @@ This guide is for users integrating CAR into a security-research application.
 ## Prerequisites
 
 - Node.js 22 or newer
-- A parsed YAML or JSON recipe
+- A parsed YAML or JSON **research contract** (recipe)
 - Registered CAR capabilities and adapters
 - A disposable compute provider such as Lima when the experiment requires a VM
 
@@ -19,9 +19,11 @@ npm install
 
 CAR is currently exposed as a TypeScript runtime library on this branch. There is no `cusimanse` CLI entry point yet.
 
-## Define a recipe
+## Define a contract
 
-Start with `recipes/examples/npm-install.yaml`. A recipe declares the experiment, research question, scope, operation kinds, and capability intents. Dependencies are expressed with `depends_on`.
+Start with `recipes/examples/npm-install.yaml`. That file is the experiment constitution: question, non-goals, scope, capability allowlist, planned intents, required evidence, stop conditions, and destroy rules.
+
+Read [research-contracts.md](research-contracts.md) before adding fields.
 
 ## Compile
 
@@ -34,7 +36,7 @@ const ir = compileRecipe(parsedRecipe, {
 });
 ```
 
-Compilation rejects malformed roots, missing required fields, malformed intents, and malformed dependencies before runtime execution.
+Compilation rejects malformed roots, missing required fields, malformed intents, intents outside `allowed_capabilities`, and unknown evidence kinds. A SHA-256 of the frozen clauses is stored on `ir.contract.hash`.
 
 ## Compose runtime dependencies
 
@@ -49,6 +51,8 @@ Register:
 
 Then create an initial state with `createResearchState(experimentId)` and call `RuntimeOrchestrator.run(ir, state)`.
 
+Each intent is checked against the frozen contract **before** policy. A contract deny never reaches an adapter.
+
 ## Disposable experiments
 
 For VM-backed experiments, construct `LimaLifecycle` around a `LimaProvider` implementation and use `DisposableResearchWorkflow`. The workflow owns the sequence:
@@ -57,7 +61,7 @@ For VM-backed experiments, construct `LimaLifecycle` around a `LimaProvider` imp
 create → execute → observe/evidence → return result → destroy
 ```
 
-VM destruction is placed in `finally`, so cleanup runs when runtime execution fails as well as when it succeeds.
+If the contract sets `destroy.require_evidence_sealed: true`, a `vm.destroy` *proposal* is denied until required evidence kinds exist. The workflow `finally` block still destroys the VM when the host process ends the run — that host path is not an agent capability.
 
 ## Evidence
 
@@ -75,4 +79,4 @@ The returned reference includes a SHA-256 digest, size, URI, evidence kind, expe
 
 ## Reasoning
 
-Configure `VercelAIReasoner` with a Vercel AI SDK 7 `LanguageModel` when model-assisted research planning is useful. The model receives runtime state and returns a typed proposal. Treat that proposal as untrusted data: it must go through CAR validation, planning, capability resolution, policy, approval, and operation handling before execution.
+Configure `VercelAIReasoner` with a Vercel AI SDK 7 `LanguageModel` when model-assisted research planning is useful. The model receives runtime state and returns a typed proposal. Treat that proposal as untrusted data: it must go through CAR contract evaluation, validation, planning, capability resolution, policy, approval, and operation handling before execution.

@@ -1,159 +1,190 @@
 # Cusimanse Agent Runtime (CAR)
 
-CAR is a declarative, LLM-augmented security-research runtime. A research contract is compiled into normalized IR; CAR plans dependencies, resolves registered capabilities, applies policy and approval, executes only through adapters, records observations/evidence, and controls disposable research compute.
+CAR is a **research-contract runtime** for agent-operated security labs.
 
-> **The LLM/CrewAI layer proposes research intent. CAR validates, authorizes, executes, observes, preserves evidence, and controls lifecycle.**
-
-## `crewai` branch
-
-This branch adds a **CrewAI orchestration integration** around the CAR runtime. CrewAI is intentionally outside CAR's execution authority.
+You write a YAML contract that freezes one experiment. An LLM crew (CrewAI on this branch) may **propose** the next observation. CAR is the only component that validates, authorizes, executes, records evidence, and destroys disposable compute.
 
 ```text
-CrewAI Research Crew → Shared CAR Skill Registry → declarative proposal
-                                      ↓
-                           CrewAI CAR Tool Bridge
-                                      ↓ HTTP/JSON
-                                CAR Gateway
-                                      ↓
-                    Validate → Resolve → Policy/Approval
-                                      ↓
-                             Operation Engine
-                                      ↓
-                              Adapter Registry
-                                      ↓
-                    Disposable VM / research tools
-                                      ↓
-                           Evidence + Runtime State
-                                      ↓
-                                   CrewAI
+Human writes / reviews the contract
+        ↓
+CAR compiles and freezes it          ←  law of the experiment
+        ↓
+Agent proposes {intent, capability, parameters}
+        ↓
+CAR: contract check → capability → policy → adapter → evidence
+        ↓
+Agent reads state/evidence and proposes again
+        ↓
+Stop condition or human ends the run
+        ↓
+CAR seals what it has and the host destroys the VM
 ```
 
-### Authority boundary
+## What this is — and is not
 
-| Layer | Responsibility | Execution authority |
+**This branch is**
+
+- a TypeScript control plane that compiles a research contract into IR
+- a default-deny policy + approval state machine
+- adapters for declared capabilities (Lima / workloads)
+- an optional CrewAI *client* that can only POST proposals and GET state/evidence
+
+**This branch is not**
+
+- a new multi-agent framework
+- a shell tool for CrewAI
+- a multi-tenant hosted service
+- an approval authority that the LLM can grant itself
+
+If a change gives CrewAI a second execution path (subprocess, raw VM API, credentials), it is out of scope.
+
+## Authority split
+
+| Layer | May do | May not do |
 |---|---|---|
-| CrewAI agents | reason, delegate, select skills, analyze results | No |
-| Skill registry | shared declarative research vocabulary | No |
-| CAR gateway | API boundary and proposal validation | No direct host execution |
-| CAR policy/approval | authorization decision | Yes |
-| CAR operation engine | controlled operation lifecycle | Yes |
-| CAR adapters | concrete tool/VM execution | Yes, through CAR |
-| Evidence/state | provenance and research record | CAR-owned |
-
-CrewAI should not be given a second unrestricted shell/subprocess path for the same research environment.
-
-## Architecture
-
-![CAR architecture](docs/architecture.svg)
-
-The branch-specific architecture and integration sequence are documented in [`docs/crewai-architecture.md`](docs/crewai-architecture.md).
+| CrewAI / LLM | reason, pick a skill, write a proposal, read evidence | execute, approve, destroy on its own, change policy |
+| Skill registry | name research vocabulary | grant power |
+| Contract (`recipes/*.yaml`) | declare legal capabilities, scope, evidence, stop rules | contain shell |
+| CAR runtime | authorize and run adapters | trust a proposal as a command |
 
 ```text
-Research Contract → Compiler → IR → Planner → Capability Registry
-                                                ↓
-                                        Policy + Approval
-                                                ↓
-                                        Operation Engine
-                                                ↓
-                                         Adapter Registry
-                                                ↓
-                                  Disposable Compute / Tools
-                                                ↓
-                                      Evidence + State
-                                                ↓
-                                      LLM / CrewAI reasoning
-                                                ↺ proposal
+CrewAI / LLM:  THINK → PLAN → PROPOSE → ANALYZE
+CAR:           VALIDATE → RESOLVE → AUTHORIZE → EXECUTE
+               → OBSERVE → PRESERVE → VERIFY → DESTROY
 ```
+
+## The four objects
+
+1. **Contract** — frozen experiment file. Compiled to `CusimanseIR.contract` plus a SHA-256 `hash`.
+2. **Skill** — framework-neutral name in `skills/registry.yaml` pointing at a capability.
+3. **Proposal** — JSON the agent submits. Data, not a command. Must include `capability` to execute.
+4. **Capability** — registered operation such as `network.observe`. Reaches an adapter only after the contract and policy both allow it.
+
+Details and deny codes: [`docs/research-contracts.md`](docs/research-contracts.md).
+
+## `crewai` branch wiring
+
+```text
+CrewAI Research Crew → Skill registry → typed proposal
+                                      ↓ HTTP/JSON
+                                CAR Gateway (localhost)
+                                      ↓
+                    Contract check → Resolve → Policy/Approval
+                                      ↓
+                             Operation Engine → Adapter
+                                      ↓
+                    Disposable VM / research tools → Evidence
+```
+
+Architecture notes: [`docs/crewai-architecture.md`](docs/crewai-architecture.md).
+
+## Contract shape
+
+Example (abridged from `recipes/examples/npm-install.yaml`):
+
+```yaml
+api_version: v1
+kind: ExperimentRecipe
+experiment_id: npm-install-example
+contract_version: "0.2"
+research_question:
+  id: rq-npm-install
+  question: What observable behavior occurs during npm install?
+  non_goals:
+    - Do not persist the VM after evidence is sealed.
+allowed_capabilities: [vm.create, vm.destroy, workload.npm.install, evidence.collect, network.observe]
+scope:
+  hosts: [disposable-vm]
+  paths: [/workspace]
+  networks: [declared-test-network]
+intents:
+  - id: provision-research-vm
+    capability: vm.create
+    depends_on: []
+  - id: run-npm-install
+    capability: workload.npm.install
+    parameters: { working_directory: /workspace, package_manager: npm }
+    depends_on: [provision-research-vm]
+evidence_required:
+  - { type: process, produced_by: evidence.collect }
+  - { type: network, produced_by: network.observe }
+stop_when:
+  all_evidence_required: true
+  max_proposals: 20
+destroy:
+  capability: vm.destroy
+  require_evidence_sealed: true
+```
+
+If `allowed_capabilities` is omitted, CAR does **not** apply an extra allowlist. Set it when you want the freeze to bind later agent proposals, not only the static `intents` list.
+
+Contract deny codes (before policy):
+
+- `not_in_contract_allowlist`
+- `scope_violation` (`working_directory` outside `scope.paths`)
+- `destroy_blocked_until_evidence`
+- `max_proposals_exceeded`
 
 ## Repository layout
 
 ```text
 src/
-├── compiler/                 # contract validation / normalization
-├── ir/                      # normalized research representation
-├── planner/                 # deterministic dependency ordering
-├── capabilities/            # capability registry / resolver
-├── policy/                  # authorization + approval state
-├── operations/              # controlled operation lifecycle
-├── adapters/                # execution adapters
-├── evidence/                # evidence + provenance
-├── state/                   # research state and events
-├── llm/                     # typed proposal-only LLM layer
-├── runtime/                 # orchestration
-└── integrations/crewai/     # TypeScript CAR/CrewAI gateway
+├─ compiler/          recipe → IR + contract.hash
+├─ ir/                normalized contract + intents
+├─ contract/          allowlist / scope / seal / stop checks
+├─ planner/           depends_on order
+├─ capabilities/      name registry (no execution)
+├─ policy/            allow | approval-required | deny
+├─ operations/        operation lifecycle
+├─ adapters/          Lima + workloads
+├─ evidence/          hashed artifacts
+├─ state/             events + phase
+├─ llm/               proposal-only schema
+├─ runtime/           orchestrator + disposable workflow
+└─ integrations/crewai/  HTTP gateway
 
-integrations/crewai/
-├── cusimanse_tools.py       # CrewAI-facing CAR tools
-├── requirements.txt         # Python dependencies
-└── README.md                # integration runbook
-
-skills/
-├── registry.yaml             # framework-neutral research skills
-├── README.md                 # registry contract
-└── crewai/README.md          # CrewAI role/usage guidance
-
-docs/
-├── architecture.svg
-└── crewai-architecture.md
+integrations/crewai/     Python tools (POST/GET only)
+skills/                  framework-neutral vocabulary
+recipes/examples/        contracts
+docs/research-contracts.md
 ```
 
-## Installation
-
-### 1. Clone and select the branch
+## Install
 
 ```bash
 git clone https://github.com/Opposum0112/Cusimanse.git
 cd Cusimanse
 git checkout crewai
-```
-
-### 2. Install and verify CAR
-
-CAR requires Node.js 22 or newer.
-
-```bash
 npm install
 npm run typecheck
 npm test
 ```
 
-### 3. Install the CrewAI bridge
+Node.js 22+ is required.
 
-Use an isolated Python environment:
+CrewAI bridge (optional, isolated venv):
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r integrations/crewai/requirements.txt
-```
-
-Set the CAR gateway address when using the default local gateway:
-
-```bash
 export CUSIMANSE_CAR_URL=http://127.0.0.1:8787
 ```
 
-## Running the project with CrewAI
+## Running with CrewAI
 
-The current CAR gateway is a **TypeScript library entry point**, not a standalone CLI. A host process must construct the normal `RuntimeOrchestrator`, register a compiled research session, and start `CARGateway`.
+The gateway is a **library**. A host process constructs `RuntimeOrchestrator`, compiles a contract, registers the session, and listens on loopback.
 
 ```ts
 import { CARGateway } from "./src/integrations/crewai/server.js";
 
-const runtime = /* construct the normal CAR RuntimeOrchestrator */;
+const runtime = /* normal CAR RuntimeOrchestrator */;
 const gateway = new CARGateway(runtime);
-
-gateway.register({
-  ir: /* compiled/normalized CusimanseIR */,
-  state: /* initial ResearchState */,
-});
-
+gateway.register({ ir: compiledContract, state: initialResearchState });
 gateway.listen({ host: "127.0.0.1", port: 8787 });
 ```
 
-Keep the gateway on `127.0.0.1` for local development. The prototype gateway has no authentication; remote deployment needs an authenticated/trusted service boundary.
-
-In the CrewAI Python process:
+The prototype gateway has **no authentication** and keeps sessions in memory. Do not expose it on a public interface.
 
 ```python
 from crewai import Agent
@@ -166,17 +197,15 @@ researcher = Agent(
 )
 ```
 
-See [`integrations/crewai/README.md`](integrations/crewai/README.md) for the integration runbook and [`skills/crewai/README.md`](skills/crewai/README.md) for role/skill usage.
+`CAR_TOOLS` is only `car_submit_research_proposal`, `car_get_research_state`, and `car_get_evidence`.
 
-## CAR gateway API
+## Gateway API
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| `POST` | `/v1/research/{experimentId}/proposals` | Submit one typed declarative proposal |
-| `GET` | `/v1/research/{experimentId}/state` | Read CAR research state |
-| `GET` | `/v1/research/{experimentId}/evidence` | Read collected evidence |
-
-Example:
+| `POST` | `/v1/research/{experimentId}/proposals` | Submit one typed proposal |
+| `GET` | `/v1/research/{experimentId}/state` | Read CAR state |
+| `GET` | `/v1/research/{experimentId}/evidence` | Read evidence |
 
 ```json
 {
@@ -189,49 +218,21 @@ Example:
 }
 ```
 
-A proposal is **data, not a command**. CAR validates it, resolves the declared capability, applies policy/approval, and only then reaches an adapter. Executable proposals require an explicit `capability`.
+`complete: true` is terminal and does not execute. An executable proposal without `capability` is rejected.
 
-## Shared skill registry
+## Current limitations (read this)
 
-`skills/registry.yaml` is framework-neutral. CrewAI consumes its vocabulary, but the registry is not itself a CrewAI tool implementation.
+- Gateway sessions are in-memory; there is no durable experiment database.
+- Gateway has no auth.
+- `scope` enforcement in the contract evaluator is currently `working_directory` vs `scope.paths`. Networks, hosts, and egress still need adapter/policy backing.
+- Adapter evidence is recorded as `kind: artifact` from evidence URIs. Map those to `process` / `network` / `log` in the host if you rely on `destroy.require_evidence_sealed`.
+- Approval remains a CAR control-plane concern. CrewAI cannot grant it.
+- This is an integration prototype, not a production lab platform.
 
-Current references include:
+## Tests that lock the boundary
 
-- `process-observation` → `evidence.collect`
-- `network-observation` → `network.observe`
-- `npm-install-research` → `workload.npm.install`
-
-Skills describe intent, roles, operation kinds, and expected evidence. CAR policy remains authoritative.
-
-## End-to-end flow
-
-```text
-1. User declares research contract
-2. CAR compiles contract → normalized IR
-3. CrewAI researcher selects a shared skill
-4. LLM/agent proposes typed declarative intent
-5. CrewAI CAR tool submits proposal over HTTP
-6. CAR validates proposal
-7. CAR resolves capability + plans operation
-8. CAR evaluates policy / approval
-9. Authorized operation reaches registered adapter
-10. Adapter executes inside the declared research boundary
-11. CAR records observations, evidence and provenance
-12. CrewAI reads state/evidence and proposes the next step
+```bash
+npm test
 ```
 
-For disposable experiments, the CAR workflow remains responsible for compute creation and destruction. CrewAI does not control VM lifecycle directly.
-
-## Security model
-
-```text
-CrewAI / LLM:  THINK → PLAN → PROPOSE → ANALYZE
-CAR:           VALIDATE → RESOLVE → AUTHORIZE → EXECUTE
-               → OBSERVE → PRESERVE → VERIFY → DESTROY
-```
-
-The CrewAI integration contains no arbitrary shell execution, credential access, policy mutation, or direct VM-control API.
-
-## Current scope
-
-This branch provides the CrewAI integration boundary, shared skill vocabulary, CAR HTTP gateway, Python tool bridge, and gateway integration tests. The gateway is currently an in-memory/library-oriented prototype: sessions are registered by the host process and are not a durable service database. Approval remains a CAR control-plane concern; CrewAI does not grant itself approval authority.
+Covered here: recipe compilation of the new clauses, contract deny codes, policy denial before adapters, missing capability on a proposal, and allowlist denial even when an adapter for that capability exists.

@@ -1,10 +1,16 @@
 api_version: v1
 kind: ExperimentRecipe
 experiment_id: npm-install-example
-description: Install a declared npm workload inside disposable research compute.
+contract_version: "0.2"
+description: Observe process, filesystem, and network behavior of a declared npm install on disposable compute.
 research_question:
   id: rq-npm-install
   question: What observable process, filesystem, and network behavior occurs during npm install?
+  non_goals:
+    - Do not exploit the package or the registry.
+    - Do not persist the VM after evidence is sealed.
+    - Do not access the operator workstation or credentials.
+    - Do not install packages outside the declared working directory.
 scope:
   networks:
     - declared-test-network
@@ -12,10 +18,23 @@ scope:
     - /workspace
   hosts:
     - disposable-vm
+  compute:
+    provider: lima
+    profile: research-default
+    disposable: true
+  egress:
+    mode: declared-only
+allowed_capabilities:
+  - vm.create
+  - vm.destroy
+  - workload.npm.install
+  - evidence.collect
+  - network.observe
 operation_kinds:
   - vm
   - tool
   - evidence
+  - network
 intents:
   - id: provision-research-vm
     capability: vm.create
@@ -30,3 +49,17 @@ intents:
       package_manager: npm
     depends_on:
       - provision-research-vm
+evidence_required:
+  - type: process
+    produced_by: evidence.collect
+  - type: network
+    produced_by: network.observe
+  - type: log
+    produced_by: workload.npm.install
+stop_when:
+  all_evidence_required: true
+  max_proposals: 20
+  max_lifetime_minutes: 60
+destroy:
+  capability: vm.destroy
+  require_evidence_sealed: true
