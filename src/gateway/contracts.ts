@@ -22,9 +22,24 @@ export interface OperatorIntentResponse {
   proposal: ReasoningProposal;
 }
 
+export interface OperatorSessionRequest {
+  recipe: unknown;
+}
+
+export interface OperatorSessionResponse {
+  experimentId: string;
+  state: ResearchState;
+}
+
 /** Harness-neutral operator ABI. Any agent runtime may implement this. */
 export interface OperatorPort {
   submitProposal(request: OperatorProposalRequest): Promise<OperatorIntentResponse>;
   getState(experimentId: string): Promise<OperatorStateResponse>;
   getEvidence(experimentId: string): Promise<OperatorEvidenceResponse>;
+}
+
+/** Optional lifecycle extension used by the generic Cusimanse MCP server. */
+export interface ResearchSessionPort extends OperatorPort {
+  createResearchSession(request: OperatorSessionRequest): Promise<OperatorSessionResponse>;
+  completeResearch(experimentId: string): Promise<OperatorStateResponse>;
 }
