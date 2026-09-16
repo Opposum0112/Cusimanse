@@ -1,10 +1,12 @@
 kind: cusimanse-tool-inventory
-version: 2
+version: 3
+branch_scope: goose-native
 purpose: >-
   Single declarative inventory of host, agent, control-plane, gateway,
   disposable-compute, guest-instrumentation and evidence tooling used by the
-  reference security-research stack.
+  Goose-native security-research stack.
 source_of_truth:
+  linkml_schema: schemas/cusimanse.yaml
   host_recipe: recipes/host/security-research.yaml
   gateway_recipe: recipes/gateway/mandatory.yaml
   instrumentation_recipe: recipes/instrumentation/security-research.yaml
@@ -13,6 +15,8 @@ source_of_truth:
   capability_registry: recipes/profiles/registry.yaml
   adapters: recipes/agents/adapter-matrix.yaml
   experiments: recipes/experiments/
+  goose_recipe: recipes/goose/session.yaml
+  outputs: runs/<session-id>/
 planes:
   research_agent:
     required: [goose]
@@ -25,19 +29,9 @@ planes:
     required: [lima, qemu, linux-guest]
     authority: constrained_by_go_runtime_and_policy
   gateway:
-    required:
-      - name: litellm
-        endpoint: 127.0.0.1:4000
-        role: model_gateway_and_normalization
-        access: agent_localhost
-        data: model_requests_and_routing_metadata
-        installation: scripts/install.sh
-      - name: omniroute
-        endpoint: 127.0.0.1:20128
-        role: provider_routing_and_fallback
-        access: localhost_upstream
-        data: provider-routing requests/metadata
-        installation: scripts/install.sh
+    required: [litellm, omniroute]
+    endpoints: [127.0.0.1:4000, 127.0.0.1:20128]
+    installation: scripts/install.sh
     authority: none
   instrumentation:
     scope: disposable_linux_guest
@@ -56,15 +50,15 @@ host_bootstrap:
   required_commands: [git, bash, curl, python3, node, npm, go, jq, yq, rg, goose]
   installers: [scripts/install.sh, scripts/install.ps1]
 external_boundaries:
-  host_shell: bootstrap_compatibility_and_external_tools_only
+  host_shell: bootstrap_and_external_tooling_only
   agent_shell: planning_handoff_and_analysis_only
   guest_shell: disposable_guest_execution
   go_api: authoritative_capability_boundary
 inventory_commands:
-  list: cusimanse tools list
-  versions: cusimanse tools versions
-  config: cusimanse tools config
+  capabilities: cusimanse capability list
+  resolve: cusimanse resolve <experiment-id>
   observability: cusimanse observability status
+  goose_validate: goose recipe validate recipes/goose/session.yaml
 safety:
   credentials: denied
   unrestricted_mounts: denied
@@ -73,3 +67,4 @@ safety:
   untrusted_host_execution: denied
   evidence_hashing: required
   preserve_before_destroy: required
+legacy_removed: [cmd/compile, internal/compiler]
