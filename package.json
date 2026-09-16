@@ -4,29 +4,14 @@
   "description": "Harness-neutral, composable threat-research platform for isolated agentic security experiments",
   "type": "module",
   "engines": { "node": ">=22" },
-  "bin": {
-    "cusimanse": "./dist/bin/cli.js"
-  },
+  "bin": { "cusimanse": "./dist/bin/cli.js" },
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/src/index.d.ts",
-      "import": "./dist/src/index.js"
-    },
-    "./gateway": {
-      "types": "./dist/src/gateway/server.d.ts",
-      "import": "./dist/src/gateway/server.js"
-    }
+    ".": { "types": "./dist/src/index.d.ts", "import": "./dist/src/index.js" },
+    "./gateway": { "types": "./dist/src/gateway/server.d.ts", "import": "./dist/src/gateway/server.js" }
   },
-  "files": [
-    "dist",
-    "recipes",
-    "labs",
-    "skills",
-    "schema",
-    "README.md"
-  ],
+  "files": ["dist", "recipes", "labs", "skills", "schema", "README.md"],
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
@@ -38,6 +23,7 @@
     "@ai-sdk/anthropic": "^3.0.0",
     "@ai-sdk/google": "^3.0.0",
     "@ai-sdk/openai": "^4.0.0",
+    "@ai-sdk/workflow": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.25.3",
     "ai": "^7.0.0",
     "commander": "^14.0.0",
