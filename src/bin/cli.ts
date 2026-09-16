@@ -37,7 +37,7 @@ program.command("mcp [recipe]")
   .action(async (recipePath: string | undefined, options: { runtime: string; provider: string }) => {
     const gateway = recipePath
       ? await gatewayForRecipe(recipePath, options.provider, options.runtime)
-      : new CARGateway();
+      : new CARGateway(undefined, (ir) => createRuntime(ir, options.provider, options.runtime));
     await serveCusimanseMcp(gateway);
   });
 
@@ -86,9 +86,7 @@ async function createRuntime(ir: Awaited<ReturnType<typeof compileRecipe>>, prov
   if (!(await provider.isAvailable())) throw new Error(`Compute provider unavailable: ${providerName}`);
 
   const capabilities = new CapabilityRegistry();
-  for (const intent of ir.intents) {
-    capabilities.register({ name: intent.capability, version: "v1", operationKinds: ["tool"] });
-  }
+  for (const intent of ir.intents) capabilities.register({ name: intent.capability, version: "v1", operationKinds: ["tool"] });
 
   const adapterRegistry = new AdapterRegistry();
   const adapter: Adapter = {
