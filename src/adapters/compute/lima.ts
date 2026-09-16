@@ -4,7 +4,7 @@ import type { ComputeProvider, ExecResult, SandboxSpec } from "./types.js";
 
 export class LimaComputeProvider implements ComputeProvider {
   readonly id = "lima" as const;
-  private name?: string;
+  private name: string | undefined;
   async isAvailable(): Promise<boolean> { return (await runProcess("limactl", ["--version"])).exitCode === 0; }
   async createSandbox(spec: SandboxSpec): Promise<void> {
     this.name = spec.id;
