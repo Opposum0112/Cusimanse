@@ -18,4 +18,5 @@ jobs:
       - run: npm run lint
       - run: npm run check-types
       - run: npm run validate:recipes
+      - run: npm test
       - run: npm run test:coverage
