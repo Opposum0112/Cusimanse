@@ -27,6 +27,23 @@ export type { PolicyRule, PolicyDecision, PolicyContext, PolicyEvaluation } from
 export { OperationEngine, OperationError } from "./operations/index.js";
 export type { Operation, OperationResult } from "./operations/index.js";
 export { AdapterRegistry } from "./adapters/index.js";
+export type { Adapter, AdapterContext, AdapterExecutionResult } from "./adapters/index.js";
+export {
+  LimaLifecycle,
+  validateLimaProfile,
+  validateLimaProvider,
+  assertLimaProvider,
+  LimaError,
+} from "./adapters/lima.js";
+export type { LimaProfile, LimaProvider } from "./adapters/lima.js";
+export {
+  parseStraceRequest,
+  parseSysdigRequest,
+  InstrumentationError,
+  STRACE_CAPABILITY,
+  SYSDIG_CAPABILITY,
+} from "./adapters/instrumentation.js";
+export type { StraceRequest, SysdigRequest } from "./adapters/instrumentation.js";
 export { EvidenceCollector } from "./evidence/index.js";
 export { createResearchState, appendEvent, transitionPhase } from "./state/index.js";
 export type { ResearchState } from "./state/index.js";

@@ -20,3 +20,11 @@ rules:
     capability: vm.destroy
     decision: allow
     reason: Destroy after seal is a contract clause; runtime still checks evidence.
+  - id: allow-strace
+    capability: instrumentation.strace
+    decision: allow
+    reason: Allowlisted process trace inside the VM.
+  - id: allow-sysdig
+    capability: instrumentation.sysdig
+    decision: allow
+    reason: Allowlisted runtime capture inside the VM.

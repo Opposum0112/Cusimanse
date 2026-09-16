@@ -27,6 +27,8 @@ allowed_capabilities:
   - workload.npm.install
   - evidence.collect
   - network.observe
+  - instrumentation.strace
+  - instrumentation.sysdig
 operation_kinds: [vm, tool, evidence, network]
 intents:
   - id: provision-research-vm

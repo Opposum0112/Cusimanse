@@ -19,3 +19,15 @@ skills:
     operation_kinds: [tool, evidence]
     roles: [supply-chain-researcher, threat-researcher]
     evidence_types: [process, file, network, log]
+  - id: process-strace
+    version: "1.0"
+    capability: instrumentation.strace
+    operation_kinds: [tool, evidence]
+    roles: [forensics-analyst, detection-engineer, threat-researcher]
+    evidence_types: [process, log]
+  - id: runtime-sysdig
+    version: "1.0"
+    capability: instrumentation.sysdig
+    operation_kinds: [tool, evidence]
+    roles: [detection-engineer, threat-researcher, forensics-analyst]
+    evidence_types: [process, network, file, log]
