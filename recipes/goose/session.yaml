@@ -8,19 +8,22 @@ parameters:
     description: Experiment id matching experiments/<id>.yaml
 instructions: |
   You are the only operator for this Cusimanse session.
-  Load experiments/{{ experiment }}.yaml. That file is the contract.
-  Call the compiler, do not invent limactl, host npm, or extra packages.
+  Load experiments/{{ experiment }}.yaml as the researcher contract.
+  Load recipes/experiments/{{ experiment }}.yaml as the runtime requirements.
+  Call the Go CLI at cmd/cusimanse. Do not invent limactl, host npm, or extra packages.
   Sequence:
-  1. cusimanse compile validate {{ experiment }}
-  2. cusimanse compile host-prep {{ experiment }}
-  3. cusimanse compile resolve {{ experiment }}
+  1. go run ./cmd/cusimanse validate
+  2. go run ./cmd/cusimanse preflight
+  3. go run ./cmd/cusimanse resolve {{ experiment }}
   4. Ask the researcher to approve execution.
-  5. cusimanse compile execute {{ experiment }} --approved
-  6. Summon verifier, then reporter, using roles/bindings.yaml.
-  Read only runs/ after execute. Write analysis artifacts under the session.
+  5. go run ./cmd/cusimanse --approved run {{ experiment }}
+  6. Summon verifier, then reporter, using roles/bindings.yaml and
+     recipes/subrecipes/{verification,report}.yaml.
+  Read only runs/ after execute. Write analysis and the research report under the session.
   Gateway (LiteLLM/OmniRoute) and ClawMetry/Numbat are integrations, not authority.
 prompt: |
-  Operate experiment {{ experiment }} from experiments/{{ experiment }}.yaml.
+  Operate experiment {{ experiment }} from experiments/{{ experiment }}.yaml
+  through go run ./cmd/cusimanse, then analyze, independently verify and report.
 extensions:
   - type: builtin
     name: developer

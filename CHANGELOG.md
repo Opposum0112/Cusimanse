@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased (goose-native)
+
+### Changed
+
+- Root README is researcher- and tester-centric: outputs, repo map, access table, npm-install-001 workflow, LinkML schema, validation gates.
+- Goose recipes now call `go run ./cmd/cusimanse` only. The retired compiler CLI is no longer referenced from operator recipes, CI or inventories.
+- Removed unused `internal/execution` and `internal/runtime` packages. Validation no longer depends on a missing compiler package.
+- Access and observability are documented as required surfaces, with `NOT_DEPLOYED` / `PARTIAL` when a tool is absent.
+- Research reports are first-class artifacts under `runs/<session-id>/research-report/`.
+- Dependabot covers Go modules, `packages/labprobe`, `packages/npm-fixture` and GitHub Actions.
+- Intro heading is **Cusimanse**, with an updated mascot/logo and language badges.
+
 ## v1.0.0-beta.2
 
 ### Changed

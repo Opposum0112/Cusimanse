@@ -6,6 +6,18 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
 
+  - package-ecosystem: gomod
+    directory: "/packages/labprobe"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: "/packages/npm-fixture"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
   - package-ecosystem: github-actions
     directory: "/"
     schedule:

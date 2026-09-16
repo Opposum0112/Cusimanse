@@ -1,8 +1,11 @@
 # Docs
 
-Primary researcher guide is the root README on `agentic-native-goose`.
+The researcher and end-user entry point is the root README on `goose-native`.
 
-- architecture/agentic-native-goose.mmd — current control plane
-- architecture/cusimanse-architecture.mmd — provision internals
-- OBSERVABILITY.md — ClawMetry / Numbat / Phoenix
-- SECURITY.md at repo root — threat model
+- `RESEARCHER-GUIDE.md` — short companion to the root workflow
+- `OBSERVABILITY.md` — ClawMetry / Numbat / Phoenix / report generation
+- `INSTRUMENTATION.md` — guest collectors
+- `HOST-TOOLCHAIN.md` — host access and installer
+- `GOOSE-ADAPTERS.md` — Goose / Summon and adapter handoff
+- `SECURITY.md` at repo root — threat model and reporting
+- `images/cusimanse-mascot-logo.svg` — current logo

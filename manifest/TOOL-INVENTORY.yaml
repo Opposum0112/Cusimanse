@@ -1,5 +1,5 @@
 kind: cusimanse-tool-inventory
-version: 3
+version: 4
 branch_scope: goose-native
 purpose: >-
   Single declarative inventory of host, agent, control-plane, gateway,
@@ -7,6 +7,7 @@ purpose: >-
   Goose-native security-research stack.
 source_of_truth:
   linkml_schema: schemas/cusimanse.yaml
+  experiment_instances: experiments/
   host_recipe: recipes/host/security-research.yaml
   gateway_recipe: recipes/gateway/mandatory.yaml
   instrumentation_recipe: recipes/instrumentation/security-research.yaml
@@ -14,8 +15,9 @@ source_of_truth:
   policy: policies/host-policy.yaml
   capability_registry: recipes/profiles/registry.yaml
   adapters: recipes/agents/adapter-matrix.yaml
-  experiments: recipes/experiments/
-  goose_recipe: recipes/goose/session.yaml
+  runtime_experiments: recipes/experiments/
+  goose_session_recipe: recipes/goose/session.yaml
+  goose_experiment_recipe: recipes/<id>/recipe.yaml
   outputs: runs/<session-id>/
 planes:
   research_agent:
@@ -46,19 +48,23 @@ planes:
     installation: recipes/lima/security-research.yaml
   evidence_observability:
     required: [numbat, aegis, phoenix, opentelemetry, clawmetry]
+    report_artifacts: [runs/<session-id>/research-report/report.md, runs/<session-id>/research-report/report.yaml]
 host_bootstrap:
   required_commands: [git, bash, curl, python3, node, npm, go, jq, yq, rg, goose]
   installers: [scripts/install.sh, scripts/install.ps1]
+  allow_list: host-prep/default.yaml
 external_boundaries:
   host_shell: bootstrap_and_external_tooling_only
   agent_shell: planning_handoff_and_analysis_only
   guest_shell: disposable_guest_execution
   go_api: authoritative_capability_boundary
 inventory_commands:
-  capabilities: cusimanse capability list
-  resolve: cusimanse resolve <experiment-id>
-  observability: cusimanse observability status
-  goose_validate: goose recipe validate recipes/goose/session.yaml
+  capabilities: go run ./cmd/cusimanse capability list
+  resolve: go run ./cmd/cusimanse resolve <experiment-id>
+  validate: go run ./cmd/cusimanse validate
+  observability: go run ./cmd/cusimanse observability status
+  goose_session: goose recipe validate recipes/goose/session.yaml
+  goose_experiment: goose recipe validate recipes/npm-install-001/recipe.yaml
 safety:
   credentials: denied
   unrestricted_mounts: denied
@@ -67,4 +73,5 @@ safety:
   untrusted_host_execution: denied
   evidence_hashing: required
   preserve_before_destroy: required
-legacy_removed: [cmd/compile, internal/compiler]
+  report_generation: required_research_artifact
+legacy_removed: [retired-compiler-cli]
