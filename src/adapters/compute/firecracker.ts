@@ -1,8 +1,6 @@
 import type { ComputeProvider, ExecResult, SandboxSpec } from "./types.js";
-
-/** Optional cloud/Firecracker boundary. No host-side emulation is performed. */
 export class FirecrackerComputeProvider implements ComputeProvider {
-  readonly id = "firecracker" as const;
+  readonly id: string = "firecracker";
   private delegate: ComputeProvider | undefined;
   constructor(delegate?: ComputeProvider) { this.delegate = delegate; }
   async isAvailable(): Promise<boolean> { return this.delegate ? await this.delegate.isAvailable() : false; }
@@ -13,7 +11,4 @@ export class FirecrackerComputeProvider implements ComputeProvider {
   async extractArtifacts(guestSrc: string, hostDst: string): Promise<void> { await this.requireDelegate().extractArtifacts(guestSrc, hostDst); }
   async destroy(): Promise<void> { await this.requireDelegate().destroy(); }
 }
-
-export class CloudComputeProvider extends FirecrackerComputeProvider {
-  readonly id = "cloud" as const;
-}
+export class CloudComputeProvider extends FirecrackerComputeProvider { override readonly id: string = "cloud"; }
