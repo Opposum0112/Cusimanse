@@ -27,7 +27,8 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --test \"dist/tests/**/*.test.js\""
+    "test": "npm run build && node --test \"dist/tests/**/*.test.js\"",
+    "lab:npm-install": "npm run build && node dist/src/bin/serve-npm-install-lab.js"
   },
   "dependencies": {
     "ai": "^7.0.0",
