@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { compileRecipe } from "../compiler/index.js";
-import { createResearchState, type ResearchState } from "../state/index.js";
+import { type ResearchState } from "../state/index.js";
 import { getComputeProvider } from "../adapters/compute/factory.js";
 import { getExperimentRuntime } from "../runtime/factory.js";
 import { RuntimeOrchestrator } from "../runtime/index.js";
@@ -8,19 +8,17 @@ import { reasoningProposalSchema, type ReasoningProposal } from "../llm/index.js
 import { promoteSkill } from "../skills/lifecycle.js";
 import type { CusimanseIR } from "../ir/index.js";
 import type { ExperimentRunRequest, ExperimentRunResponse, OperatorPort, ResearchSession } from "./contracts.js";
-
 export interface CARGatewayOptions { host?: string; port?: number; }
 interface StoredRun { response?: ExperimentRunResponse; events: string[]; }
 export class CARGateway implements OperatorPort {
-  private readonly runs = new Map<string, StoredRun>();
-  private readonly sessions = new Map<string, { ir: CusimanseIR; state: ResearchState; runtime: RuntimeOrchestrator }>();
+  private readonly runs = new Map<string, StoredRun>(); private readonly sessions = new Map<string, { ir: CusimanseIR; state: ResearchState; runtime: RuntimeOrchestrator }>();
   constructor(private readonly legacyRuntime?: RuntimeOrchestrator) {}
   register(session: ResearchSession, runtime: RuntimeOrchestrator = this.legacyRuntime as RuntimeOrchestrator): void { if (!runtime) throw new Error("Execution runtime is not configured for this gateway."); this.sessions.set(session.ir.experimentId, { ir: session.ir, state: session.state, runtime }); }
   hasSession(experimentId: string): boolean { return this.sessions.has(experimentId); }
   async getState(experimentId: string): Promise<{ experimentId: string; state: ResearchState }> { const session = this.sessions.get(experimentId); if (!session) throw new Error(`Unknown research session: ${experimentId}`); return { experimentId, state: session.state }; }
   async getEvidence(experimentId: string): Promise<{ experimentId: string; evidence: ResearchState["evidence"] }> { const state = await this.getState(experimentId); return { experimentId, evidence: state.state.evidence }; }
   async submitProposal(request: { experimentId: string; proposal: ReasoningProposal }): Promise<{ experimentId: string; accepted: boolean; proposal: ReasoningProposal }> { const session = this.sessions.get(request.experimentId); if (!session) throw new Error(`Unknown research session: ${request.experimentId}`); const proposal = reasoningProposalSchema.parse(request.proposal); if (proposal.complete || !proposal.capability) return { experimentId: request.experimentId, accepted: false, proposal }; const intent = { id: `op-${crypto.randomUUID()}`, capability: proposal.capability, parameters: proposal.parameters ?? {}, dependsOn: [] }; const result = await session.runtime.run({ ...session.ir, intents: [intent] }, session.state); session.state = result.state; return { experimentId: request.experimentId, accepted: true, proposal }; }
-  async runExperiment(request: ExperimentRunRequest): Promise<ExperimentRunResponse> { const ir = compileRecipe(request.recipe); const runId = crypto.randomUUID(); const stored: StoredRun = { events: [] }; this.runs.set(runId, stored); const compute = await getComputeProvider(request.provider ?? "mock"); const runtime = getExperimentRuntime(request.runtime ?? "local"); const result = await runtime.execute({ runId, ir, compute, onStepProgress: (stepId, status) => { stored.events.push(JSON.stringify({ stepId, status, timestamp: new Date().toISOString() })); } }); const response = { runId, experimentId: ir.experimentId, result }; stored.response = response; return response; }
+  async runExperiment(request: ExperimentRunRequest): Promise<ExperimentRunResponse> { const ir = compileRecipe(request.recipe); const runId = crypto.randomUUID(); const stored: StoredRun = { events: [] }; this.runs.set(runId, stored); const compute = await getComputeProvider(request.provider ?? "mock"); const runtime = getExperimentRuntime(request.runtime ?? "local"); const result = await runtime.execute({ runId, ir, compute, onStepProgress: (stepId: string, status: "pending" | "running" | "completed" | "failed") => { stored.events.push(JSON.stringify({ stepId, status, timestamp: new Date().toISOString() })); } }); const response = { runId, experimentId: ir.experimentId, result }; stored.response = response; return response; }
   async inspectEvidence(runId: string): Promise<{ runId: string; evidence: ResearchState["evidence"]; telemetry?: ExperimentRunResponse["result"]["telemetry"] }> { const stored = this.runs.get(runId); if (!stored?.response) throw new Error(`Unknown run: ${runId}`); return { runId, evidence: [], telemetry: stored.response.result.telemetry }; }
   async promoteSkill(candidatePath: string): Promise<{ id: string; path: string }> { return await promoteSkill(candidatePath); }
   async listProviders(): Promise<Array<{ id: string; available: boolean }>> { return await Promise.all(["mock", "lima", "multipass", "cloud"].map(async (id) => ({ id, available: await providerAvailable(id) }))); }
