@@ -24,7 +24,7 @@
     "@ai-sdk/google": "^3.0.0",
     "@ai-sdk/openai": "^4.0.0",
     "@ai-sdk/workflow": "^2.0.31",
-    "@modelcontextprotocol/sdk": "^1.25.3",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "ai": "^7.0.0",
     "commander": "^14.0.0",
     "yaml": "^2.8.1",
