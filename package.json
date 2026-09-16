@@ -20,8 +20,8 @@
     "lab:npm-install": "npm run build && node dist/bin/serve-npm-install-lab.js"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.0",
-    "@ai-sdk/google": "^3.0.0",
+    "@ai-sdk/anthropic": "^4.0.0",
+    "@ai-sdk/google": "^4.0.0",
     "@ai-sdk/openai": "^4.0.0",
     "@ai-sdk/workflow": "^2.0.31",
     "@modelcontextprotocol/sdk": "^1.30.0",
