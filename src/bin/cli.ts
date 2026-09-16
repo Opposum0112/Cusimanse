@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { readFile, access } from "node:fs/promises";
+import { access, mkdir, readFile, rename } from "node:fs/promises";
+import { basename, resolve, relative, join } from "node:path";
 import { Command } from "commander";
 import { parse } from "yaml";
 import { compileRecipe } from "../compiler/index.js";
@@ -62,9 +63,21 @@ program.command("run <recipe>").description("Run a validated recipe through a se
   });
 
 const skills = program.command("skills").description("Manage skill lifecycle");
-skills.command("promote <candidateDir>").description("Validate a candidate skill and report promotion eligibility").action(async (candidateDir: string) => {
-  for (const file of ["SKILL.md", "skill.yaml"]) await access(`${candidateDir}/${file}`);
-  console.log(`Skill candidate ${candidateDir} passed structural validation; promotion requires repository policy review.`);
+skills.command("promote <candidateDir>").description("Validate and promote a candidate skill into the validated lifecycle stage").action(async (candidateDir: string) => {
+  const source = resolve(candidateDir);
+  const candidateRoot = resolve("skills/candidate");
+  const validatedRoot = resolve("skills/validated");
+  const rel = relative(candidateRoot, source);
+  if (!rel || rel.startsWith("..") || rel.includes(".." + "/")) throw new Error("Candidate must live under skills/candidate.");
+  for (const file of ["SKILL.md", "skill.yaml"]) await access(join(source, file));
+  const manifest = parse(await readFile(join(source, "skill.yaml"), "utf8")) as Record<string, unknown>;
+  if (typeof manifest.name !== "string" || typeof manifest.version !== "string" || typeof manifest.capability !== "string") {
+    throw new Error("skill.yaml requires name, version, and capability.");
+  }
+  const destination = join(validatedRoot, basename(source));
+  await mkdir(validatedRoot, { recursive: true });
+  await rename(source, destination);
+  console.log(`Promoted ${source} -> ${destination}`);
 });
 
 async function loadRecipe(path: string): Promise<unknown> { return parse(await readFile(path, "utf8")); }
