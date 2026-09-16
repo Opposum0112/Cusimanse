@@ -1,27 +1,9 @@
-## Summary
+## Pull request checklist
 
-<!-- What changed and why? -->
-
-## Research / architecture impact
-
-- [ ] Contracts or schemas updated if required
-- [ ] Runtime/provider SPI remains pluggable
-- [ ] Safety and approval boundaries preserved
-- [ ] Evidence / observability behavior documented
-
-## Validation
-
-- [ ] `npm run typecheck`
-- [ ] `npm test`
-- [ ] `npm run build`
-- [ ] Relevant integration or sandbox test
-
-## Security
-
-- [ ] No secrets or private telemetry included
-- [ ] New capabilities are explicitly scoped
-- [ ] Unexercised integrations are clearly identified
-
-## DCO
-
-- [ ] All commits are signed off (`git commit -s`)
+- [ ] `npm run lint` passes with zero warnings.
+- [ ] `npm run check-types` passes with strict TypeScript and zero explicit `any`.
+- [ ] Recipe/schema validation passes for changed contracts.
+- [ ] Vitest unit/integration tests pass without external hypervisors.
+- [ ] Security-boundary and isolation implications are documented.
+- [ ] No secrets or host-specific credentials are committed.
+- [ ] Conventional Commit and DCO sign-off requirements are satisfied.

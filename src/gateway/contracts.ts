@@ -1,45 +1,13 @@
-import type { ReasoningProposal } from "../llm/index.js";
+import type { CusimanseIR } from "../ir/index.js";
 import type { ResearchState } from "../state/index.js";
+import type { ExecutionResult, ExperimentRuntime } from "../runtime/spi/types.js";
 
-export interface OperatorProposalRequest {
-  experimentId: string;
-  proposal: ReasoningProposal;
-}
-
-export interface OperatorStateResponse {
-  experimentId: string;
-  state: ResearchState;
-}
-
-export interface OperatorEvidenceResponse {
-  experimentId: string;
-  evidence: ResearchState["evidence"];
-}
-
-export interface OperatorIntentResponse {
-  experimentId: string;
-  accepted: boolean;
-  proposal: ReasoningProposal;
-}
-
-export interface OperatorSessionRequest {
-  recipe: unknown;
-}
-
-export interface OperatorSessionResponse {
-  experimentId: string;
-  state: ResearchState;
-}
-
-/** Harness-neutral operator ABI. Any agent runtime may implement this. */
+export interface ExperimentRunRequest { recipe: unknown; provider?: string; runtime?: string; }
+export interface ExperimentRunResponse { runId: string; experimentId: string; result: ExecutionResult; }
 export interface OperatorPort {
-  submitProposal(request: OperatorProposalRequest): Promise<OperatorIntentResponse>;
-  getState(experimentId: string): Promise<OperatorStateResponse>;
-  getEvidence(experimentId: string): Promise<OperatorEvidenceResponse>;
+  runExperiment(request: ExperimentRunRequest): Promise<ExperimentRunResponse>;
+  inspectEvidence(runId: string): Promise<{ runId: string; evidence: ResearchState["evidence"]; telemetry?: ExecutionResult["telemetry"] }>;
+  promoteSkill(candidatePath: string): Promise<{ id: string; path: string }>;
+  listProviders(): Promise<Array<{ id: string; available: boolean }>>;
 }
-
-/** Optional lifecycle extension used by the generic Cusimanse MCP server. */
-export interface ResearchSessionPort extends OperatorPort {
-  createResearchSession(request: OperatorSessionRequest): Promise<OperatorSessionResponse>;
-  completeResearch(experimentId: string): Promise<OperatorStateResponse>;
-}
+export interface ResearchSession { ir: CusimanseIR; state: ResearchState; runtime?: ExperimentRuntime; }

@@ -1,44 +1,19 @@
-# Contributing to Cusimanse
-
-Cusimanse is an open-source, declarative security-research platform. Keep research semantics explicit, execution pluggable, and safety boundaries reviewable.
-
-## Contribution rules
-
-1. Keep experiment definitions declarative and reusable.
-2. Keep the control plane separate from Go guest/data-plane probes.
-3. Keep compute providers behind the ComputeProvider SPI.
-4. Keep execution engines behind the ExecutionRuntime SPI.
-5. Do not put credentials or private telemetry in Git.
-6. Raw evidence must be preserved and material findings must cite it.
-7. Do not describe an unexercised capability as deployed.
+# Contributing
 
 ## Development
 
-Requires Node.js 22+, npm, and Git. Go is required for data-plane probe work.
+- Node.js 22 or newer.
+- TypeScript is strict and production code must contain zero explicit `any` types.
+- Run `npm install`, `npm run check-types`, `npm run lint`, and `npm test` before opening a pull request.
+- Add or update Vitest tests for behavior changes; tests must not require external hypervisors or cloud services.
+- Recipe changes must remain compatible with `schema/cusimanse-agent-runtime.yaml` and include validation coverage.
 
-```bash
-npm install
-npm run typecheck
-npm test
-npm run build
-```
+## Commits
 
-For the reference lab:
+Use Conventional Commits with prefixes such as `feat:`, `fix:`, `chore:`, and `ci:`. Every commit must contain a Developer Certificate of Origin sign-off:
 
-```bash
-npm run lab:npm-install
-```
+`Signed-off-by: Your Name <you@example.com>`
 
 ## Pull requests
 
-Explain what changed, why, affected contracts/recipes, security impact, validation performed and any capability that could not be exercised.
-
-Use Conventional Commits and sign off each commit with the DCO:
-
-```text
-git commit -s -m "feat(runtime): add ..."
-```
-
-Do not include credentials, tokens, private keys or unredacted forensic artifacts.
-
-For potential vulnerabilities, follow `SECURITY.md` rather than publishing sensitive details in an issue.
+Keep security-boundary changes focused and document provider/runtime behavior. Do not commit API keys, credentials, personal files, or host-specific artifacts.

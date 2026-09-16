@@ -1,21 +1,8 @@
 import { createHash } from "node:crypto";
-
 export type EvidenceKind = "file" | "network" | "process" | "log" | "artifact" | "other";
 export interface EvidenceInput { kind: EvidenceKind; uri: string; content: string | Uint8Array; metadata?: Record<string, unknown>; }
 export interface EvidenceReference { id: string; kind: EvidenceKind; uri: string; sha256: string; size: number; metadata?: Record<string, unknown>; provenance: { experimentId: string; operationId?: string; recordedAt: string }; }
-
-export class EvidenceCollector {
-  private readonly records: EvidenceReference[] = [];
-  constructor(private readonly experimentId: string) {}
-  record(input: EvidenceInput, operationId?: string, now = new Date().toISOString()): EvidenceReference {
-    const bytes = Buffer.from(input.content);
-    const reference: EvidenceReference = { id: `ev_${crypto.randomUUID()}`, kind: input.kind, uri: input.uri, sha256: createHash("sha256").update(bytes).digest("hex"), size: bytes.byteLength, ...(input.metadata === undefined ? {} : { metadata: { ...input.metadata } }), provenance: { experimentId: this.experimentId, ...(operationId === undefined ? {} : { operationId }), recordedAt: now } };
-    this.records.push(reference);
-    return clone(reference);
-  }
-  list(): EvidenceReference[] { return this.records.map(clone); }
-}
-
-function clone(record: EvidenceReference): EvidenceReference {
-  return { ...record, provenance: { ...record.provenance }, ...(record.metadata === undefined ? {} : { metadata: { ...record.metadata } }) };
-}
+export interface RuntimeTelemetry { runId: string; events: Array<{ timestamp: string; stepId: string; status: "pending" | "running" | "completed" | "failed"; detail?: string }>; }
+export interface ExecutionArtifacts { references: string[]; }
+export class EvidenceCollector { private readonly records: EvidenceReference[] = []; constructor(private readonly experimentId: string) {} record(input: EvidenceInput, operationId?: string, now = new Date().toISOString()): EvidenceReference { const bytes = Buffer.from(input.content); const reference: EvidenceReference = { id: `ev_${crypto.randomUUID()}`, kind: input.kind, uri: input.uri, sha256: createHash("sha256").update(bytes).digest("hex"), size: bytes.byteLength, ...(input.metadata === undefined ? {} : { metadata: { ...input.metadata } }), provenance: { experimentId: this.experimentId, ...(operationId === undefined ? {} : { operationId }), recordedAt: now } }; this.records.push(reference); return clone(reference); } list(): EvidenceReference[] { return this.records.map(clone); } }
+function clone(record: EvidenceReference): EvidenceReference { return { ...record, provenance: { ...record.provenance }, ...(record.metadata === undefined ? {} : { metadata: { ...record.metadata } }) }; }

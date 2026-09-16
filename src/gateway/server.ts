@@ -1,114 +1,75 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import type { RuntimeOrchestrator } from "../runtime/index.js";
-import type { CusimanseIR } from "../ir/index.js";
-import type { ResearchState } from "../state/index.js";
-import { reasoningProposalSchema, type ReasoningProposal } from "../llm/index.js";
-import type { OperatorPort, ResearchSessionPort } from "./contracts.js";
 import { compileRecipe } from "../compiler/index.js";
 import { createResearchState } from "../state/index.js";
+import { getComputeProvider } from "../adapters/compute/factory.js";
+import { getExperimentRuntime } from "../runtime/index.js";
+import { promoteSkill } from "../skills/lifecycle.js";
+import type { OperatorPort, ExperimentRunRequest, ExperimentRunResponse } from "./contracts.js";
 
-export interface ResearchSession { ir: CusimanseIR; state: ResearchState; }
+interface StoredRun { response?: ExperimentRunResponse; events: string[]; }
 export interface CARGatewayOptions { host?: string; port?: number; }
-export type RuntimeFactory = (ir: CusimanseIR) => Promise<RuntimeOrchestrator>;
 
-export class CARGateway implements ResearchSessionPort {
-  private readonly sessions = new Map<string, ResearchSession>();
-  private readonly sessionRuntimes = new Map<string, RuntimeOrchestrator>();
-  constructor(private readonly runtime?: RuntimeOrchestrator, private readonly runtimeFactory?: RuntimeFactory) {}
-
-  register(session: ResearchSession, runtime: RuntimeOrchestrator = this.runtime as RuntimeOrchestrator): void {
-    if (this.sessions.has(session.ir.experimentId)) throw new Error(`Research session already registered: ${session.ir.experimentId}`);
-    if (!runtime) throw new Error("Execution runtime is not configured for this gateway.");
-    this.sessions.set(session.ir.experimentId, session);
-    this.sessionRuntimes.set(session.ir.experimentId, runtime);
-  }
-  hasSession(experimentId: string): boolean { return this.sessions.has(experimentId); }
-
-  async createResearchSession(request: { recipe: unknown }): Promise<{ experimentId: string; state: ResearchState }> {
+export class CARGateway implements OperatorPort {
+  private readonly runs = new Map<string, StoredRun>();
+  async runExperiment(request: ExperimentRunRequest): Promise<ExperimentRunResponse> {
     const ir = compileRecipe(request.recipe);
-    if (this.sessions.has(ir.experimentId)) throw new Error(`Research session already registered: ${ir.experimentId}`);
-    const runtime = this.runtime ?? (this.runtimeFactory ? await this.runtimeFactory(ir) : undefined);
-    if (!runtime) throw new Error("Execution runtime is not configured for this gateway.");
-    const state = createResearchState(ir.experimentId);
-    this.register({ ir, state }, runtime);
-    return { experimentId: ir.experimentId, state };
+    const runId = crypto.randomUUID();
+    const stored: StoredRun = { events: [] }; this.runs.set(runId, stored);
+    const compute = await getComputeProvider(request.provider ?? "mock");
+    const runtime = getExperimentRuntime(request.runtime ?? "local");
+    const result = await runtime.execute({ runId, ir, compute, onStepProgress: (stepId, status) => { stored.events.push(JSON.stringify({ stepId, status, timestamp: new Date().toISOString() })); } });
+    const response = { runId, experimentId: ir.experimentId, result };
+    stored.response = response;
+    return response;
   }
-
-  async completeResearch(experimentId: string): Promise<{ experimentId: string; state: ResearchState }> {
-    const session = this.sessions.get(experimentId);
-    if (!session) throw new Error(`Unknown research session: ${experimentId}`);
-    const state = { ...session.state, phase: "completed" as const, revision: session.state.revision + 1 };
-    session.state = state;
-    return { experimentId, state };
+  async inspectEvidence(runId: string) {
+    const stored = this.runs.get(runId);
+    if (!stored?.response) throw new Error(`Unknown run: ${runId}`);
+    const state = createResearchState(stored.response.experimentId);
+    return { runId, evidence: state.evidence, telemetry: stored.response.result.telemetry };
   }
-
-  async submitProposal(request: Parameters<OperatorPort["submitProposal"]>[0]): Promise<Awaited<ReturnType<OperatorPort["submitProposal"]>>> {
-    const session = this.sessions.get(request.experimentId);
-    if (!session) throw new Error(`Unknown research session: ${request.experimentId}`);
-    const proposal = reasoningProposalSchema.parse(request.proposal);
-    if (proposal.complete) return { experimentId: request.experimentId, accepted: false, proposal };
-    const runtime = this.sessionRuntimes.get(request.experimentId);
-    if (!runtime) throw new Error("Execution runtime is not configured for this gateway.");
-    if (!proposal.capability) throw new Error("Proposal capability is required for CAR execution.");
-    const intent = { id: `op-${crypto.randomUUID()}`, capability: proposal.capability, parameters: proposal.parameters ?? {}, dependsOn: [] };
-    const executionIr: CusimanseIR = { ...session.ir, intents: [intent] };
-    const result = await runtime.run(executionIr, session.state);
-    session.ir = { ...session.ir, intents: [...session.ir.intents, intent] };
-    session.state = result.state;
-    return { experimentId: request.experimentId, accepted: true, proposal };
+  async promoteSkill(candidatePath: string): Promise<{ id: string; path: string }> { return await promoteSkill(candidatePath); }
+  async listProviders(): Promise<Array<{ id: string; available: boolean }>> {
+    const ids = ["mock", "lima", "multipass", "cloud"];
+    return await Promise.all(ids.map(async (id) => ({ id, available: await providerAvailable(id) })));
   }
-
-  async getState(experimentId: string) {
-    const session = this.sessions.get(experimentId);
-    if (!session) throw new Error(`Unknown research session: ${experimentId}`);
-    return { experimentId, state: session.state };
-  }
-  async getEvidence(experimentId: string) {
-    const session = this.sessions.get(experimentId);
-    if (!session) throw new Error(`Unknown research session: ${experimentId}`);
-    return { experimentId, evidence: session.state.evidence };
-  }
-
   listen(options: CARGatewayOptions = {}): ReturnType<typeof createServer> {
     const server = createServer((request, response) => { void this.handle(request, response); });
-    server.listen(options.port ?? 8787, options.host ?? "127.0.0.1");
+    server.listen(options.port ?? 8080, options.host ?? "127.0.0.1");
     return server;
   }
-
   private async handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
     try {
       const url = new URL(request.url ?? "/", "http://localhost");
-      const match = url.pathname.match(/^\/v1\/research\/([^/]+)(?:\/(state|evidence|proposals))?$/);
-      if (!match) return this.json(response, 404, { error: "Not found" });
-      const experimentId = decodeURIComponent(match[1] ?? "");
-      const action = match[2];
-      if (request.method === "GET" && action === "state") return this.json(response, 200, await this.getState(experimentId));
-      if (request.method === "GET" && action === "evidence") return this.json(response, 200, await this.getEvidence(experimentId));
-      if (request.method === "POST" && action === "proposals") {
-        const body = await readJson(request); const proposal = parseProposalBody(body);
-        if (!proposal) return this.json(response, 400, { error: "Request body must contain a proposal object." });
-        return this.json(response, 200, await this.submitProposal({ experimentId, proposal }));
-      }
-      return this.json(response, 405, { error: "Method not allowed" });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      const status = message.startsWith("Unknown research session") ? 404 : 400;
-      return this.json(response, status, { error: message });
-    }
+      if (request.method === "POST" && url.pathname === "/rpc") return await this.rpc(request, response);
+      if (request.method === "GET" && url.pathname === "/v1/providers") return this.json(response, 200, await this.listProviders());
+      const evidence = url.pathname.match(/^\/v1\/evidence\/([^/]+)$/u);
+      if (request.method === "GET" && evidence) return this.json(response, 200, await this.inspectEvidence(decodeURIComponent(evidence[1] ?? "")));
+      const events = url.pathname.match(/^\/v1\/experiments\/([^/]+)\/events$/u);
+      if (request.method === "GET" && events) return this.sse(response, this.runs.get(decodeURIComponent(events[1] ?? ""))?.events ?? []);
+      if (request.method === "POST" && url.pathname === "/v1/experiments/run") { const body = await readJson(request); return this.json(response, 200, await this.runExperiment(parseRunRequest(body))); }
+      if (request.method === "POST" && url.pathname === "/v1/skills/promote") { const body = await readJson(request); if (!isRecord(body) || typeof body.candidatePath !== "string") throw new Error("candidatePath is required"); return this.json(response, 200, await this.promoteSkill(body.candidatePath)); }
+      return this.json(response, 404, { error: "Not found" });
+    } catch (error) { return this.json(response, 400, { error: error instanceof Error ? error.message : "Unknown error" }); }
   }
+  private async rpc(request: IncomingMessage, response: ServerResponse): Promise<void> {
+    const body = await readJson(request); if (!isRecord(body) || body.jsonrpc !== "2.0" || (typeof body.id !== "string" && typeof body.id !== "number") || typeof body.method !== "string") return this.json(response, 400, { jsonrpc: "2.0", id: null, error: { code: -32600, message: "Invalid Request" } });
+    try {
+      const params = body.params;
+      let result: unknown;
+      if (body.method === "experiment.run") result = await this.runExperiment(parseRunRequest(params));
+      else if (body.method === "evidence.inspect") result = await this.inspectEvidence(parseStringParam(params, "runId"));
+      else if (body.method === "skills.promote") result = await this.promoteSkill(parseStringParam(params, "candidatePath"));
+      else if (body.method === "providers.list") result = await this.listProviders();
+      else return this.json(response, 200, { jsonrpc: "2.0", id: body.id, error: { code: -32601, message: "Method not found" } });
+      return this.json(response, 200, { jsonrpc: "2.0", id: body.id, result });
+    } catch (error) { return this.json(response, 200, { jsonrpc: "2.0", id: body.id, error: { code: -32000, message: error instanceof Error ? error.message : "Server error" } }); }
+  }
+  private sse(response: ServerResponse, events: string[]): void { response.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache", connection: "keep-alive" }); for (const event of events) response.write(`data: ${event}\n\n`); response.end(); }
   private json(response: ServerResponse, status: number, body: unknown): void { response.writeHead(status, { "content-type": "application/json" }); response.end(JSON.stringify(body)); }
 }
-function parseProposalBody(value: unknown): ReasoningProposal | undefined {
-  if (typeof value !== "object" || value === null || !("proposal" in value)) return undefined;
-  const parsed = reasoningProposalSchema.safeParse((value as { proposal: unknown }).proposal);
-  return parsed.success ? parsed.data : undefined;
-}
-function readJson(request: IncomingMessage): Promise<unknown> {
-  return new Promise((resolve, reject) => {
-    let body = "";
-    request.setEncoding("utf8");
-    request.on("data", (chunk) => { body += chunk; if (body.length > 1_000_000) reject(new Error("Request body too large.")); });
-    request.on("end", () => { try { resolve(JSON.parse(body || "{}")); } catch { reject(new Error("Invalid JSON.")); } });
-    request.on("error", reject);
-  });
-}
+async function providerAvailable(id: string): Promise<boolean> { try { const provider = await getComputeProvider(id); await provider.destroy(); return true; } catch { return id === "mock"; } }
+function parseRunRequest(value: unknown): ExperimentRunRequest { if (!isRecord(value) || !("recipe" in value)) throw new Error("recipe is required"); return { recipe: value.recipe, ...(typeof value.provider === "string" ? { provider: value.provider } : {}), ...(typeof value.runtime === "string" ? { runtime: value.runtime } : {}) }; }
+function parseStringParam(value: unknown, key: string): string { if (!isRecord(value) || typeof value[key] !== "string") throw new Error(`${key} is required`); return value[key]; }
+function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }
+function readJson(request: IncomingMessage): Promise<unknown> { return new Promise((resolve, reject) => { let body = ""; request.setEncoding("utf8"); request.on("data", (chunk: string) => { body += chunk; if (body.length > 1_000_000) reject(new Error("Request body too large.")); }); request.on("end", () => { try { resolve(JSON.parse(body || "{}")); } catch { reject(new Error("Invalid JSON.")); } }); request.on("error", reject); }); }

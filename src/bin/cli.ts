@@ -1,118 +1,45 @@
 #!/usr/bin/env node
-import { access, mkdir, readFile, rename } from "node:fs/promises";
-import { basename, resolve, relative, join } from "node:path";
+import { readFile, writeFile } from "node:fs/promises";
 import { Command } from "commander";
 import { parse } from "yaml";
 import { compileRecipe } from "../compiler/index.js";
 import { CARGateway } from "../gateway/server.js";
-import { createResearchState } from "../state/index.js";
-import { MockComputeProvider } from "../adapters/compute/mock.js";
-import { ComputeProviderRegistry } from "../adapters/compute/index.js";
-import { AdapterRegistry, type Adapter } from "../adapters/index.js";
-import { CapabilityRegistry } from "../capabilities/index.js";
-import { PolicyEngine, ApprovalManager } from "../policy/index.js";
-import { OperationEngine } from "../operations/index.js";
-import { LocalExecutionRuntime, TemporalExecutionRuntime, GraphExecutionRuntime } from "../runtime/index.js";
-import { serveCusimanseMcp } from "../mcp/index.js";
+import { getComputeProvider } from "../adapters/compute/factory.js";
+import { getExperimentRuntime } from "../runtime/index.js";
+import { resolveConfig } from "../config/index.js";
+import { promoteSkill } from "../skills/lifecycle.js";
 
 const program = new Command();
-program.name("cusimanse").description("Composable, harness-neutral security research runtime").version("0.3.0");
+program.name("cusimanse").description("Harness-neutral declarative security research runtime").version("0.4.0");
 
-program.command("compile <recipe>").description("Validate a declarative recipe and emit its intermediate representation").action(async (recipePath: string) => {
-  const recipe = await loadRecipe(recipePath);
-  const ir = compileRecipe(recipe, { format: recipePath.endsWith(".json") ? "json" : "yaml", path: recipePath });
-  process.stdout.write(`${JSON.stringify(ir, null, 2)}\n`);
-});
+function commonOptions(command: Command): Command {
+  return command.option("--model <model>", "LLM model name").option("--api-key <key>", "LLM API key").option("--base-url <url>", "OpenAI-compatible base URL");
+}
 
-program.command("serve").description("Start the operator gateway").option("--port <number>", "HTTP port", "8787").action(async (options: { port: string }) => {
-  const gateway = new CARGateway();
-  gateway.listen({ host: "127.0.0.1", port: Number(options.port) });
-  console.log(`Cusimanse gateway listening on http://127.0.0.1:${options.port}`);
-});
-
-program.command("mcp [recipe]")
-  .description("Start the universal MCP operator server; optionally preload a validated recipe")
-  .option("--runtime <runtime>", "local, temporal, or graph", "local")
-  .option("--provider <provider>", "lima, multipass, cloud, or mock", "mock")
-  .action(async (recipePath: string | undefined, options: { runtime: string; provider: string }) => {
-    const gateway = recipePath
-      ? await gatewayForRecipe(recipePath, options.provider, options.runtime)
-      : new CARGateway(undefined, (ir) => createRuntime(ir, options.provider, options.runtime));
-    await serveCusimanseMcp(gateway);
-  });
-
-program.command("run <recipe>").description("Run a validated recipe through a selected execution runtime and compute provider")
-  .option("--runtime <runtime>", "local, temporal, or graph", "local")
-  .option("--provider <provider>", "lima, multipass, cloud, or mock", "mock")
-  .action(async (recipePath: string, options: { runtime: string; provider: string }) => {
-    const recipe = await loadRecipe(recipePath);
+commonOptions(program.command("run <recipe>").description("Compile and execute a recipe").option("-p, --provider <provider>", "lima, multipass, cloud, or mock", "mock").option("-r, --runtime <runtime>", "local, temporal, or graph", "local").option("-v, --verbose", "verbose progress"))
+  .action(async (recipePath: string, options: { provider: string; runtime: string; verbose?: boolean; model?: string; apiKey?: string; baseUrl?: string }) => {
+    const recipe = parse(await readFile(recipePath, "utf8"));
     const ir = compileRecipe(recipe, { format: recipePath.endsWith(".json") ? "json" : "yaml", path: recipePath });
-    const runtime = await createRuntime(ir, options.provider, options.runtime);
-    const state = await runtime.run(ir, createResearchState(ir.experimentId), { runId: crypto.randomUUID() });
-    process.stdout.write(`${JSON.stringify(state, null, 2)}\n`);
+    const config = await resolveConfig({ model: options.model, apiKey: options.apiKey, baseUrl: options.baseUrl });
+    const compute = await getComputeProvider(options.provider);
+    const runtime = getExperimentRuntime(options.runtime);
+    const result = await runtime.execute({ runId: crypto.randomUUID(), ir, compute, onStepProgress: options.verbose ? (stepId, status) => console.error(`[${status}] ${stepId}`) : undefined });
+    process.stdout.write(`${JSON.stringify({ config: { provider: config.provider, model: config.model }, run: result }, null, 2)}\n`);
+    if (!result.success) process.exitCode = 1;
   });
 
-const skills = program.command("skills").description("Manage skill lifecycle");
-skills.command("promote <candidateDir>").description("Validate and promote a candidate skill into the validated lifecycle stage").action(async (candidateDir: string) => {
-  const source = resolve(candidateDir);
-  const candidateRoot = resolve("skills/candidate");
-  const validatedRoot = resolve("skills/validated");
-  const rel = relative(candidateRoot, source);
-  if (!rel || rel.startsWith("..") || rel.includes(".." + "/")) throw new Error("Candidate must live under skills/candidate.");
-  for (const file of ["SKILL.md", "skill.yaml"]) await access(join(source, file));
-  const manifest = parse(await readFile(join(source, "skill.yaml"), "utf8")) as Record<string, unknown>;
-  if (typeof manifest.name !== "string" || typeof manifest.version !== "string" || typeof manifest.capability !== "string") {
-    throw new Error("skill.yaml requires name, version, and capability.");
-  }
-  const destination = join(validatedRoot, basename(source));
-  await mkdir(validatedRoot, { recursive: true });
-  await rename(source, destination);
-  console.log(`Promoted ${source} -> ${destination}`);
+commonOptions(program.command("compile <recipe>").description("Validate YAML/JSON and emit compiled IR").option("-o, --output <path>", "write IR to a file"))
+  .action(async (recipePath: string, options: { output?: string }) => {
+    const recipe = parse(await readFile(recipePath, "utf8"));
+    const ir = compileRecipe(recipe, { format: recipePath.endsWith(".json") ? "json" : "yaml", path: recipePath });
+    const text = `${JSON.stringify(ir, null, 2)}\n`;
+    if (options.output) await writeFile(options.output, text, "utf8"); else process.stdout.write(text);
+  });
+
+program.command("serve").description("Start Operator ABI Gateway (JSON-RPC/REST/SSE)").option("-p, --port <port>", "HTTP port", "8080").option("-h, --host <host>", "bind host", "127.0.0.1").action((options: { port: string; host: string }) => {
+  const gateway = new CARGateway(); gateway.listen({ host: options.host, port: Number(options.port) }); console.log(`Cusimanse gateway listening on http://${options.host}:${options.port}`);
 });
 
-async function gatewayForRecipe(recipePath: string, providerName: string, runtimeName: string): Promise<CARGateway> {
-  const recipe = await loadRecipe(recipePath);
-  const ir = compileRecipe(recipe, { format: recipePath.endsWith(".json") ? "json" : "yaml", path: recipePath });
-  const runtime = await createRuntime(ir, providerName, runtimeName);
-  const gateway = new CARGateway(runtime);
-  gateway.register({ ir, state: createResearchState(ir.experimentId) });
-  return gateway;
-}
+program.command("skills").description("Manage dynamic validated skills").command("promote <candidateDir>").description("Validate and promote a candidate skill").action(async (candidateDir: string) => { const result = await promoteSkill(candidateDir); console.log(`Promoted ${result.id} -> ${result.path}`); });
 
-async function createRuntime(ir: Awaited<ReturnType<typeof compileRecipe>>, providerName: string, runtimeName: string) {
-  const compute = new ComputeProviderRegistry();
-  compute.register(new MockComputeProvider());
-  const provider = compute.get(providerName);
-  if (!(await provider.isAvailable())) throw new Error(`Compute provider unavailable: ${providerName}`);
-
-  const capabilities = new CapabilityRegistry();
-  for (const intent of ir.intents) capabilities.register({ name: intent.capability, version: "v1", operationKinds: ["tool"] });
-
-  const adapterRegistry = new AdapterRegistry();
-  const adapter: Adapter = {
-    name: "compute-runtime",
-    capabilities: ir.intents.map((intent) => intent.capability),
-    async execute(context, parameters) {
-      const command = typeof parameters.command === "string" ? parameters.command : "true";
-      const args = Array.isArray(parameters.args) ? parameters.args.filter((x): x is string => typeof x === "string") : [];
-      const result = await provider.exec(command, args);
-      const execution: { status: "succeeded" | "failed"; output: typeof result; evidenceRefs: string[]; error?: string } = {
-        status: result.exitCode === 0 ? "succeeded" : "failed",
-        output: result,
-        evidenceRefs: [`evidence://${ir.experimentId}/${context.operationId}`],
-      };
-      if (result.stderr) execution.error = result.stderr;
-      return execution;
-    },
-  };
-  adapterRegistry.register(adapter);
-  const policy = new PolicyEngine(ir.intents.map((intent) => ({ id: `allow-${intent.id}`, capability: intent.capability, decision: "allow", reason: "Recipe capability" })));
-  const dependencies = { capabilities, policy, approvals: new ApprovalManager(), operations: new OperationEngine(), adapters: adapterRegistry };
-  const runtimes = { local: new LocalExecutionRuntime(dependencies), temporal: new TemporalExecutionRuntime(), graph: new GraphExecutionRuntime() };
-  const runtime = runtimes[runtimeName as keyof typeof runtimes];
-  if (!runtime) throw new Error(`Unknown runtime: ${runtimeName}`);
-  return runtime;
-}
-
-async function loadRecipe(path: string): Promise<unknown> { return parse(await readFile(path, "utf8")); }
 await program.parseAsync(process.argv);
