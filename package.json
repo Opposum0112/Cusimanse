@@ -5,19 +5,19 @@
   "type": "module",
   "engines": { "node": ">=22" },
   "bin": { "cusimanse": "./dist/bin/cli.js" },
-  "main": "./dist/src/index.js",
-  "types": "./dist/src/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/src/index.d.ts", "import": "./dist/src/index.js" },
-    "./gateway": { "types": "./dist/src/gateway/server.d.ts", "import": "./dist/src/gateway/server.js" }
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./gateway": { "types": "./dist/gateway/server.d.ts", "import": "./dist/gateway/server.js" }
   },
   "files": ["dist", "recipes", "labs", "skills", "schema", "README.md"],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --test \"dist/tests/**/*.test.js\"",
+    "test": "npm run build && tsx --test \"tests/**/*.test.ts\"",
     "cli": "npm run build && node dist/bin/cli.js",
-    "lab:npm-install": "npm run build && node dist/src/bin/serve-npm-install-lab.js"
+    "lab:npm-install": "npm run build && node dist/bin/serve-npm-install-lab.js"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.0",
