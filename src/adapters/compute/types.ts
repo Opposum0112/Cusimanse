@@ -1,0 +1,33 @@
+export interface SandboxSpec {
+  id: string;
+  image: string;
+  cpus: number;
+  memoryMb: number;
+  mounts?: Array<{ hostPath: string; guestPath: string; readOnly: boolean }>;
+  networkIsolation: "airgap" | "dns-only" | "full";
+  guestProbeBinary?: string;
+}
+
+export interface ExecResult {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+  durationMs: number;
+}
+
+export interface ComputeProvider {
+  readonly id: "lima" | "multipass" | "firecracker" | "cloud" | "mock" | (string & {});
+  isAvailable(): Promise<boolean>;
+  createSandbox(spec: SandboxSpec): Promise<void>;
+  exec(cmd: string, args?: string[]): Promise<ExecResult>;
+  copyToSandbox(hostSrc: string, guestDst: string): Promise<void>;
+  extractArtifacts(guestSrc: string, hostDst: string): Promise<void>;
+  destroy(): Promise<void>;
+}
+
+export class ComputeProviderError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ComputeProviderError";
+  }
+}
