@@ -1,126 +1,237 @@
 # Cusimanse Agent Runtime (CAR)
 
-CAR is a declarative, LLM-driven security-research runtime. An end user supplies a LinkML-governed research contract; the **mandatory LLM layer** analyzes research state and proposes typed declarative intents; CAR validates and plans those intents, resolves capabilities, applies policy and approval, executes only through registered adapters, records observations/evidence, and controls disposable compute lifecycle.
+CAR is a declarative, LLM-augmented security-research runtime. A research contract is compiled into normalized IR; CAR plans dependencies, resolves registered capabilities, applies policy and approval, executes only through adapters, records observations/evidence, and controls disposable research compute.
 
-**The LLM reasons and proposes. CAR validates, authorizes, executes, observes, preserves evidence, and controls lifecycle.**
+> **The LLM/CrewAI layer proposes research intent. CAR validates, authorizes, executes, observes, preserves evidence, and controls lifecycle.**
 
-## CrewAI integration
+## `crewai` branch
 
-The `crewai` branch adds an optional CrewAI orchestration boundary without making CrewAI part of CAR's execution authority:
+This branch adds a **CrewAI orchestration integration** around the CAR runtime. CrewAI is intentionally outside CAR's execution authority.
 
 ```text
-CrewAI Research Crew
-        │
-        │ declarative research intent
-        ▼
-CrewAI CAR tools
-        │
-        ▼
-CAR Runtime
-  validate → resolve → policy/approval → operation
-        │
-        ▼
-Adapters → disposable compute → observations/evidence
-        │
-        ▼
-CAR state/evidence → CrewAI analysis
+CrewAI Research Crew → Shared CAR Skill Registry → declarative proposal
+                                      ↓
+                           CrewAI CAR Tool Bridge
+                                      ↓ HTTP/JSON
+                                CAR Gateway
+                                      ↓
+                    Validate → Resolve → Policy/Approval
+                                      ↓
+                             Operation Engine
+                                      ↓
+                              Adapter Registry
+                                      ↓
+                    Disposable VM / research tools
+                                      ↓
+                           Evidence + Runtime State
+                                      ↓
+                                   CrewAI
 ```
 
-CrewAI agents use the shared `skills/registry.yaml` vocabulary. Skills describe research intent and expected evidence; they are **not executable shell recipes**. The Python bridge is under `integrations/crewai/` and communicates with a CAR HTTP host. CAR remains responsible for capability resolution, authorization, execution, evidence, and lifecycle.
+### Authority boundary
+
+| Layer | Responsibility | Execution authority |
+|---|---|---|
+| CrewAI agents | reason, delegate, select skills, analyze results | No |
+| Skill registry | shared declarative research vocabulary | No |
+| CAR gateway | API boundary and proposal validation | No direct host execution |
+| CAR policy/approval | authorization decision | Yes |
+| CAR operation engine | controlled operation lifecycle | Yes |
+| CAR adapters | concrete tool/VM execution | Yes, through CAR |
+| Evidence/state | provenance and research record | CAR-owned |
+
+CrewAI should not be given a second unrestricted shell/subprocess path for the same research environment.
 
 ## Architecture
 
 ![CAR architecture](docs/architecture.svg)
 
-The runtime is split into authority planes:
+The branch-specific architecture and integration sequence are documented in [`docs/crewai-architecture.md`](docs/crewai-architecture.md).
 
 ```text
 Research Contract → Compiler → IR → Planner → Capability Registry
-                                           ↓
-                                   Policy + Approval
-                                           ↓
-                                   Operation Engine
-                                           ↓
-                                    Adapter Registry
-                                           ↓
-                         Lima / Shell / File / Process / npm
-                                           ↓
-                              Observation + Evidence
-                                           ↓
-                                      Runtime State
-                                           ↓
-                              Mandatory LLM Reasoning
-                                           ↓
-                              Declarative Proposal ↺
+                                                ↓
+                                        Policy + Approval
+                                                ↓
+                                        Operation Engine
+                                                ↓
+                                         Adapter Registry
+                                                ↓
+                                  Disposable Compute / Tools
+                                                ↓
+                                      Evidence + State
+                                                ↓
+                                      LLM / CrewAI reasoning
+                                                ↺ proposal
+```
+
+## Repository layout
+
+```text
+src/
+├── compiler/                 # contract validation / normalization
+├── ir/                      # normalized research representation
+├── planner/                 # deterministic dependency ordering
+├── capabilities/            # capability registry / resolver
+├── policy/                  # authorization + approval state
+├── operations/              # controlled operation lifecycle
+├── adapters/                # execution adapters
+├── evidence/                # evidence + provenance
+├── state/                   # research state and events
+├── llm/                     # typed proposal-only LLM layer
+├── runtime/                 # orchestration
+└── integrations/crewai/     # TypeScript CAR/CrewAI gateway
+
+integrations/crewai/
+├── cusimanse_tools.py       # CrewAI-facing CAR tools
+├── requirements.txt         # Python dependencies
+└── README.md                # integration runbook
+
+skills/
+├── registry.yaml             # framework-neutral research skills
+├── README.md                 # registry contract
+└── crewai/README.md          # CrewAI role/usage guidance
+
+docs/
+├── architecture.svg
+└── crewai-architecture.md
 ```
 
 ## Installation
 
-For the CAR TypeScript runtime:
+### 1. Clone and select the branch
+
+```bash
+git clone https://github.com/Opposum0112/Cusimanse.git
+cd Cusimanse
+git checkout crewai
+```
+
+### 2. Install and verify CAR
+
+CAR requires Node.js 22 or newer.
 
 ```bash
 npm install
+npm run typecheck
+npm test
 ```
 
-For CrewAI orchestration, install CrewAI in the Python environment used by the crew:
+### 3. Install the CrewAI bridge
+
+Use an isolated Python environment:
 
 ```bash
-pip install crewai
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r integrations/crewai/requirements.txt
+```
+
+Set the CAR gateway address when using the default local gateway:
+
+```bash
 export CUSIMANSE_CAR_URL=http://127.0.0.1:8787
 ```
 
-The CrewAI bridge expects a CAR host exposing:
+## Running the project with CrewAI
 
-- `POST /v1/research/intents`
-- `GET /v1/research/{experiment_id}/state`
-- `GET /v1/research/{experiment_id}/evidence`
+The current CAR gateway is a **TypeScript library entry point**, not a standalone CLI. A host process must construct the normal `RuntimeOrchestrator`, register a compiled research session, and start `CARGateway`.
 
-The current TypeScript runtime is still a library; an HTTP host/CLI is a separate deployment layer and is not silently claimed to exist in this branch.
+```ts
+import { CARGateway } from "./src/integrations/crewai/server.js";
 
-## Skill registry
+const runtime = /* construct the normal CAR RuntimeOrchestrator */;
+const gateway = new CARGateway(runtime);
 
-`skills/registry.yaml` is the framework-neutral research skill catalog. Different CrewAI crews can share it rather than inventing incompatible tool vocabularies.
+gateway.register({
+  ir: /* compiled/normalized CusimanseIR */,
+  state: /* initial ResearchState */,
+});
 
-```text
-skills/
-├── registry.yaml       # canonical skill references
-├── README.md           # registry rules
-└── crewai/
-    └── README.md       # CrewAI role/usage guidance
+gateway.listen({ host: "127.0.0.1", port: 8787 });
 ```
 
-A skill selects a CAR capability and describes parameters, expected evidence, and suitable research roles. Policy remains authoritative even when the skill metadata says approval is unnecessary.
+Keep the gateway on `127.0.0.1` for local development. The prototype gateway has no authentication; remote deployment needs an authenticated/trusted service boundary.
 
-## CrewAI tools
-
-The bridge exposes three CAR-facing tools:
+In the CrewAI Python process:
 
 ```python
-from integrations.crewai.cusimanse_tools import (
-    submit_research_intent,
-    get_research_state,
-    get_evidence,
+from crewai import Agent
+from integrations.crewai.cusimanse_tools import CAR_TOOLS
+
+researcher = Agent(
+    role="Threat Researcher",
+    goal="Investigate the declared research question using CAR skills",
+    tools=CAR_TOOLS,
 )
 ```
 
-A CrewAI researcher can submit a proposal such as:
+See [`integrations/crewai/README.md`](integrations/crewai/README.md) for the integration runbook and [`skills/crewai/README.md`](skills/crewai/README.md) for role/skill usage.
+
+## CAR gateway API
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `POST` | `/v1/research/{experimentId}/proposals` | Submit one typed declarative proposal |
+| `GET` | `/v1/research/{experimentId}/state` | Read CAR research state |
+| `GET` | `/v1/research/{experimentId}/evidence` | Read collected evidence |
+
+Example:
 
 ```json
 {
-  "skill": "workload.npm.install",
-  "intent": "install the declared npm workload in disposable research compute",
-  "parameters": {
-    "working_directory": "/workspace",
-    "package_manager": "npm"
-  },
-  "complete": false
+  "proposal": {
+    "intent": "inspect npm install network behavior",
+    "capability": "network.observe",
+    "parameters": { "interface": "eth0", "duration": 60 },
+    "complete": false
+  }
 }
 ```
 
-That request is data. It must cross the CAR validation, capability, planning, policy/approval and operation boundaries before execution.
+A proposal is **data, not a command**. CAR validates it, resolves the declared capability, applies policy/approval, and only then reaches an adapter. Executable proposals require an explicit `capability`.
 
-## Security boundary
+## Shared skill registry
 
-CrewAI is an orchestration layer, not an execution authority. The integration contains no direct shell, subprocess, Lima, or host-credential operations. CAR owns the execution path and can deny or pause an agent proposal independently of the CrewAI agent's decision.
+`skills/registry.yaml` is framework-neutral. CrewAI consumes its vocabulary, but the registry is not itself a CrewAI tool implementation.
 
-See [`integrations/crewai/README.md`](integrations/crewai/README.md) and [`skills/registry.yaml`](skills/registry.yaml) for the integration contracts.
+Current references include:
+
+- `process-observation` → `evidence.collect`
+- `network-observation` → `network.observe`
+- `npm-install-research` → `workload.npm.install`
+
+Skills describe intent, roles, operation kinds, and expected evidence. CAR policy remains authoritative.
+
+## End-to-end flow
+
+```text
+1. User declares research contract
+2. CAR compiles contract → normalized IR
+3. CrewAI researcher selects a shared skill
+4. LLM/agent proposes typed declarative intent
+5. CrewAI CAR tool submits proposal over HTTP
+6. CAR validates proposal
+7. CAR resolves capability + plans operation
+8. CAR evaluates policy / approval
+9. Authorized operation reaches registered adapter
+10. Adapter executes inside the declared research boundary
+11. CAR records observations, evidence and provenance
+12. CrewAI reads state/evidence and proposes the next step
+```
+
+For disposable experiments, the CAR workflow remains responsible for compute creation and destruction. CrewAI does not control VM lifecycle directly.
+
+## Security model
+
+```text
+CrewAI / LLM:  THINK → PLAN → PROPOSE → ANALYZE
+CAR:           VALIDATE → RESOLVE → AUTHORIZE → EXECUTE
+               → OBSERVE → PRESERVE → VERIFY → DESTROY
+```
+
+The CrewAI integration contains no arbitrary shell execution, credential access, policy mutation, or direct VM-control API.
+
+## Current scope
+
+This branch provides the CrewAI integration boundary, shared skill vocabulary, CAR HTTP gateway, Python tool bridge, and gateway integration tests. The gateway is currently an in-memory/library-oriented prototype: sessions are registered by the host process and are not a durable service database. Approval remains a CAR control-plane concern; CrewAI does not grant itself approval authority.
