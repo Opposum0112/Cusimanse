@@ -1,12 +1,20 @@
-import type { CapabilityIntent } from "../../src/ir/index.js";
+import type { CapabilityIntent, CusimanseIR } from "../../src/ir/index.js";
 import { strict as assert } from "node:assert";
 import { buildDependencyGraph, getReadyIntents, planExecution, PlannerError } from "../../src/planner/index.js";
 
-const makeIr = (intents: CapabilityIntent[]) => ({
-  version: "v1" as const,
+const emptyContract: CusimanseIR["contract"] = {
+  contractVersion: "0.2",
+  operationKinds: [],
+  evidenceRequired: [],
+  stopWhen: { allEvidenceRequired: false },
+};
+
+const makeIr = (intents: CapabilityIntent[]): CusimanseIR => ({
+  version: "v1",
   experimentId: "planner-test",
-  source: { format: "yaml" as const, path: "test.yaml" },
+  source: { format: "yaml", path: "test.yaml" },
   intents,
+  contract: emptyContract,
 });
 
 const intent = (id: string, dependsOn: string[] = []): CapabilityIntent => ({
@@ -17,12 +25,12 @@ const intent = (id: string, dependsOn: string[] = []): CapabilityIntent => ({
 });
 
 assert.deepEqual(
-  planExecution(makeIr([intent("a"), intent("b", ["a"]), intent("c", ["b"])] )).orderedIntentIds,
+  planExecution(makeIr([intent("a"), intent("b", ["a"]), intent("c", ["b"])])).orderedIntentIds,
   ["a", "b", "c"],
 );
 
 assert.deepEqual(
-  planExecution(makeIr([intent("c", ["a"]), intent("a"), intent("b", ["a"])] )).orderedIntentIds,
+  planExecution(makeIr([intent("c", ["a"]), intent("a"), intent("b", ["a"])])).orderedIntentIds,
   ["a", "b", "c"],
 );
 
