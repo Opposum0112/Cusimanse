@@ -1,38 +1,62 @@
 # Cusimanse
 
-**Cusimanse Agent Runtime (CAR)** is a harness-neutral, declarative security-research runtime. An AI agent is the operator; Cusimanse governs intent, policy, approvals, isolation, execution, and evidence.
+**Run security research experiments with an AI agent without giving the agent direct control of your machine.**
 
-## Architecture
+Cusimanse is a declarative, agent-operated security research platform. You describe **what you want to investigate** in a YAML recipe; Cusimanse validates the research contract, applies policy and approval gates, runs the workload on disposable compute, and collects evidence.
 
-```mermaid
-flowchart TD
-  CLI[CLI: cusimanse] --> ABI[Operator ABI Gateway\nHTTP / JSON-RPC 2.0 / SSE]
-  ABI --> CORE[Control Plane Orchestrator]
-  CORE --> AI[Vercel AI SDK 7\nOpenAI / Anthropic / Google / DeepSeek / Ollama]
-  CORE --> POL[Fail-Closed Policy\ntoolApproval]
-  CORE --> SK[Dynamic Validated Skills]
-  CORE --> RT[Execution Runtime SPI]
-  RT --> LOCAL[Local In-Memory]
-  RT --> TEMP[Temporal Durable Adapter]
-  RT --> GRAPH[LangGraph/Cyclic Adapter]
-  RT --> CP[Compute Provider SPI]
-  CP --> LIMA[Lima]
-  CP --> MP[Canonical Multipass]
-  CP --> FC[Cloud / Firecracker Adapter]
-  CP --> MOCK[Mock]
-  CP --> GUEST[Guest Data Plane\nGo labprobe + workloads + tracing]
+The important distinction is simple:
+
+> **Your AI agent is the researcher. Cusimanse is the governed execution boundary.**
+
+## What can I use it for?
+
+Cusimanse is designed for repeatable, isolated research such as:
+
+- **Software supply-chain research** — observe package installation and build behavior.
+- **Malware analysis** — execute suspicious workloads inside disposable compute and collect telemetry.
+- **Vulnerability validation** — reproduce a declared behavior while keeping execution inside the research boundary.
+- **Detection engineering** — generate process, filesystem, network, and kernel evidence for detection development.
+- **Threat research** — let an agent investigate a research question while Cusimanse enforces the declared scope.
+- **Agentic security experiments** — give different AI agents or harnesses the same research contract and execution boundary.
+
+## How it works
+
+You provide three things:
+
+1. **A research recipe** — the question, scope, workload, capabilities, evidence requirements, and cleanup rules.
+2. **An AI model or agent** — OpenAI, Anthropic, Google, DeepSeek, Ollama, or another compatible operator.
+3. **A compute provider** — Mock for CI, or disposable Lima/Multipass/Firecracker-based infrastructure for real experiments.
+
+Cusimanse then follows this path:
+
+```text
+Research recipe
+      │
+      ▼
+ Validate + compile
+      │
+      ▼
+ Policy + approval gate ──► DENY unknown/unsafe operation
+      │
+      ▼
+ AI agent proposes research actions
+      │
+      ▼
+ Execution runtime
+      │
+      ▼
+ Disposable compute
+      │
+      ▼
+ Workload + labprobe telemetry
+      │
+      ▼
+ Evidence + experiment result
 ```
 
-### Core boundaries
+## Try it in minutes
 
-1. **Model layer:** provider-neutral Vercel AI SDK 7 model factories. Local DeepSeek/Ollama use OpenAI-compatible endpoints.
-2. **Policy layer:** every model-proposed tool operation is evaluated fail-closed before execution. Unknown operations are denied.
-3. **Skill layer:** only skills under `skills/validated/` become native AI SDK tools. `SKILL.md` provides instructions and `schema.json` provides the input contract.
-4. **Runtime SPI:** local, Temporal-compatible, and cyclic/LangGraph-compatible drivers share one execution contract.
-5. **Compute SPI:** Lima, Multipass, Firecracker/cloud, and Mock are replaceable providers. Provider commands use argument vectors rather than shell interpolation.
-6. **Data plane:** workloads and Go `labprobe` telemetry remain inside the selected sandbox boundary.
-
-## Quick start
+### 1. Install
 
 ```bash
 git clone https://github.com/Opposum0112/Cusimanse.git
@@ -40,24 +64,214 @@ cd Cusimanse
 npm install
 npm run build
 npm link
-cusimanse compile recipes/examples/npm-install.yaml
-cusimanse run recipes/examples/npm-install.yaml --provider mock --runtime local
-cusimanse serve --port 8080
 ```
 
-`mock` is hermetic and is the default for development and CI. Lima is intended for macOS/Linux environments with `limactl`; Multipass is intended for Linux/desktop environments with `multipass`. Cloud/Firecracker is an SPI boundary and requires a configured provider adapter.
+### 2. Validate a recipe
 
-## Configuration
+```bash
+cusimanse compile recipes/examples/npm-install.yaml
+```
 
-Resolution precedence is **CLI > environment/.env > project `./.cusimanse/config.yaml` > user `~/.cusimanse/config.yaml` > defaults**. Supported secrets/settings include `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPSEEK_API_KEY`, and `OLLAMA_BASE_URL`.
+Compilation turns the YAML research contract into validated intermediate representation (IR) before execution.
 
-## Operator ABI
+### 3. Run safely with the Mock provider
 
-JSON-RPC endpoint: `POST /rpc` with methods `experiment.run`, `evidence.inspect`, `skills.promote`, and `providers.list`.
+```bash
+cusimanse run recipes/examples/npm-install.yaml --provider mock --runtime local
+```
 
-REST endpoints include `POST /v1/experiments/run`, `GET /v1/experiments/:runId/events`, `GET /v1/evidence/:runId`, `POST /v1/skills/promote`, and `GET /v1/providers`.
+The **Mock provider is hermetic** and is the recommended way to try Cusimanse, develop recipes, and run tests without a hypervisor.
 
-See `docs/operator-abi.md` and `docs/recipe-authoring.md` for contracts.
+### 4. Run with disposable compute
+
+For a real sandbox, select an available provider:
+
+```bash
+cusimanse run recipes/examples/npm-install.yaml --provider lima --runtime local
+```
+
+or:
+
+```bash
+cusimanse run recipes/examples/npm-install.yaml --provider multipass --runtime local
+```
+
+Lima requires `limactl`; Multipass requires `multipass`. Cloud/Firecracker is exposed through the compute-provider SPI and requires a configured provider adapter.
+
+## Write a research recipe
+
+A recipe is the main user-facing contract. It declares **intent rather than arbitrary shell commands**.
+
+For example, a recipe can say:
+
+```yaml
+research_question:
+  question: What happens when this package is installed?
+
+scope:
+  paths:
+    - /workspace
+  egress:
+    mode: declared-only
+
+allowed_capabilities:
+  - vm.create
+  - workload.npm.install
+  - evidence.collect
+  - network.observe
+
+evidence_required:
+  - type: process
+  - type: network
+  - type: log
+```
+
+The full example is in `recipes/examples/npm-install.yaml`. See `docs/recipe-authoring.md` for the complete contract.
+
+## Choose how you want to run it
+
+### AI models
+
+Cusimanse uses **Vercel AI SDK 7** so the research runtime is not tied to one model vendor.
+
+Supported provider families include:
+
+| Provider | Typical use |
+|---|---|
+| OpenAI | Hosted frontier models |
+| Anthropic | Hosted reasoning/coding models |
+| Google | Gemini models |
+| DeepSeek | API or OpenAI-compatible endpoint |
+| Ollama | Local models through an OpenAI-compatible endpoint |
+
+Credentials can be supplied without putting secrets in recipes:
+
+- CLI: `--model`, `--api-key`, `--base-url`
+- Environment: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPSEEK_API_KEY`, `OLLAMA_BASE_URL`
+- Project configuration: `./.cusimanse/config.yaml` / `.env`
+- User configuration: `~/.cusimanse/config.yaml`
+
+Configuration is resolved from the most specific user-provided source first.
+
+### Execution runtimes
+
+Choose the execution model independently from the compute provider:
+
+```bash
+# Simple local execution
+cusimanse run recipe.yaml --runtime local --provider mock
+
+# Durable workflow adapter
+cusimanse run recipe.yaml --runtime temporal --provider lima
+
+# Cyclic/adversarial research adapter
+cusimanse run recipe.yaml --runtime graph --provider lima
+```
+
+This separation means you can change orchestration without rewriting your research recipes or compute integration.
+
+### Compute providers
+
+| Provider | Purpose |
+|---|---|
+| `mock` | Hermetic development and CI |
+| `lima` | Disposable VM research on supported desktop/server environments |
+| `multipass` | Disposable Ubuntu VM research |
+| `cloud` / Firecracker | Provider boundary for stronger isolated/cloud execution |
+
+All provider integrations use typed argument vectors rather than interpolating untrusted commands into a shell.
+
+## AI-agent skills
+
+Validated skills let an agent use reusable research capabilities without embedding provider-specific logic in the agent.
+
+A validated skill contains:
+
+```text
+skills/validated/<skill>/
+├── SKILL.md       # instructions and research guidance
+└── schema.json    # typed input contract
+```
+
+At startup Cusimanse scans `skills/validated/`, validates the skill contract, converts its schema into a Zod-backed AI SDK tool, and routes execution through the active compute provider and approval policy.
+
+Candidate skills are **not automatically executable**. Promote them only after validation:
+
+```bash
+cusimanse skills promote skills/candidate/my-skill
+```
+
+## Security boundary
+
+Cusimanse is deliberately fail-closed:
+
+- A model proposal is **not** an execution authorization.
+- Unknown operations are denied.
+- Tool execution passes through the policy/approval boundary before reaching compute.
+- Recipes constrain capabilities, paths, networks, evidence, and lifecycle.
+- Real workloads are intended to run on disposable compute rather than directly on the operator host.
+- Evidence collection and teardown are part of the research lifecycle.
+- Validated skills are declarative and schema-checked; candidate content is not treated as trusted executable code.
+
+For threat assumptions, supported versions, reporting, and hypervisor-breakout considerations, see `SECURITY.md`.
+
+## Use Cusimanse from another agent or application
+
+You do not have to use the CLI directly. Start the Operator ABI Gateway:
+
+```bash
+cusimanse serve --host 127.0.0.1 --port 8080
+```
+
+The gateway provides:
+
+- **JSON-RPC 2.0** at `POST /rpc`
+- **REST** endpoints for experiments, evidence, skills, and providers
+- **SSE** event streams for experiment progress
+
+The primary operations are:
+
+```text
+experiment.run
+ evidence.inspect
+ skills.promote
+ providers.list
+```
+
+This makes Cusimanse usable beneath different AI agents, IDEs, automation systems, and research interfaces without coupling the research contract to a particular harness.
+
+See `docs/operator-abi.md` for the typed interface.
+
+## Architecture
+
+```mermaid
+flowchart TD
+  USER[Researcher] --> RECIPE[YAML Research Recipe]
+  AGENT[AI Agent / Harness] --> ABI[Operator ABI Gateway]
+  RECIPE --> CORE[Control Plane]
+  ABI --> CORE
+  CORE --> MODEL[Vercel AI SDK 7\nOpenAI / Anthropic / Google / DeepSeek / Ollama]
+  CORE --> POLICY[Fail-Closed Policy\ntoolApproval]
+  CORE --> SKILLS[Validated Skill Tools]
+  CORE --> RUNTIME[Execution Runtime SPI]
+  RUNTIME --> LOCAL[Local]
+  RUNTIME --> TEMP[Temporal Adapter]
+  RUNTIME --> GRAPH[Cyclic / LangGraph Adapter]
+  RUNTIME --> COMPUTE[Compute Provider SPI]
+  COMPUTE --> LIMA[Lima]
+  COMPUTE --> MP[Multipass]
+  COMPUTE --> FC[Cloud / Firecracker]
+  COMPUTE --> MOCK[Mock]
+  LIMA --> GUEST[Disposable Guest Data Plane]
+  MP --> GUEST
+  FC --> GUEST
+  GUEST --> PROBE[Go labprobe + workloads + tracing]
+  PROBE --> EVIDENCE[Evidence]
+```
+
+### The design in one sentence
+
+**Recipes define the research, agents reason about it, policy controls what may happen, runtimes orchestrate it, compute providers isolate it, and evidence makes the result inspectable.**
 
 ## Development
 
@@ -68,4 +282,8 @@ npm test
 npm run test:coverage
 ```
 
-See `CONTRIBUTING.md` and `SECURITY.md` before contributing or running untrusted workloads.
+Before contributing, read `CONTRIBUTING.md` and `SECURITY.md`.
+
+## Project status
+
+Cusimanse is under active development. The Mock provider and local runtime are the easiest entry points for development and CI; hypervisor and cloud integrations depend on the host environment and provider configuration.
