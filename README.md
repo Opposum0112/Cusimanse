@@ -1,117 +1,74 @@
-# @cusimanse/agent-runtime
+# Cusimanse Agent Runtime
 
-Harness-neutral **research-contract runtime** for agent-operated security labs.
+Run one security-research experiment at a time, with a written contract that the lab cannot quietly outgrow.
 
-You freeze one experiment as YAML. An operator — any harness, a built-in reasoner, or a human — may only **propose** `{ intent, capability, parameters, complete }`. CAR compiles the contract, evaluates allowlists, applies policy, runs adapters, and keeps evidence.
-
-CrewAI is **not** part of this package. Roles and skills live in CAR YAML.
+You describe the question, what is out of scope, which observations are allowed, and when the disposable machine must be destroyed. An operator (a model, another research tool, or you) may only **ask** for the next step. The runtime is what is allowed to create a VM, run a declared workload, collect evidence, and tear the environment down.
 
 ```text
-harness / reasoner / human
-        → proposal JSON
-        → CARGateway or RuntimeOrchestrator
-        → contract → policy → adapter → evidence
+You write the contract
+        ↓
+The runtime freezes it
+        ↓
+An operator proposes the next observation
+        ↓
+The runtime checks the contract, then acts
+        ↓
+You read evidence and decide whether the question is answered
 ```
 
-## Install
+## Start with a lab folder
 
-```bash
-npm install @cusimanse/agent-runtime
-```
+Do not start from a prompt. Copy [`labs/npm-install-day0/`](labs/npm-install-day0/).
 
-From this repo (until a registry publish):
-
-```bash
-npm install github:Opposum0112/Cusimanse#crewai
-```
-
-```ts
-import {
-  compileRecipe,
-  evaluateContractIntent,
-  RuntimeOrchestrator,
-  CARGateway,
-  reasoningProposalSchema,
-  createLab,
-  VercelAIReasoner,
-} from "@cusimanse/agent-runtime";
-```
-
-Node.js 22+.
-
-## What this package is
-
-- contract compiler + IR + planner
-- `evaluateContractIntent` and deny codes
-- capability / policy / operations / adapters / evidence / state
-- `reasoningProposalSchema` (operator ABI payload)
-- HTTP gateway: `POST /v1/research/:id/proposals`, `GET .../state`, `GET .../evidence`
-- `skills/registry.yaml` (role → skill → capability)
-- optional `VercelAIReasoner` that speaks the same schema
-- `createLab()` host facade (requires `reasoner` and/or `gateway: true`)
-
-## What this package is not
-
-- a multi-agent framework
-- a CrewAI wrapper
-- a shell tool for models
-- an approval authority the model can grant itself
-
-## Operator vs harness
-
-An **operator** is required to *drive* a lab through `createLab`. That operator is either:
-
-- in-process `Reasoner` (`VercelAIReasoner` or your own), or
-- any HTTP client of `CARGateway`
-
-The **harness** (CrewAI, LangGraph, Codex, curl, a human) is swappable. It only fills the proposal schema.
-
-```ts
-createLab({
-  contract: parsedYaml,
-  policy: rules,
-  capabilities: descriptors,
-  adapters,
-  gateway: true, // HTTP operator ABI on 127.0.0.1:8787
-});
-```
-
-`createLab` throws `LabError` if neither `reasoner` nor `gateway: true` is set.
-
-## Researcher workflow
-
-Work in a **lab folder**, not a prompt dump. Gold path: [`labs/npm-install-day0/`](labs/npm-install-day0/).
-
-Create:
-
-| File | Purpose |
+| File | What it is |
 |---|---|
-| `contract.yaml` | Question, non-goals, scope, allowlist, intents, evidence, stop, destroy |
-| `policy.yaml` | allow / approval-required / deny |
-| `fixtures/*` | Pinned subject under test |
+| `contract.yaml` | The experiment: question, non-goals, allowed actions, planned steps, required evidence, stop and destroy rules |
+| `policy.yaml` | Which of those actions are allowed without a human approval |
+| `fixtures/package.json` | The pinned subject under test (here, `left-pad@1.3.0`) |
 
-Do not create: operator shell tools, keys in YAML, a second contract mid-run.
+That lab asks: **what process, file, and network behavior appears during `npm install` of the fixture on a disposable VM?**
 
-Full walkthrough: [`docs/researcher-workflow.md`](docs/researcher-workflow.md).
+It does **not** ask the operator to exploit the package, keep the VM, or run shell on your workstation.
 
-## Architecture
+How to author the next lab: [Researcher workflow](docs/researcher-workflow.md). Contract fields: [Research contracts](docs/research-contracts.md).
 
-```text
-skills/registry.yaml     roles + skill names
-contract.yaml            frozen law of one experiment
-        ↓
-compileRecipe → IR.contract.hash
-        ↓
-operator proposal { intent, capability, parameters, complete }
-        ↓
-evaluateContractIntent → capability resolve → policy → adapter
-        ↓
-evidence + state (read-only to the operator)
+## What you may put in a proposal
+
+The operator speaks one shape only:
+
+```json
+{
+  "intent": "watch the network during npm install",
+  "capability": "network.observe",
+  "parameters": { "interface": "eth0", "duration": 60 },
+  "complete": false
+}
 ```
 
-See [`docs/architecture.md`](docs/architecture.md).
+- `capability` must be on the contract allowlist and must match a skill in [`skills/registry.yaml`](skills/registry.yaml).
+- `complete: true` ends the conversation. It does not run anything.
+- Extra fields such as `command` or `shell` are rejected.
 
-## HTTP operator ABI
+Roles (threat researcher, detection engineer, reviewer) are labels on skills. They are not a particular agent product.
+
+## How a run proceeds (npm-install example)
+
+1. Provision the disposable VM (`vm.create`).
+2. Install the pinned fixture in `/workspace` (`workload.npm.install`).
+3. Observe the declared network (`network.observe`).
+4. Collect process and log evidence (`evidence.collect`).
+5. Stop, then destroy the VM once required evidence exists (`vm.destroy`).
+
+Asking for `host.shell` or a path outside `/workspace` is denied. Typical deny reasons:
+
+- `not_in_contract_allowlist` — capability was not written into the contract
+- `scope_violation` — path or host is outside `scope`
+- `destroy_blocked_until_evidence` — destroy was requested before required evidence exists
+- `max_proposals_exceeded` — the contract budget is spent
+
+## How an operator connects
+
+The lab host exposes a local HTTP surface. Any research harness that can send JSON can drive it. Nothing in this runtime embeds a specific multi-agent product.
 
 ```text
 POST /v1/research/{experimentId}/proposals
@@ -119,37 +76,22 @@ GET  /v1/research/{experimentId}/state
 GET  /v1/research/{experimentId}/evidence
 ```
 
-```json
-{
-  "proposal": {
-    "intent": "inspect npm install network behavior",
-    "capability": "network.observe",
-    "parameters": { "interface": "eth0", "duration": 60 },
-    "complete": false
-  }
-}
-```
+Listen on `127.0.0.1` only. This surface is unauthenticated; treat it as a local lab port.
 
-Bind to `127.0.0.1`. This prototype has no authentication.
+You can also attach an in-process model that emits the same JSON. See [Operator LLM](docs/llm.md).
 
-## Deny codes
+A host starts a lab with `createLab` from `@cusimanse/agent-runtime` and must attach one of those operators (HTTP gateway and/or in-process reasoner).
 
-- `not_in_contract_allowlist`
-- `scope_violation`
-- `destroy_blocked_until_evidence`
-- `max_proposals_exceeded`
+## Architecture
 
-## Layout
+![How a proposal becomes evidence](docs/architecture.svg)
 
-```text
-src/compiler contract ir planner capabilities policy operations
-    adapters evidence state llm gateway lab
-labs/npm-install-day0/
-skills/registry.yaml
-```
+The operator thinks and proposes. The runtime owns contract checks, policy, adapters, evidence, and VM lifetime. Narrative: [Architecture](docs/architecture.md).
 
-## Tests
+## Limits of this lab
 
-```bash
-npm test
-```
+- One experiment per contract. A new question is a new lab folder.
+- Scope checks today cover working directory against `scope.paths`. Network and host limits still need adapter backing.
+- Evidence kinds from adapters may need mapping if you rely on “destroy only after seal.”
+- The local HTTP port has no login.
+- Do not put API keys or credentials in YAML.

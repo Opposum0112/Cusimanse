@@ -1,39 +1,45 @@
 # Architecture
 
-CAR is a harness-neutral control plane. Operators propose; CAR executes.
+![How a proposal becomes evidence](architecture.svg)
+
+A researcher writes a contract. An operator (any tool that can emit the proposal JSON, or a person) asks for the next observation. Cusimanse Agent Runtime is the only component that may change the lab.
 
 ```text
-┌── any harness ───────────────────────────────────┐
-│  reasoner | HTTP client | human                         │
-│  fills reasoningProposalSchema only                      │
-└───────────────────────────────────────────────────┘
-                    │
-                    ▼
-         CARGateway  or  RuntimeOrchestrator
-                    │
-     contract → resolve → policy → adapter → evidence
+Lab folder          skills/registry.yaml
+contract.yaml       role → skill → capability name
+        ↓
+Frozen contract (hash)
+        ↓
+Operator proposal { intent, capability, parameters, complete }
+        ↓
+Allowlist / scope / stop / destroy checks
+        ↓
+Capability exists? → policy / approval → adapter on disposable compute
+        ↓
+Evidence + state   (the operator may only read these)
 ```
 
-## Authority
+## Who may do what
 
-| Concern | Operator / harness | CAR |
+| | Operator (model, harness, or human) | Runtime |
 |---|---|---|
-| Role + skill selection | ✓ reads `skills/registry.yaml` | registry is data |
-| Proposal JSON | ✓ | validates |
-| Contract / policy / adapter / VM / evidence | — | ✓ |
-| Approval | — | ✓ |
+| Choose the next skill / write a proposal | yes | no |
+| Change the contract mid-run | no | no |
+| Approve a gated action | no | yes |
+| Create or destroy the VM | no | yes |
+| Run `npm install` or capture packets | no | yes, via a registered adapter |
+| Read state and evidence | yes | yes |
 
 ```text
-Operator:  THINK → PLAN → PROPOSE → ANALYZE
-CAR:       CONTRACT → VALIDATE → RESOLVE → AUTHORIZE → EXECUTE
-           → OBSERVE → PRESERVE → VERIFY → DESTROY
+Operator   think → plan → propose → read evidence
+Runtime    check contract → authorize → execute → record → destroy
 ```
 
-## Two attachments
+## Connecting an operator
 
-1. **HTTP ABI** — `CARGateway` on loopback. Any process that can POST JSON.
-2. **In-process reasoner** — `VercelAIReasoner` or `Reasoner`. Same schema. Proposals from `runtime.run` are still untrusted if the host re-submits them.
+- Local HTTP: propose / state / evidence on `127.0.0.1`.
+- In-process model: same JSON schema, no extra tools.
 
-`createLab` requires at least one of these.
+The lab host must attach at least one of those before a run starts.
 
-Roles are fields on skills, not a particular agent framework.
+Roles live on skills in `skills/registry.yaml`, not inside a particular agent product.

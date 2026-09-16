@@ -1,40 +1,32 @@
 # Getting started
 
-## Install
-
-```bash
-npm install @cusimanse/agent-runtime
-```
-
-Node.js 22+. No CrewAI dependency.
-
 ## 1. Copy a lab
 
-Start from `labs/npm-install-day0/` (contract, policy, fixture). Read [researcher-workflow.md](researcher-workflow.md).
+Use [`labs/npm-install-day0/`](../labs/npm-install-day0/) as the first experiment. It already has a contract, a policy file, and a pinned `package.json` fixture.
 
-## 2. Compile
+Read [researcher-workflow.md](researcher-workflow.md) before you add files.
 
-```ts
-import { compileRecipe, createLab } from "@cusimanse/agent-runtime";
+## 2. Freeze the contract
 
-const ir = compileRecipe(parsedContract, { format: "yaml", path: "labs/npm-install-day0/contract.yaml" });
+The host compiles `contract.yaml`. A hash is stored with the experiment so later proposals are checked against that freeze, not against a prompt.
+
+## 3. Attach an operator and open the lab port
+
+The host starts the runtime with either:
+
+- a local HTTP port (`127.0.0.1`) that accepts proposal JSON, or
+- an in-process model that emits the same JSON.
+
+Point your operator at:
+
+```text
+POST /v1/research/npm-install-day0/proposals
+GET  /v1/research/npm-install-day0/state
+GET  /v1/research/npm-install-day0/evidence
 ```
 
-## 3. Attach an operator and run
+## 4. Drive the question
 
-```ts
-createLab({
-  contract: parsedContract,
-  contractPath: "labs/npm-install-day0/contract.yaml",
-  policy: /* rules from policy.yaml */,
-  capabilities: [/* vm.create, workload.npm.install, ... */],
-  adapters: [/* lima + workload adapters */],
-  gateway: true,
-});
-```
+Propose only allowlisted capabilities. Read evidence. Stop when the contract is satisfied. Destroy the VM after the required evidence exists.
 
-Point any harness at `http://127.0.0.1:8787`.
-
-## Reasoning
-
-See [llm.md](llm.md). The built-in reasoner is optional *as a harness*. A lab created through `createLab` still needs an operator attachment.
+Details for models: [llm.md](llm.md). Contract language: [research-contracts.md](research-contracts.md).
