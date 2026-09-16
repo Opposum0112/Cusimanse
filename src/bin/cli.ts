@@ -49,7 +49,13 @@ program.command("run <recipe>").description("Run a validated recipe through a se
         const command = typeof parameters.command === "string" ? parameters.command : "true";
         const args = Array.isArray(parameters.args) ? parameters.args.filter((x): x is string => typeof x === "string") : [];
         const result = await provider.exec(command, args);
-        return { status: result.exitCode === 0 ? "succeeded" : "failed", output: result, error: result.stderr || undefined, evidenceRefs: [`evidence://${ir.experimentId}/${context.operationId}`] };
+        const execution: { status: "succeeded" | "failed"; output: typeof result; evidenceRefs: string[]; error?: string } = {
+          status: result.exitCode === 0 ? "succeeded" : "failed",
+          output: result,
+          evidenceRefs: [`evidence://${ir.experimentId}/${context.operationId}`],
+        };
+        if (result.stderr) execution.error = result.stderr;
+        return execution;
       },
     };
     adapterRegistry.register(adapter);
