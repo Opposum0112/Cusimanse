@@ -1,6 +1,7 @@
 import { createLab } from "../lab/index.js";
 import type { Adapter } from "../adapters/index.js";
 import type { PolicyRule } from "../policy/index.js";
+import { parseStraceRequest, parseSysdigRequest } from "../adapters/instrumentation.js";
 
 const contract = {
   api_version: "v1",
@@ -22,6 +23,8 @@ const contract = {
     "workload.npm.install",
     "evidence.collect",
     "network.observe",
+    "instrumentation.strace",
+    "instrumentation.sysdig",
   ],
   operation_kinds: ["vm", "tool", "evidence", "network"],
   intents: [
@@ -42,21 +45,33 @@ const policy: PolicyRule[] = [
   { id: "allow-install", capability: "workload.npm.install", decision: "allow", reason: "Declared workload." },
   { id: "allow-observe", capability: "network.observe", decision: "allow", reason: "In contract." },
   { id: "allow-evidence", capability: "evidence.collect", decision: "allow", reason: "Required evidence." },
+  { id: "allow-strace", capability: "instrumentation.strace", decision: "allow", reason: "Allowlisted strace." },
+  { id: "allow-sysdig", capability: "instrumentation.sysdig", decision: "allow", reason: "Allowlisted sysdig." },
 ];
 
-const capabilities = [
-  { name: "vm.create", version: "v1", operationKinds: ["vm"] },
-  { name: "vm.destroy", version: "v1", operationKinds: ["vm"] },
-  { name: "workload.npm.install", version: "v1", operationKinds: ["tool"] },
-  { name: "network.observe", version: "v1", operationKinds: ["network"] },
-  { name: "evidence.collect", version: "v1", operationKinds: ["evidence"] },
+const capabilityNames = [
+  "vm.create",
+  "vm.destroy",
+  "workload.npm.install",
+  "network.observe",
+  "evidence.collect",
+  "instrumentation.strace",
+  "instrumentation.sysdig",
 ];
+
+const capabilities = capabilityNames.map((name) => ({
+  name,
+  version: "v1",
+  operationKinds: name.startsWith("vm.") ? ["vm"] : name.startsWith("instrumentation.") ? ["tool"] : name === "network.observe" ? ["network"] : ["evidence"],
+}));
 
 const adapters: Adapter[] = [
   {
     name: "lab-stubs",
-    capabilities: ["vm.create", "vm.destroy", "workload.npm.install", "network.observe", "evidence.collect"],
-    async execute(context) {
+    capabilities: capabilityNames,
+    async execute(context, parameters) {
+      if (context.operationId && parameters && "target" in parameters) parseStraceRequest(parameters);
+      if (parameters && parameters["profile"]) parseSysdigRequest(parameters);
       return {
         status: "succeeded",
         evidenceRefs: [`evidence://npm-install-day0/${context.operationId}`],
@@ -78,7 +93,4 @@ createLab({
 });
 
 console.log(`npm-install-day0 lab is listening on http://127.0.0.1:${port}`);
-console.log("GET  /v1/research/npm-install-day0/state");
-console.log("POST /v1/research/npm-install-day0/proposals");
-console.log("GET  /v1/research/npm-install-day0/evidence");
-console.log("This host uses stub adapters. It checks the contract; it does not boot a real VM.");
+console.log("This host checks contracts and instrumentation parameters. It does not boot Lima or exec strace/sysdig.");
