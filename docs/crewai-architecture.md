@@ -1,142 +1,135 @@
-# CrewAI Integration Architecture
+# CrewAI and reasoning architecture
 
-This document describes the `crewai` branch integration between CrewAI and Cusimanse Agent Runtime (CAR).
+This document describes how **reasoning** attaches to Cusimanse Agent Runtime (CAR) on the `crewai` branch.
+
+CAR never gives a model execution authority. There are two operator attachments. They share one proposal schema and one runtime boundary.
+
+```text
+                    ┌── optional operators (pick one) ──┐
+                    │                                │
+         Setup A: CAR Reasoner            Setup B: CrewAI crew
+         src/llm VercelAIReasoner         Python agents + CAR_TOOLS
+         in-process after runtime.run     HTTP operator process
+                    │                                │
+                    └── typed proposal {intent, capability, parameters, complete}
+                                      │
+                                      ▼
+                           CAR Gateway / RuntimeOrchestrator
+                                      │
+                    contract → resolve → policy → adapter → evidence
+```
+
+Full configuration examples: [`docs/llm.md`](llm.md).
 
 ## Design goal
 
-CrewAI provides agent orchestration and LLM-driven research reasoning. CAR remains the deterministic security boundary for validation, capability resolution, authorization, execution, evidence, and disposable-compute lifecycle.
+- **Reasoning authority** may sit in CAR's optional `Reasoner` or in an external CrewAI crew.
+- **Execution authority** stays in CAR: contract, capability registry, policy/approval, adapters, evidence, VM lifecycle.
+
+CrewAI is an operator of CAR, not a replacement for it.
+
+## Two layers in the diagram
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│                         CrewAI                               │
-│  Research Lead / Threat Researcher / Detection Engineer     │
-│  Forensics Analyst / Threat Intel / Reviewer                 │
-│                                                             │
-│  LLM reasoning • delegation • analysis • next-step choice   │
-└────────────────────────────┬────────────────────────────────┘
+┌───────────────────────── Setup B: CrewAI operator ────────────────────────┐
+│  Research Lead / Threat Researcher / Detection Engineer                 │
+│  Forensics Analyst / Threat Intel / Reviewer                             │
+│  Each agent: its own CrewAI LLM + only CAR_TOOLS                         │
+└────────────────────────────────────────────────────────────────────┘
+                             │ selects skill, POSTs proposal, GETs state
+                             ▼
+┌──────────────────────── Shared skill registry + proposal schema ──────────────────┐
+│  skills/registry.yaml     reasoningProposalSchema (src/llm)               │
+└────────────────────────────────────────────────────────────────────┘
                              │
-                             │ selects shared skill
-                             ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  Shared CAR Skill Registry                   │
-│                 skills/registry.yaml                         │
-│                                                             │
-│       intent vocabulary • capability refs • evidence        │
-└────────────────────────────┬────────────────────────────────┘
-                             │
-                             │ typed declarative proposal
-                             ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    CrewAI CAR Tool Bridge                    │
-│              integrations/crewai/cusimanse_tools.py          │
-└────────────────────────────┬────────────────────────────────┘
-                             │ HTTP/JSON
-                             ▼
-┌─────────────────────────────────────────────────────────────┐
-│                        CAR Gateway                           │
-│              src/integrations/crewai/server.ts               │
-│                                                             │
-│  proposal validation • session lookup • CAR API boundary    │
-└────────────────────────────┬────────────────────────────────┘
-                             ▼
-┌─────────────────────────────────────────────────────────────┐
-│                         CAR Core                             │
-│                                                             │
-│ Compiler → IR → Planner → Capability Resolver               │
-│                         ↓                                   │
-│                  Policy + Approval                           │
-│                         ↓                                   │
-│                  Operation Engine                            │
-│                         ↓                                   │
-│                   Adapter Registry                           │
-└────────────────────────────┬────────────────────────────────┘
-                             │ authorized execution
-                             ▼
-┌─────────────────────────────────────────────────────────────┐
-│                 Research Execution Boundary                  │
-│            Lima / VM / registered research tools             │
-└────────────────────────────┬────────────────────────────────┘
-                             │
-                             ▼
-                 Observation + Evidence + State
-                             │
-                             └──────────────► CrewAI
-                                             next proposal
+              ┌────────────────┴────────────────┐
+              ▼                                ▼
+     Setup A (optional)                 CAR Gateway
+     VercelAIReasoner                   src/integrations/crewai/server.ts
+     called after runtime.run           validates proposal JSON
+              │                                │
+              └───────────────┴────────────────┘
+                                      ▼
+                               CAR Core
+            Compiler → IR + contract.hash → Planner
+                       → contract evaluate → capability resolve
+                       → policy / approval → operation → adapter
+                                      │
+                                      ▼
+                         Disposable compute + evidence
+                                      │
+                                      └── state/evidence ──► operators
 ```
 
 ## Authority model
 
-The integration deliberately separates **reasoning authority** from **execution authority**.
-
-| Concern | CrewAI | CAR |
-|---|---:|---:|
-| Research reasoning | ✓ | — |
-| Agent delegation | ✓ | — |
-| Skill selection | ✓ | — |
-| Declarative proposal | ✓ | — |
-| Contract validation | — | ✓ |
-| IR construction/normalization | — | ✓ |
-| Capability resolution | — | ✓ |
-| Policy decision | — | ✓ |
-| Approval state | — | ✓ |
-| Operation lifecycle | — | ✓ |
-| Adapter invocation | — | ✓ |
-| Evidence/provenance | — | ✓ |
-| Disposable compute lifecycle | — | ✓ |
-
-The important invariant is:
+| Concern | Built-in reasoner (A) | CrewAI operator (B) | CAR |
+|---|---|---|---|
+| Pick next research step | ✓ after a cycle | ✓ ongoing | — |
+| Multi-agent delegation | — | ✓ | — |
+| Own LLM / API key | AI SDK `LanguageModel` | CrewAI `LLM` | — |
+| Submit proposal | host must re-ingest `result.proposals` | `car_submit_research_proposal` | accepts data |
+| Contract / policy / adapter | — | — | ✓ |
+| Approval | — | — | ✓ |
+| VM lifecycle | — | — | ✓ |
 
 ```text
-CrewAI / LLM
-    THINK → PLAN → PROPOSE → ANALYZE
-
-CAR
-    VALIDATE → RESOLVE → AUTHORIZE → EXECUTE
-    → OBSERVE → PRESERVE → VERIFY → DESTROY
+Operator LLM:   THINK → PLAN → PROPOSE → ANALYZE
+CAR:            CONTRACT → VALIDATE → RESOLVE → AUTHORIZE → EXECUTE
+                → OBSERVE → PRESERVE → VERIFY → DESTROY
 ```
 
-## Proposal lifecycle
+## Proposal lifecycle (CrewAI operator)
 
-1. A CrewAI agent selects a skill from `skills/registry.yaml`.
-2. The agent/LLM converts the research need into a typed declarative proposal.
-3. The Python bridge submits the proposal to CAR over HTTP.
-4. `CARGateway` validates the proposal shape and identifies the research session.
-5. CAR creates an execution intent from the explicit capability and parameters.
-6. The normal CAR runtime resolves the capability and evaluates policy/approval.
-7. Only an authorized operation can reach a registered adapter.
-8. The adapter performs the operation in the declared research environment.
-9. CAR records events, observations, evidence and provenance.
-10. CrewAI reads state/evidence and decides whether another proposal is needed.
+1. Host compiles the research contract and starts `CARGateway` on `127.0.0.1`.
+2. A CrewAI agent selects a skill from `skills/registry.yaml`.
+3. The agent's LLM fills `{intent, capability, parameters, complete}`.
+4. `cusimanse_tools.py` POSTs that object to the gateway.
+5. Gateway parses it with `reasoningProposalSchema`.
+6. Runtime runs contract checks, then capability + policy.
+7. Only then may an adapter run.
+8. Agent GETs state/evidence and proposes again or sets `complete: true`.
 
-CrewAI never receives an API that turns a skill directly into arbitrary shell or host execution.
+## Proposal lifecycle (built-in reasoner)
+
+1. Host constructs `VercelAIReasoner({ model })` and passes it as `RuntimeOrchestrator` `reasoner`.
+2. `runtime.run` executes planned contract intents first.
+3. If a reasoner is configured, CAR calls `reasoner.reason(state)` once at the end of that cycle.
+4. The returned proposal is stored on `result.proposals`. It is **not** auto-executed.
+5. The host may submit it through the gateway or a follow-up `run` of a single intent.
+
+That last step is intentional: the built-in layer cannot smuggle an extra execution into the same cycle.
+
+## Configuring models
+
+### Built-in reasoner
+
+```ts
+const reasoner = new VercelAIReasoner({
+  model: yourLanguageModel, // Vercel AI SDK 7
+  system: "Proposal-only CAR reasoner. Stay on the contract allowlist.",
+});
+```
+
+See [`docs/llm.md`](llm.md) Setup A.
+
+### CrewAI operator
+
+Each `Agent(..., llm=LLM(model=...), tools=CAR_TOOLS)`. Set `CUSIMANSE_CAR_URL`. Do not attach other tools. See [`docs/llm.md`](llm.md) Setup B and [`skills/crewai/README.md`](../skills/crewai/README.md).
+
+Do not run A and B against the same experiment without a host policy for whose proposals count toward `max_proposals`.
 
 ## Shared skill registry
 
-The registry is deliberately independent of CrewAI so other orchestration frameworks can consume the same research vocabulary.
-
-```text
-skills/
-├── registry.yaml
-├── README.md
-└── crewai/
-    └── README.md
-```
-
-A skill identifies a CAR capability and research metadata. It is not an executable recipe.
-
-Current references on this branch:
+The registry is independent of both operators.
 
 | Skill | CAR capability | Intended use |
 |---|---|---|
-| `process-observation` | `evidence.collect` | collect process/log observations |
-| `network-observation` | `network.observe` | collect declared network observations |
-| `npm-install-research` | `workload.npm.install` | run a declared npm workload |
+| `process-observation` | `evidence.collect` | process/log observation |
+| `network-observation` | `network.observe` | declared network observation |
+| `npm-install-research` | `workload.npm.install` | npm workload research |
 
-The capability must be registered with CAR. Skill metadata cannot bypass CAR policy.
-
-## Gateway contract
-
-The gateway currently exposes three routes:
+## Gateway
 
 ```text
 POST /v1/research/{experimentId}/proposals
@@ -144,125 +137,24 @@ GET  /v1/research/{experimentId}/state
 GET  /v1/research/{experimentId}/evidence
 ```
 
-Example request:
+Bind to `127.0.0.1`. No auth in this prototype.
 
-```json
-{
-  "proposal": {
-    "intent": "inspect npm install network behavior",
-    "capability": "network.observe",
-    "parameters": {
-      "interface": "eth0",
-      "duration": 60
-    },
-    "complete": false
-  }
-}
-```
+## Testing
 
-Executable proposals must contain an explicit `capability`. `complete: true` is treated as a terminal/no-execution proposal.
+`tests/crewai-gateway.test.ts` and `tests/llm/reasoning.test.ts` lock the boundary: valid proposal, policy deny, missing capability, allowlist deny, schema rejects `command`.
 
-The gateway executes only the newly submitted intent rather than rerunning all previously stored intents. The submitted intent is then retained in the session IR for research history.
-
-## Installation
-
-### CAR
-
-From the repository root:
-
-```bash
-npm install
-npm run typecheck
-npm test
-```
-
-Node.js 22 or newer is required by the package configuration.
-
-### CrewAI
-
-Create a Python virtual environment:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r integrations/crewai/requirements.txt
-```
-
-Configure the gateway URL:
-
-```bash
-export CUSIMANSE_CAR_URL=http://127.0.0.1:8787
-```
-
-## Running the integration
-
-The gateway is currently a TypeScript library. A CAR host application must create the normal `RuntimeOrchestrator`, register an experiment session, and start the gateway:
-
-```ts
-const gateway = new CARGateway(runtime);
-
-gateway.register({
-  ir: compiledResearchIr,
-  state: initialResearchState,
-});
-
-gateway.listen({ host: "127.0.0.1", port: 8787 });
-```
-
-Start the CrewAI process separately and load:
-
-```python
-from integrations.crewai.cusimanse_tools import CAR_TOOLS
-```
-
-Then provide `CAR_TOOLS` to the appropriate CrewAI agents. The bridge uses the CAR URL from `CUSIMANSE_CAR_URL`.
-
-For local development, bind the gateway to `127.0.0.1`. The current prototype does not provide authentication or durable session storage. A remote deployment therefore needs an authenticated service/control-plane boundary before exposing the gateway to agents or networks.
-
-## Evidence and feedback loop
-
-CAR state and evidence are read-only from the CrewAI perspective:
-
-```text
-CAR operation
-     ↓
-operation events
-     ↓
-observations
-     ↓
-evidence + provenance
-     ↓
-GET state/evidence
-     ↓
-CrewAI analysis
-     ↓
-next declarative proposal
-```
-
-This keeps the research loop agentic without moving execution authority into the orchestration framework.
-
-## Testing boundary
-
-`tests/crewai-gateway.test.ts` exercises the gateway boundary with a mock capability/adapter path. The integration tests verify that:
-
-- a valid proposal reaches the runtime and adapter;
-- policy denial prevents adapter execution;
-- runtime events and evidence are visible through the gateway;
-- an executable proposal without an explicit capability is rejected.
-
-The tests do not require CrewAI itself to execute host operations.
+Those tests do not call a live model and do not give CrewAI a host shell.
 
 ## Security considerations
 
-- Do not give CrewAI agents direct shell/subprocess access to the CAR research environment.
-- Do not put host credentials into skill files or proposal parameters.
-- Treat skill metadata as untrusted declarative input.
-- Keep policy and approval in CAR/control-plane code.
-- Keep adapters registered and capability-scoped.
-- Prefer disposable compute for experiments.
-- Preserve evidence and provenance before destroying disposable compute.
-- Keep the prototype gateway local unless an authenticated service boundary is added.
+- One execution path: CAR adapters.
+- No credentials in skills, prompts, or proposal parameters.
+- Approval is not an LLM tool.
+- Keep both operator processes off the research VM.
 
 ## Current limitations
 
-This branch is an integration prototype rather than a production multi-tenant service. Gateway sessions are in memory, the gateway has no built-in authentication, and approval remains a CAR control-plane responsibility. CrewAI is not an approval authority.
+- Built-in reasoner proposals are not auto-applied; the host must re-ingest them.
+- CrewAI and VercelAIReasoner do not share provider config.
+- Gateway sessions are in-memory and unauthenticated.
+- CrewAI is not an approval authority.
