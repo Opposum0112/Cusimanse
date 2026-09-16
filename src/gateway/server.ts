@@ -9,10 +9,11 @@ import { createResearchState } from "../state/index.js";
 
 export interface ResearchSession { ir: CusimanseIR; state: ResearchState; }
 export interface CARGatewayOptions { host?: string; port?: number; }
+export type RuntimeFactory = (ir: CusimanseIR) => Promise<RuntimeOrchestrator>;
 
 export class CARGateway implements ResearchSessionPort {
   private readonly sessions = new Map<string, ResearchSession>();
-  constructor(private readonly runtime?: RuntimeOrchestrator) {}
+  constructor(private readonly runtime?: RuntimeOrchestrator, private readonly runtimeFactory?: RuntimeFactory) {}
 
   register(session: ResearchSession): void {
     if (this.sessions.has(session.ir.experimentId)) throw new Error(`Research session already registered: ${session.ir.experimentId}`);
@@ -23,6 +24,8 @@ export class CARGateway implements ResearchSessionPort {
   async createResearchSession(request: { recipe: unknown }): Promise<{ experimentId: string; state: ResearchState }> {
     const ir = compileRecipe(request.recipe);
     if (this.sessions.has(ir.experimentId)) throw new Error(`Research session already registered: ${ir.experimentId}`);
+    const runtime = this.runtime ?? (this.runtimeFactory ? await this.runtimeFactory(ir) : undefined);
+    if (!runtime) throw new Error("Execution runtime is not configured for this gateway.");
     const state = createResearchState(ir.experimentId);
     this.register({ ir, state });
     return { experimentId: ir.experimentId, state };
@@ -39,13 +42,14 @@ export class CARGateway implements ResearchSessionPort {
   async submitProposal(request: Parameters<OperatorPort["submitProposal"]>[0]): Promise<Awaited<ReturnType<OperatorPort["submitProposal"]>>> {
     const session = this.sessions.get(request.experimentId);
     if (!session) throw new Error(`Unknown research session: ${request.experimentId}`);
-    if (!this.runtime) throw new Error("Execution runtime is not configured for this gateway.");
     const proposal = reasoningProposalSchema.parse(request.proposal);
     if (proposal.complete) return { experimentId: request.experimentId, accepted: false, proposal };
+    const runtime = this.runtime;
+    if (!runtime) throw new Error("Execution runtime is not configured for this gateway.");
     if (!proposal.capability) throw new Error("Proposal capability is required for CAR execution.");
     const intent = { id: `op-${crypto.randomUUID()}`, capability: proposal.capability, parameters: proposal.parameters ?? {}, dependsOn: [] };
     const executionIr: CusimanseIR = { ...session.ir, intents: [intent] };
-    const result = await this.runtime.run(executionIr, session.state);
+    const result = await runtime.run(executionIr, session.state);
     session.ir = { ...session.ir, intents: [...session.ir.intents, intent] };
     session.state = result.state;
     return { experimentId: request.experimentId, accepted: true, proposal };
