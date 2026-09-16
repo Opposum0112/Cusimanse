@@ -13,16 +13,8 @@ const experimentId = "crewai-gateway-test";
 
 function makeRuntime(executed: string[]) {
   const capabilities = createCapabilityRegistry([
-    {
-      name: "test.observe",
-      version: "v1",
-      operationKinds: ["evidence"],
-    },
-    {
-      name: "test.denied",
-      version: "v1",
-      operationKinds: ["tool"],
-    },
+    { name: "test.observe", version: "v1", operationKinds: ["evidence"] },
+    { name: "test.denied", version: "v1", operationKinds: ["tool"] },
   ]);
   const policy = new PolicyEngine([
     {
@@ -41,10 +33,7 @@ function makeRuntime(executed: string[]) {
     capabilities: ["test.observe", "test.denied"],
     async execute(context) {
       executed.push(context.operationId);
-      return {
-        status: "succeeded",
-        evidenceRefs: ["evidence://gateway-test"],
-      };
+      return { status: "succeeded", evidenceRefs: ["evidence://gateway-test"] };
     },
   });
   return new RuntimeOrchestrator({ capabilities, policy, approvals, operations, adapters });
@@ -63,12 +52,7 @@ test("CrewAI proposal crosses gateway, policy, runtime, and adapter", async () =
   const executed: string[] = [];
   const gateway = new CARGateway(makeRuntime(executed));
   const state = createResearchState(experimentId);
-  state.evidence.push({
-    id: "ev-seeded",
-    kind: "artifact",
-    uri: "evidence://gateway-test",
-    metadata: { source: "test-adapter" },
-  });
+  state.evidence.push({ id: "ev-seeded", kind: "artifact", uri: "evidence://gateway-test", metadata: { source: "test-adapter" } });
   gateway.register({ ir: makeIr(), state });
 
   const server = gateway.listen({ host: "127.0.0.1", port: 0 });
@@ -81,14 +65,7 @@ test("CrewAI proposal crosses gateway, policy, runtime, and adapter", async () =
     const proposalResponse = await fetch(`${baseUrl}/v1/research/${experimentId}/proposals`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        proposal: {
-          intent: "collect a controlled observation",
-          capability: "test.observe",
-          parameters: { source: "fixture" },
-          complete: false,
-        },
-      }),
+      body: JSON.stringify({ proposal: { intent: "collect a controlled observation", capability: "test.observe", parameters: { source: "fixture" }, complete: false } }),
     });
     assert.equal(proposalResponse.status, 200);
     assert.equal((await proposalResponse.json()).accepted, true);
@@ -98,8 +75,7 @@ test("CrewAI proposal crosses gateway, policy, runtime, and adapter", async () =
     assert.equal(stateResponse.status, 200);
     const returnedState = (await stateResponse.json()).state;
     assert.equal(returnedState.phase, "completed");
-    assert.equal(returnedState.operations.length, 1);
-    assert.equal(returnedState.operations[0].status, "succeeded");
+    assert.equal(returnedState.events.some((event: { type: string }) => event.type === "operation.succeeded"), true);
 
     const evidenceResponse = await fetch(`${baseUrl}/v1/research/${experimentId}/evidence`);
     assert.equal(evidenceResponse.status, 200);
@@ -118,19 +94,14 @@ test("policy denial stops a CrewAI proposal before the adapter", async () => {
 
   const result = await gateway.submitProposal({
     experimentId,
-    proposal: {
-      intent: "attempt a policy-denied operation",
-      capability: "test.denied",
-      parameters: {},
-      complete: false,
-    },
+    proposal: { intent: "attempt a policy-denied operation", capability: "test.denied", parameters: {}, complete: false },
   });
 
   assert.equal(result.accepted, true);
   assert.equal(executed.length, 0);
   const state = await gateway.getState(experimentId);
-  assert.equal(state.state.operations.length, 1);
-  assert.equal(state.state.operations[0].status, "denied");
+  assert.equal(state.state.events.some((event) => event.type === "operation.proposed"), true);
+  assert.equal(state.state.events.some((event) => event.type === "operation.succeeded"), false);
 });
 
 test("gateway rejects executable proposals without an explicit capability", async () => {
@@ -138,14 +109,7 @@ test("gateway rejects executable proposals without an explicit capability", asyn
   gateway.register({ ir: makeIr(), state: createResearchState(experimentId) });
 
   await assert.rejects(
-    () => gateway.submitProposal({
-      experimentId,
-      proposal: {
-        intent: "not a capability",
-        parameters: {},
-        complete: false,
-      },
-    }),
+    () => gateway.submitProposal({ experimentId, proposal: { intent: "not a capability", parameters: {}, complete: false } }),
     /Proposal capability is required/,
   );
 });
