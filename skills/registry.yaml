@@ -1,0 +1,21 @@
+api_version: v1
+kind: CARSkillRegistry
+skills:
+  - id: process-observation
+    version: "1.0"
+    capability: evidence.collect
+    operation_kinds: [evidence]
+    roles: [researcher, forensics-analyst, detection-engineer]
+    evidence_types: [process, log]
+  - id: network-observation
+    version: "1.0"
+    capability: network.observe
+    operation_kinds: [network, evidence]
+    roles: [network-researcher, detection-engineer, threat-researcher]
+    evidence_types: [network, log]
+  - id: npm-install-research
+    version: "1.0"
+    capability: workload.npm.install
+    operation_kinds: [tool, evidence]
+    roles: [supply-chain-researcher, threat-researcher]
+    evidence_types: [process, file, network, log]
