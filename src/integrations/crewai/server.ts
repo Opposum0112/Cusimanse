@@ -34,16 +34,19 @@ export class CARGateway implements CrewAIResearchPort {
     if (proposal.complete) {
       return { experimentId: request.experimentId, accepted: false, proposal };
     }
+    if (!proposal.capability) {
+      throw new Error("Proposal capability is required for CAR execution.");
+    }
 
     const intent = {
       id: `crewai-${crypto.randomUUID()}`,
-      capability: proposal.capability ?? proposal.intent,
+      capability: proposal.capability,
       parameters: proposal.parameters ?? {},
       dependsOn: [],
     };
-    const nextIr: CusimanseIR = { ...session.ir, intents: [...session.ir.intents, intent] };
-    const result = await this.runtime.run(nextIr, session.state);
-    session.ir = nextIr;
+    const executionIr: CusimanseIR = { ...session.ir, intents: [intent] };
+    const result = await this.runtime.run(executionIr, session.state);
+    session.ir = { ...session.ir, intents: [...session.ir.intents, intent] };
     session.state = result.state;
     return { experimentId: request.experimentId, accepted: true, proposal };
   }
@@ -80,12 +83,14 @@ export class CARGateway implements CrewAIResearchPort {
       if (request.method === "GET" && action === "evidence") return this.json(response, 200, await this.getEvidence(experimentId));
       if (request.method === "POST" && action === "proposals") {
         const body = await readJson(request);
+        if (!isProposalBody(body)) return this.json(response, 400, { error: "Request body must contain a proposal object." });
         return this.json(response, 200, await this.submitProposal({ experimentId, proposal: body.proposal }));
       }
       return this.json(response, 405, { error: "Method not allowed" });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      return this.json(response, 400, { error: message });
+      const status = message.startsWith("Unknown research session") ? 404 : 400;
+      return this.json(response, status, { error: message });
     }
   }
 
@@ -95,12 +100,21 @@ export class CARGateway implements CrewAIResearchPort {
   }
 }
 
-function readJson(request: IncomingMessage): Promise<any> {
+function isProposalBody(value: unknown): value is { proposal: unknown } {
+  return typeof value === "object" && value !== null && "proposal" in value;
+}
+
+function readJson(request: IncomingMessage): Promise<unknown> {
   return new Promise((resolve, reject) => {
     let body = "";
     request.setEncoding("utf8");
-    request.on("data", (chunk) => { body += chunk; if (body.length > 1_000_000) reject(new Error("Request body too large.")); });
-    request.on("end", () => { try { resolve(JSON.parse(body || "{}")); } catch { reject(new Error("Invalid JSON.")); } });
+    request.on("data", (chunk) => {
+      body += chunk;
+      if (body.length > 1_000_000) reject(new Error("Request body too large."));
+    });
+    request.on("end", () => {
+      try { resolve(JSON.parse(body || "{}")); } catch { reject(new Error("Invalid JSON.")); }
+    });
     request.on("error", reject);
   });
 }
