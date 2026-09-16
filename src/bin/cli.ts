@@ -30,16 +30,14 @@ program.command("serve").description("Start the operator gateway").option("--por
   console.log(`Cusimanse gateway listening on http://127.0.0.1:${options.port}`);
 });
 
-program.command("mcp <recipe>")
-  .description("Expose a validated research recipe through the universal MCP operator interface")
+program.command("mcp [recipe]")
+  .description("Start the universal MCP operator server; optionally preload a validated recipe")
   .option("--runtime <runtime>", "local, temporal, or graph", "local")
   .option("--provider <provider>", "lima, multipass, cloud, or mock", "mock")
-  .action(async (recipePath: string, options: { runtime: string; provider: string }) => {
-    const recipe = await loadRecipe(recipePath);
-    const ir = compileRecipe(recipe, { format: recipePath.endsWith(".json") ? "json" : "yaml", path: recipePath });
-    const runtime = await createRuntime(ir, options.provider, options.runtime);
-    const gateway = new CARGateway(runtime);
-    gateway.register({ ir, state: createResearchState(ir.experimentId) });
+  .action(async (recipePath: string | undefined, options: { runtime: string; provider: string }) => {
+    const gateway = recipePath
+      ? await gatewayForRecipe(recipePath, options.provider, options.runtime)
+      : new CARGateway();
     await serveCusimanseMcp(gateway);
   });
 
@@ -71,6 +69,15 @@ skills.command("promote <candidateDir>").description("Validate and promote a can
   await rename(source, destination);
   console.log(`Promoted ${source} -> ${destination}`);
 });
+
+async function gatewayForRecipe(recipePath: string, providerName: string, runtimeName: string): Promise<CARGateway> {
+  const recipe = await loadRecipe(recipePath);
+  const ir = compileRecipe(recipe, { format: recipePath.endsWith(".json") ? "json" : "yaml", path: recipePath });
+  const runtime = await createRuntime(ir, providerName, runtimeName);
+  const gateway = new CARGateway(runtime);
+  gateway.register({ ir, state: createResearchState(ir.experimentId) });
+  return gateway;
+}
 
 async function createRuntime(ir: Awaited<ReturnType<typeof compileRecipe>>, providerName: string, runtimeName: string) {
   const compute = new ComputeProviderRegistry();
