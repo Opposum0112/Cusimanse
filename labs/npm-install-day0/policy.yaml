@@ -1,0 +1,22 @@
+default: deny
+rules:
+  - id: allow-observe
+    capability: network.observe
+    decision: allow
+    reason: Observation is in contract scope.
+  - id: allow-evidence
+    capability: evidence.collect
+    decision: allow
+    reason: Evidence collection is required before destroy.
+  - id: allow-install
+    capability: workload.npm.install
+    decision: allow
+    reason: Declared workload only.
+  - id: allow-vm-create
+    capability: vm.create
+    decision: allow
+    reason: Disposable research VM.
+  - id: allow-vm-destroy
+    capability: vm.destroy
+    decision: allow
+    reason: Destroy after seal is a contract clause; runtime still checks evidence.
