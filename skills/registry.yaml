@@ -1,0 +1,37 @@
+api_version: v1
+kind: CARSkillRegistry
+skills:
+  - id: research.observe.process
+    version: v1
+    description: Collect process observations from the declared research environment.
+    capability: evidence.collect
+    operation_kinds: [evidence]
+    requires_approval: false
+    parameters:
+      source: string
+    evidence: [process, log]
+    agent_roles: [security-researcher, forensics-analyst]
+
+  - id: research.observe.network
+    version: v1
+    description: Collect declared network observations from the research environment.
+    capability: network.observe
+    operation_kinds: [network, evidence]
+    requires_approval: true
+    parameters:
+      interface: string
+      duration_seconds: integer
+    evidence: [network, log]
+    agent_roles: [security-researcher, threat-researcher, detection-engineer]
+
+  - id: workload.npm.install
+    version: v1
+    description: Execute a declared npm installation workload inside research compute.
+    capability: workload.npm.install
+    operation_kinds: [tool]
+    requires_approval: true
+    parameters:
+      working_directory: string
+      package_manager: string
+    evidence: [process, network, file, log]
+    agent_roles: [security-researcher, supply-chain-researcher]
