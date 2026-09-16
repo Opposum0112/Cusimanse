@@ -24,6 +24,22 @@ enums:
       log: {}
       artifact: {}
       other: {}
+  ExecutionRuntime:
+    permissible_values:
+      local: {}
+      temporal: {}
+      graph: {}
+  ComputeProvider:
+    permissible_values:
+      lima: {}
+      multipass: {}
+      firecracker: {}
+      cloud: {}
+      mock: {}
+  SkillLifecycle:
+    permissible_values:
+      candidate: {}
+      validated: {}
 
 classes:
   CapabilityIntent:
@@ -68,9 +84,22 @@ classes:
         range: string
         multivalued: true
       compute:
-        range: JsonObject
+        range: ComputeConfiguration
       egress:
         range: JsonObject
+
+  ComputeConfiguration:
+    attributes:
+      provider:
+        range: ComputeProvider
+        required: true
+      profile:
+        range: string
+      disposable:
+        range: boolean
+        required: true
+      runtime:
+        range: ExecutionRuntime
 
   EvidenceRequirement:
     attributes:
@@ -137,6 +166,10 @@ classes:
         range: StopConditions
       destroy:
         range: DestroyPolicy
+      runtime:
+        range: ExecutionRuntime
+      skill_lifecycle:
+        range: SkillLifecycle
 
 slots:
   JsonObject:
