@@ -1,0 +1,26 @@
+name: Feature request
+description: Propose a composable capability, runtime, provider, workflow, or research feature.
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What researcher or operator problem does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Describe the proposed behavior and extension point.
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety and isolation impact
+      description: Explain scope, approvals, isolation, evidence, and failure behavior.
+    validations:
+      required: true
