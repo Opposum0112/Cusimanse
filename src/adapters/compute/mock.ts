@@ -3,7 +3,7 @@ import type { ComputeProvider, ExecResult, SandboxSpec } from "./types.js";
 export class MockComputeProvider implements ComputeProvider {
   readonly id = "mock" as const;
   private created = false;
-  private spec?: SandboxSpec;
+  private spec: SandboxSpec | undefined;
 
   async isAvailable(): Promise<boolean> { return true; }
 
