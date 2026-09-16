@@ -1,13 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
-  <title id="title">Cusimanse Agent Runtime architecture</title>
-  <desc id="desc">Architecture showing declarative research contracts flowing through compiler, IR, planner, capability resolution, policy and approval, operation engine, adapter execution, evidence and runtime state, with an optional Vercel AI SDK reasoning loop that can only propose declarative intent.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="820" viewBox="0 0 1200 820" role="img" aria-labelledby="title desc">
+  <title id="title">Cusimanse Agent Runtime with CrewAI integration</title>
+  <desc id="desc">CrewAI selects shared research skills and submits declarative proposals through a CAR gateway. CAR validates, resolves capabilities, applies policy and approval, executes registered adapters, records evidence and state, and returns results to CrewAI.</desc>
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L10,3 L0,6 Z" fill="#334155"/></marker>
     <style>
       .box{fill:#f8fafc;stroke:#334155;stroke-width:2;rx:14}
       .guard{fill:#fff7ed;stroke:#c2410c;stroke-width:2;rx:14}
-      .llm{fill:#f5f3ff;stroke:#6d28d9;stroke-width:2;rx:14}
+      .agent{fill:#eef2ff;stroke:#4338ca;stroke-width:2;rx:14}
       .ev{fill:#ecfdf5;stroke:#047857;stroke-width:2;rx:14}
+      .llm{fill:#f5f3ff;stroke:#6d28d9;stroke-width:2;rx:14}
       .title{font:700 26px sans-serif;fill:#0f172a}
       .label{font:600 17px sans-serif;fill:#0f172a}
       .small{font:14px sans-serif;fill:#475569}
@@ -15,72 +16,89 @@
       .dashed{stroke-dasharray:8 7}
     </style>
   </defs>
-  <rect width="1200" height="760" fill="white"/>
-  <text x="600" y="45" text-anchor="middle" class="title">Cusimanse Agent Runtime (CAR)</text>
-  <text x="600" y="72" text-anchor="middle" class="small">Declarative, policy-gated, pluggable security research runtime</text>
+  <rect width="1200" height="820" fill="white"/>
+  <text x="600" y="42" text-anchor="middle" class="title">Cusimanse Agent Runtime (CAR) — CrewAI Integration</text>
+  <text x="600" y="68" text-anchor="middle" class="small">CrewAI orchestration above a declarative, policy-gated, pluggable security-research runtime</text>
 
-  <rect x="55" y="110" width="220" height="82" class="box"/>
-  <text x="165" y="143" text-anchor="middle" class="label">Research Contract</text>
-  <text x="165" y="169" text-anchor="middle" class="small">LinkML YAML / JSON</text>
+  <rect x="45" y="105" width="250" height="100" class="agent"/>
+  <text x="170" y="140" text-anchor="middle" class="label">CrewAI Research Crew</text>
+  <text x="170" y="166" text-anchor="middle" class="small">roles • delegation • LLM reasoning</text>
+  <text x="170" y="188" text-anchor="middle" class="small">select skill → propose intent</text>
 
-  <rect x="325" y="110" width="220" height="82" class="box"/>
-  <text x="435" y="143" text-anchor="middle" class="label">Compiler</text>
-  <text x="435" y="169" text-anchor="middle" class="small">validate → normalize → IR</text>
+  <rect x="335" y="105" width="250" height="100" class="agent"/>
+  <text x="460" y="140" text-anchor="middle" class="label">Shared Skill Registry</text>
+  <text x="460" y="166" text-anchor="middle" class="small">skills/registry.yaml</text>
+  <text x="460" y="188" text-anchor="middle" class="small">capability references • evidence</text>
 
-  <rect x="595" y="110" width="220" height="82" class="box"/>
-  <text x="705" y="143" text-anchor="middle" class="label">Deterministic Planner</text>
-  <text x="705" y="169" text-anchor="middle" class="small">dependencies → order</text>
+  <rect x="625" y="105" width="250" height="100" class="agent"/>
+  <text x="750" y="140" text-anchor="middle" class="label">CrewAI CAR Bridge</text>
+  <text x="750" y="166" text-anchor="middle" class="small">Python tools → HTTP/JSON</text>
+  <text x="750" y="188" text-anchor="middle" class="small">no shell / host execution</text>
 
-  <rect x="865" y="110" width="280" height="82" class="box"/>
-  <text x="1005" y="143" text-anchor="middle" class="label">Capability Registry</text>
-  <text x="1005" y="169" text-anchor="middle" class="small">intent → declared capability</text>
+  <rect x="915" y="105" width="240" height="100" class="box"/>
+  <text x="1035" y="140" text-anchor="middle" class="label">CAR Gateway</text>
+  <text x="1035" y="166" text-anchor="middle" class="small">proposal API + session boundary</text>
+  <text x="1035" y="188" text-anchor="middle" class="small">CARGateway</text>
 
-  <path d="M275 151 H325" class="arrow"/><path d="M545 151 H595" class="arrow"/><path d="M815 151 H865" class="arrow"/>
+  <path d="M295 155 H335" class="arrow"/><path d="M585 155 H625" class="arrow"/><path d="M875 155 H915" class="arrow"/>
 
-  <rect x="215" y="260" width="310" height="100" class="guard"/>
-  <text x="370" y="295" text-anchor="middle" class="label">Policy + Approval Gate</text>
-  <text x="370" y="321" text-anchor="middle" class="small">allow / approval-required / deny</text>
-  <text x="370" y="344" text-anchor="middle" class="small">no adapter access before authorization</text>
+  <rect x="70" y="275" width="250" height="90" class="box"/>
+  <text x="195" y="310" text-anchor="middle" class="label">Compiler → IR</text>
+  <text x="195" y="336" text-anchor="middle" class="small">validate • normalize • contract</text>
+  <text x="195" y="355" text-anchor="middle" class="small">deterministic representation</text>
 
-  <rect x="575" y="260" width="250" height="100" class="box"/>
-  <text x="700" y="295" text-anchor="middle" class="label">Operation Engine</text>
-  <text x="700" y="321" text-anchor="middle" class="small">propose → authorize → run</text>
-  <text x="700" y="344" text-anchor="middle" class="small">success / failure / denied</text>
+  <rect x="365" y="275" width="250" height="90" class="box"/>
+  <text x="490" y="310" text-anchor="middle" class="label">Deterministic Planner</text>
+  <text x="490" y="336" text-anchor="middle" class="small">dependencies → execution order</text>
 
-  <rect x="875" y="260" width="270" height="100" class="box"/>
-  <text x="1010" y="295" text-anchor="middle" class="label">Adapter Registry</text>
-  <text x="1010" y="321" text-anchor="middle" class="small">capability → adapter</text>
-  <text x="1010" y="344" text-anchor="middle" class="small">execution boundary</text>
+  <rect x="660" y="275" width="220" height="90" class="box"/>
+  <text x="770" y="310" text-anchor="middle" class="label">Capability Registry</text>
+  <text x="770" y="336" text-anchor="middle" class="small">intent → declared capability</text>
 
-  <path d="M1005 192 V230 H370 V260" class="arrow"/>
-  <path d="M525 310 H575" class="arrow"/><path d="M825 310 H875" class="arrow"/>
+  <rect x="925" y="260" width="230" height="120" class="guard"/>
+  <text x="1040" y="295" text-anchor="middle" class="label">Policy + Approval</text>
+  <text x="1040" y="321" text-anchor="middle" class="small">allow / approval-required / deny</text>
+  <text x="1040" y="344" text-anchor="middle" class="small">authorization before adapter</text>
+  <text x="1040" y="364" text-anchor="middle" class="small">CAR control-plane authority</text>
 
-  <rect x="115" y="425" width="260" height="100" class="box"/>
-  <text x="245" y="460" text-anchor="middle" class="label">Disposable Compute</text>
-  <text x="245" y="486" text-anchor="middle" class="small">Lima / VM lifecycle</text>
-  <text x="245" y="509" text-anchor="middle" class="small">create → execute → destroy</text>
+  <path d="M1035 205 V235 H195 V275" class="arrow"/>
+  <path d="M320 320 H365" class="arrow"/><path d="M615 320 H660" class="arrow"/><path d="M880 320 H925" class="arrow"/>
 
-  <rect x="470" y="425" width="260" height="100" class="ev"/>
-  <text x="600" y="460" text-anchor="middle" class="label">Observation + Evidence</text>
-  <text x="600" y="486" text-anchor="middle" class="small">hashes, provenance, artifacts</text>
-  <text x="600" y="509" text-anchor="middle" class="small">research evidence references</text>
+  <rect x="170" y="435" width="260" height="100" class="box"/>
+  <text x="300" y="470" text-anchor="middle" class="label">Operation Engine</text>
+  <text x="300" y="496" text-anchor="middle" class="small">propose → authorize → run</text>
+  <text x="300" y="519" text-anchor="middle" class="small">success / failure / denied</text>
 
-  <rect x="825" y="425" width="260" height="100" class="box"/>
-  <text x="955" y="460" text-anchor="middle" class="label">Runtime State</text>
-  <text x="955" y="486" text-anchor="middle" class="small">events, operations, observations</text>
-  <text x="955" y="509" text-anchor="middle" class="small">phase + provenance</text>
+  <rect x="470" y="435" width="260" height="100" class="box"/>
+  <text x="600" y="470" text-anchor="middle" class="label">Adapter Registry</text>
+  <text x="600" y="496" text-anchor="middle" class="small">capability → registered adapter</text>
+  <text x="600" y="519" text-anchor="middle" class="small">controlled execution boundary</text>
 
-  <path d="M1010 360 V395 H245 V425" class="arrow"/>
-  <path d="M375 475 H470" class="arrow"/><path d="M730 475 H825" class="arrow"/>
+  <rect x="770" y="435" width="260" height="100" class="box"/>
+  <text x="900" y="470" text-anchor="middle" class="label">Disposable Compute</text>
+  <text x="900" y="496" text-anchor="middle" class="small">Lima / VM / research tools</text>
+  <text x="900" y="519" text-anchor="middle" class="small">create → execute → destroy</text>
 
-  <rect x="260" y="600" width="680" height="100" class="llm"/>
-  <text x="600" y="635" text-anchor="middle" class="label">Optional Vercel AI SDK 7 Reasoning Layer</text>
-  <text x="600" y="661" text-anchor="middle" class="small">state → model → typed declarative proposal</text>
-  <text x="600" y="684" text-anchor="middle" class="small">proposal re-enters compiler / planner / policy path; model never executes</text>
+  <path d="M1040 380 V405 H300 V435" class="arrow"/><path d="M430 485 H470" class="arrow"/><path d="M730 485 H770" class="arrow"/>
 
-  <path d="M955 525 V600 H940" class="arrow dashed"/>
-  <path d="M260 650 H120 V210" class="arrow dashed"/>
-  <text x="137" y="585" text-anchor="middle" class="small" transform="rotate(-90 137 585)">proposed intent returns to CAR validation</text>
+  <rect x="245" y="590" width="260" height="100" class="ev"/>
+  <text x="375" y="625" text-anchor="middle" class="label">Observation + Evidence</text>
+  <text x="375" y="651" text-anchor="middle" class="small">artifacts • hashes • provenance</text>
+  <text x="375" y="674" text-anchor="middle" class="small">research evidence references</text>
 
-  <text x="600" y="735" text-anchor="middle" class="small">Authority: LLM proposes • CAR validates, authorizes, executes, observes, preserves, and controls lifecycle</text>
+  <rect x="535" y="590" width="260" height="100" class="box"/>
+  <text x="665" y="625" text-anchor="middle" class="label">Runtime State</text>
+  <text x="665" y="651" text-anchor="middle" class="small">events • operations • observations</text>
+  <text x="665" y="674" text-anchor="middle" class="small">phase + provenance</text>
+
+  <rect x="825" y="590" width="130" height="100" class="llm"/>
+  <text x="890" y="625" text-anchor="middle" class="label">LLM</text>
+  <text x="890" y="651" text-anchor="middle" class="small">analyze</text>
+  <text x="890" y="674" text-anchor="middle" class="small">propose</text>
+
+  <path d="M900 535 V560 H375 V590" class="arrow"/><path d="M505 640 H535" class="arrow"/><path d="M795 640 H825" class="arrow"/>
+  <path d="M890 590 V555 H170 V205" class="arrow dashed"/>
+
+  <text x="600" y="735" text-anchor="middle" class="small">Feedback: CAR state/evidence → CrewAI analysis → next declarative proposal</text>
+  <text x="600" y="775" text-anchor="middle" class="small">Authority: CrewAI/LLM proposes • CAR validates, resolves, authorizes, executes, observes, preserves and controls lifecycle</text>
 </svg>
