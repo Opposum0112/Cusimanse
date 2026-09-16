@@ -1,24 +1,8 @@
 export { compileRecipe, RecipeValidationError } from "./compiler/index.js";
 export type { RecipeCompiler } from "./compiler/index.js";
-export {
-  evaluateContractIntent,
-  isEvidenceSealed,
-  listEvidenceKinds,
-  countProposedOperations,
-} from "./contract/index.js";
+export { evaluateContractIntent, isEvidenceSealed, listEvidenceKinds, countProposedOperations } from "./contract/index.js";
 export type { ContractDecision, ContractDenyCode } from "./contract/index.js";
-export type {
-  CapabilityIntent,
-  CusimanseIR,
-  ExperimentRecipe,
-  ResearchContract,
-  ResearchQuestion,
-  ResearchScope,
-  EvidenceRequirement,
-  StopConditions,
-  DestroyPolicy,
-  EvidenceKind,
-} from "./ir/index.js";
+export type { CapabilityIntent, CusimanseIR, ExperimentRecipe, ResearchContract, ResearchQuestion, ResearchScope, EvidenceRequirement, StopConditions, DestroyPolicy, EvidenceKind } from "./ir/index.js";
 export { planExecution, buildDependencyGraph, getReadyIntents, PlannerError } from "./planner/index.js";
 export { CapabilityRegistry, createCapabilityRegistry, CapabilityResolutionError } from "./capabilities/index.js";
 export type { CapabilityDescriptor, ResolvedCapability } from "./capabilities/index.js";
@@ -30,21 +14,9 @@ export { AdapterRegistry } from "./adapters/index.js";
 export type { Adapter, AdapterContext, AdapterExecutionResult } from "./adapters/index.js";
 export { ComputeProviderRegistry, ComputeProviderError, MockComputeProvider } from "./adapters/compute/index.js";
 export type { ComputeProvider, SandboxSpec, ExecResult } from "./adapters/compute/index.js";
-export {
-  LimaLifecycle,
-  validateLimaProfile,
-  validateLimaProvider,
-  assertLimaProvider,
-  LimaError,
-} from "./adapters/lima.js";
+export { LimaLifecycle, validateLimaProfile, validateLimaProvider, assertLimaProvider, LimaError } from "./adapters/lima.js";
 export type { LimaProfile, LimaProvider } from "./adapters/lima.js";
-export {
-  parseStraceRequest,
-  parseSysdigRequest,
-  InstrumentationError,
-  STRACE_CAPABILITY,
-  SYSDIG_CAPABILITY,
-} from "./adapters/instrumentation.js";
+export { parseStraceRequest, parseSysdigRequest, InstrumentationError, STRACE_CAPABILITY, SYSDIG_CAPABILITY } from "./adapters/instrumentation.js";
 export type { StraceRequest, SysdigRequest } from "./adapters/instrumentation.js";
 export { EvidenceCollector } from "./evidence/index.js";
 export { createResearchState, appendEvent, transitionPhase } from "./state/index.js";
@@ -54,19 +26,13 @@ export type { RuntimeDependencies, RuntimeCycleResult } from "./runtime/index.js
 export { DisposableResearchWorkflow } from "./runtime/workflow.js";
 export { LocalExecutionRuntime, TemporalExecutionRuntime, GraphExecutionRuntime, ExecutionRuntimeRegistry } from "./runtime/index.js";
 export type { ExecutionRuntime, RuntimeContext, TemporalWorkflowDriver, GraphWorkflowDriver } from "./runtime/index.js";
-export {
-  reasoningProposalSchema,
-  VercelAIReasoner,
-} from "./llm/index.js";
+export { reasoningProposalSchema, VercelAIReasoner } from "./llm/index.js";
 export type { ReasoningProposal, Reasoner, VercelAIReasonerOptions } from "./llm/index.js";
+export { createToolLoopAgent, createWorkflowAgent } from "./agent/index.js";
+export type { AgentRuntimeContext, CusimanseAgentOptions } from "./agent/index.js";
 export { CARGateway } from "./gateway/server.js";
 export type { ResearchSession, CARGatewayOptions } from "./gateway/server.js";
-export type {
-  OperatorProposalRequest,
-  OperatorStateResponse,
-  OperatorEvidenceResponse,
-  OperatorIntentResponse,
-  OperatorPort,
-} from "./gateway/contracts.js";
+export type { OperatorProposalRequest, OperatorStateResponse, OperatorEvidenceResponse, OperatorIntentResponse, OperatorPort } from "./gateway/contracts.js";
+export { createCusimanseMcpServer, serveCusimanseMcp } from "./mcp/index.js";
 export { createLab, LabError } from "./lab/index.js";
 export type { CreateLabOptions, LabHandle } from "./lab/index.js";
