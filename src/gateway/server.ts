@@ -3,12 +3,14 @@ import type { RuntimeOrchestrator } from "../runtime/index.js";
 import type { CusimanseIR } from "../ir/index.js";
 import type { ResearchState } from "../state/index.js";
 import { reasoningProposalSchema, type ReasoningProposal } from "../llm/index.js";
-import type { OperatorPort } from "./contracts.js";
+import type { OperatorPort, ResearchSessionPort } from "./contracts.js";
+import { compileRecipe } from "../compiler/index.js";
+import { createResearchState } from "../state/index.js";
 
 export interface ResearchSession { ir: CusimanseIR; state: ResearchState; }
 export interface CARGatewayOptions { host?: string; port?: number; }
 
-export class CARGateway implements OperatorPort {
+export class CARGateway implements ResearchSessionPort {
   private readonly sessions = new Map<string, ResearchSession>();
   constructor(private readonly runtime?: RuntimeOrchestrator) {}
 
@@ -17,6 +19,22 @@ export class CARGateway implements OperatorPort {
     this.sessions.set(session.ir.experimentId, session);
   }
   hasSession(experimentId: string): boolean { return this.sessions.has(experimentId); }
+
+  async createResearchSession(request: { recipe: unknown }): Promise<{ experimentId: string; state: ResearchState }> {
+    const ir = compileRecipe(request.recipe);
+    if (this.sessions.has(ir.experimentId)) throw new Error(`Research session already registered: ${ir.experimentId}`);
+    const state = createResearchState(ir.experimentId);
+    this.register({ ir, state });
+    return { experimentId: ir.experimentId, state };
+  }
+
+  async completeResearch(experimentId: string): Promise<{ experimentId: string; state: ResearchState }> {
+    const session = this.sessions.get(experimentId);
+    if (!session) throw new Error(`Unknown research session: ${experimentId}`);
+    const state = { ...session.state, phase: "completed" as const, revision: session.state.revision + 1 };
+    session.state = state;
+    return { experimentId, state };
+  }
 
   async submitProposal(request: Parameters<OperatorPort["submitProposal"]>[0]): Promise<Awaited<ReturnType<OperatorPort["submitProposal"]>>> {
     const session = this.sessions.get(request.experimentId);
