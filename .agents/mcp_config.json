@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "cusimanse": {
+      "command": "node",
+      "args": [
+        "./dist/bin/cli.js",
+        "mcp"
+      ]
+    }
+  }
+}
