@@ -1,22 +1,25 @@
-# CrewAI Skill Reference
+# CrewAI as CAR operator
 
-CrewAI crews should use the shared CAR skill registry as their research vocabulary.
+CrewAI is an **external operator** of Cusimanse Agent Runtime. It is not the runtime.
 
-A CrewAI agent may reason about a research task and choose a registered skill. The resulting request is converted into a CAR declarative proposal. CAR then performs capability resolution, dependency planning, policy evaluation, approval handling, execution and evidence preservation.
+Configure each agent's `llm=` with a CrewAI `LLM` (provider keys stay in the Python process). Attach **only** `CAR_TOOLS` from `integrations/crewai/cusimanse_tools.py`. That is Setup B in [`docs/llm.md`](../../docs/llm.md).
+
+This is a different object from CAR's built-in `VercelAIReasoner` (Setup A). The two do not share model config. Prefer one operator per experiment.
 
 ## Mapping
 
 | CrewAI concern | CAR responsibility |
 | --- | --- |
-| Agent role | Research role |
-| Skill selection | Capability reference |
-| LLM reasoning | Declarative proposal |
-| Tool request | CAR intent |
-| Permission | Policy / approval |
-| Tool execution | Adapter |
-| Research artifact | Evidence |
+| Agent `role` / `goal` / `backstory` | Human-written operating instructions |
+| Agent `llm` | Operator model only |
+| Skill selection | Capability reference on a proposal |
+| `car_submit_research_proposal` | Untrusted intent for contract + policy |
+| `car_get_research_state` / `car_get_evidence` | Read-only |
+| Permission | CAR policy / approval |
+| Execution | CAR adapter |
+| Artifact | CAR evidence |
 
-The CrewAI layer must not turn skill metadata into arbitrary shell commands. A skill is a reference to a controlled CAR capability, not an executable script.
+The CrewAI layer must not turn skill metadata into shell commands.
 
 ## Initial skills
 
@@ -24,4 +27,4 @@ The CrewAI layer must not turn skill metadata into arbitrary shell commands. A s
 - `network-observation` → `network.observe`
 - `npm-install-research` → `workload.npm.install`
 
-This registry is intentionally separate from CrewAI so other agent frameworks can consume the same security-research vocabulary.
+Keep this registry independent of CrewAI so Setup A or another framework can use the same names.

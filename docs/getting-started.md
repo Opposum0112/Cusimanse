@@ -8,6 +8,7 @@ This guide is for users integrating CAR into a security-research application.
 - A parsed YAML or JSON **research contract** (recipe)
 - Registered CAR capabilities and adapters
 - A disposable compute provider such as Lima when the experiment requires a VM
+- Optional: a Vercel AI SDK 7 model (Setup A) or a CrewAI venv (Setup B)
 
 ## Install
 
@@ -47,7 +48,7 @@ Register:
 - approval handling through `ApprovalManager`
 - operations through `OperationEngine`
 - execution adapters through `AdapterRegistry`
-- an optional `Reasoner`
+- an optional `Reasoner` (Setup A only)
 
 Then create an initial state with `createResearchState(experimentId)` and call `RuntimeOrchestrator.run(ir, state)`.
 
@@ -77,6 +78,12 @@ const evidence = collector.record({
 
 The returned reference includes a SHA-256 digest, size, URI, evidence kind, experiment ID, optional operation ID, and timestamp. Persist the captured bytes and references in your evidence-storage integration before destroying disposable compute.
 
-## Reasoning
+## Reasoning (optional)
 
-Configure `VercelAIReasoner` with a Vercel AI SDK 7 `LanguageModel` when model-assisted research planning is useful. The model receives runtime state and returns a typed proposal. Treat that proposal as untrusted data: it must go through CAR contract evaluation, validation, planning, capability resolution, policy, approval, and operation handling before execution.
+CAR runs without a model. If you want an operator LLM, choose **one** path. Details and copy-paste config: [llm.md](llm.md).
+
+**Setup A — built-in reasoner.** Construct `VercelAIReasoner` with a Vercel AI SDK 7 `LanguageModel` and pass it as `RuntimeOrchestrator`'s `reasoner`. After planned intents finish, CAR calls `reasoner.reason(state)` and puts the result on `result.proposals`. That object is untrusted. Re-submit it through the gateway or another `run` if you accept it. The reasoner has no adapter access.
+
+**Setup B — CrewAI as operator.** Do not pass `reasoner` (or ignore `result.proposals`). Start `CARGateway`, then run a CrewAI crew whose agents have only `CAR_TOOLS` and a CrewAI `LLM`. The crew POSTs proposals over HTTP.
+
+Do not give either path a shell tool. Do not run both against the same `max_proposals` budget without a host rule for whose proposals count.
