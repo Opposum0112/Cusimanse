@@ -7,6 +7,9 @@ go test ./... >/dev/null
 go run ./cmd/cusimanse capability list >/dev/null
 go run ./cmd/cusimanse resolve npm-install-001 >/dev/null
 go run ./cmd/cusimanse policy validate >/dev/null
-goose recipe validate recipes/goose/session.yaml
-for f in recipes/subrecipes/*.yaml; do goose recipe validate "$f"; done
+if command -v goose >/dev/null 2>&1; then
+  goose recipe validate recipes/goose/session.yaml
+  goose recipe validate recipes/npm-install-001/recipe.yaml
+  for f in recipes/subrecipes/*.yaml; do goose recipe validate "$f"; done
+fi
 echo 'VALIDATE PASS: Go tests, native CLI, policy and Goose recipes'

@@ -2,15 +2,15 @@ name: agentic-native
 
 on:
   push:
-    branches: [agentic-native-goose]
+    branches: [goose-native]
   pull_request:
-    branches: [agentic-native-goose, main]
+    branches: [goose-native, main]
 
 permissions:
   contents: read
 
 jobs:
-  compile-and-schema:
+  schema-and-cli:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -19,16 +19,15 @@ jobs:
         with:
           go-version: '1.22.x'
           cache: true
-      - name: Compiler unit tests
-        run: go test ./internal/compiler ./cmd/compile ./cmd/cusimanse
+      - name: Native unit and sanity tests
+        run: go test ./cmd/cusimanse ./internal/policy ./internal/preflight ./internal/validation ./internal/model
       - name: Catalog and experiments
         run: |
           set -euo pipefail
-          go run ./cmd/compile catalog
+          go run ./cmd/cusimanse capability list
+          go run ./cmd/cusimanse policy validate
           for id in npm-install-001 npm-lifecycle-001 npm-threat-001 go-install-001; do
-            go run ./cmd/compile validate "$id"
-            go run ./cmd/compile resolve "$id"
-            go run ./cmd/compile host-prep "$id"
+            go run ./cmd/cusimanse resolve "$id"
           done
       - name: Integration
         run: bash ./scripts/tests/integration.sh
