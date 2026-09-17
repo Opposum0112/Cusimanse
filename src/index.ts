@@ -35,7 +35,7 @@ export type { ResolverCliOptions, ResolvedConfig } from "./config/index.js";
 export { loadValidatedSkills } from "./skills/loader.js";
 export { proposeSkill, validateSkill, promoteSkill, listValidatedSkills } from "./skills/lifecycle.js";
 export { AutonomousThreatResearchAgent, getSecurityResearchAgent } from "./agent/index.js";
-export type { AgentDependencies, AgentTurn, ResearchObjective, ResearchResult, ResearchToolContext, SecurityResearchAgent } from "./agent/index.js";
+export type { AgentDependencies, AgentTurn, ResearchObjective, ResearchResult, ResearchToolContext, SecurityResearchAgent, AutonomousResearchState, ResearchHypothesis, ResearchFinding, HypothesisStatus, VerificationStatus } from "./agent/index.js";
 export { InMemoryResearchTracer, createAISDKTelemetry } from "./observability/index.js";
 export type { ResearchEvent, ResearchEventKind, ResearchTracer } from "./observability/index.js";
 export { connectMCPResearchSource } from "./mcp/index.js";
