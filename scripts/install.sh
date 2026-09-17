@@ -19,13 +19,13 @@ elif [ "$OS" = Linux ]; then
   SUDO=""; [ "$(id -u)" -eq 0 ] || SUDO=sudo
   if have apt-get; then
     "$SUDO" apt-get update
-    "$SUDO" apt-get install -y git bash curl golang-go jq yq ripgrep ca-certificates qemu-system-x86 qemu-utils strace tcpdump iproute2 iputils-ping dnsutils lsof psmisc procps
+    "$SUDO" apt-get install -y git bash curl jq yq ripgrep ca-certificates qemu-system-x86 qemu-utils strace tcpdump iproute2 iputils-ping dnsutils lsof psmisc procps
   elif have dnf; then
-    "$SUDO" dnf install -y git bash curl golang jq yq ripgrep ca-certificates qemu-system-x86-core qemu-img strace tcpdump iproute iputils bind-utils lsof psmisc procps
+    "$SUDO" dnf install -y git bash curl jq yq ripgrep ca-certificates qemu-system-x86-core qemu-img strace tcpdump iproute iputils bind-utils lsof psmisc procps
   elif have pacman; then
-    "$SUDO" pacman -Sy --needed --noconfirm git bash curl go jq yq ripgrep ca-certificates qemu strace tcpdump iproute iputils bind lsof psmisc procps
+    "$SUDO" pacman -Sy --needed --noconfirm git bash curl jq yq ripgrep ca-certificates qemu strace tcpdump iproute iputils bind lsof psmisc procps
   elif have zypper; then
-    "$SUDO" zypper --non-interactive install git bash curl go jq yq ripgrep ca-certificates qemu strace tcpdump iproute2 iputils bind-utils lsof psmisc procps
+    "$SUDO" zypper --non-interactive install git bash curl jq yq ripgrep ca-certificates qemu strace tcpdump iproute2 iputils bind-utils lsof psmisc procps
   else
     fail 'unsupported Linux package manager'
   fi
@@ -33,9 +33,14 @@ else
   fail 'Use WSL2 or a supported macOS/Linux environment'
 fi
 
-GO_MAJOR="$(go env GOVERSION | sed 's/^go//' | cut -d. -f1)"
-GO_MINOR="$(go env GOVERSION | sed 's/^go//' | cut -d. -f2)"
-[ "$GO_MAJOR" -gt 1 ] || [ "$GO_MINOR" -ge 25 ] || fail 'Go 1.25+ is required by ADK Go 2'
+# ADK Go v2.4.0 declares Go 1.26.6. Do not silently accept an older toolchain.
+GO_VERSION="$(go env GOVERSION 2>/dev/null || true)"
+[ -n "$GO_VERSION" ] || fail 'Go is not installed'
+if [ "${GO_VERSION#go}" != "1.26.6" ]; then
+  GO_MAJOR="$(printf '%s' "${GO_VERSION#go}" | cut -d. -f1)"
+  GO_MINOR="$(printf '%s' "${GO_VERSION#go}" | cut -d. -f2)"
+  [ "$GO_MAJOR" -gt 1 ] || [ "$GO_MINOR" -ge 26 ] || fail 'Go 1.26.6+ is required by ADK Go v2.4.0'
+fi
 
 cd "$ROOT"
 go mod download
