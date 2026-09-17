@@ -33,14 +33,12 @@ else
   fail 'Use WSL2 or a supported macOS/Linux environment'
 fi
 
-# ADK Go v2.4.0 declares Go 1.26.6. Do not silently accept an older toolchain.
+# ADK Go v2.4.0 declares Go 1.26.6.
 GO_VERSION="$(go env GOVERSION 2>/dev/null || true)"
 [ -n "$GO_VERSION" ] || fail 'Go is not installed'
-if [ "${GO_VERSION#go}" != "1.26.6" ]; then
-  GO_MAJOR="$(printf '%s' "${GO_VERSION#go}" | cut -d. -f1)"
-  GO_MINOR="$(printf '%s' "${GO_VERSION#go}" | cut -d. -f2)"
-  [ "$GO_MAJOR" -gt 1 ] || [ "$GO_MINOR" -ge 26 ] || fail 'Go 1.26.6+ is required by ADK Go v2.4.0'
-fi
+GO_MAJOR="$(printf '%s' "${GO_VERSION#go}" | cut -d. -f1)"
+GO_MINOR="$(printf '%s' "${GO_VERSION#go}" | cut -d. -f2)"
+[ "$GO_MAJOR" -gt 1 ] || [ "$GO_MINOR" -ge 26 ] || fail 'Go 1.26+ is required by ADK Go v2.4.0'
 
 cd "$ROOT"
 go mod download
@@ -61,6 +59,9 @@ export CUSIMANSE_MODEL="gemini-2.5-flash"
 
 # Durable Cusimanse execution envelope.
 export CUSIMANSE_STATE_DIR=".cusimanse/state"
+
+# Durable ADK session database. Defaults to .cusimanse/adk-sessions.db
+export CUSIMANSE_ADK_SESSION_DB=".cusimanse/adk-sessions.db"
 EOF
 
 log 'Native Go + ADK Go 2 installation complete.'
