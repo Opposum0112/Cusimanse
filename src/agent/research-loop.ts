@@ -9,6 +9,7 @@ export class AutonomousThreatResearchAgent implements SecurityResearchAgent {
     const runId = crypto.randomUUID();
     const traceId = crypto.randomUUID();
     const turns: AgentTurn[] = [];
+    const maxSteps = this.deps.maxSteps ?? 12;
     const emit = (event: AgentTurn["event"], name: string, data?: unknown): void => {
       const turn: AgentTurn = {
         runId,
@@ -23,7 +24,7 @@ export class AutonomousThreatResearchAgent implements SecurityResearchAgent {
       this.deps.onTurn?.(turn);
     };
 
-    emit("planning", "research.start", objective);
+    emit("planning", "research.start", { objective, maxSteps });
 
     const agent = new ToolLoopAgent({
       model: this.deps.model,
@@ -35,6 +36,7 @@ export class AutonomousThreatResearchAgent implements SecurityResearchAgent {
         "If a tool requires approval, stop and surface the approval requirement; never attempt a bypass.",
       ].join("\n"),
       tools: this.deps.tools,
+      stopWhen: ({ steps }) => steps.length >= maxSteps,
       ...(this.deps.approval === undefined ? {} : {
         toolApproval: ({ toolCall }) => this.deps.approval?.evaluate(toolCall.toolName, toolCall.input) ?? "denied",
       }),
@@ -79,7 +81,6 @@ export class AutonomousThreatResearchAgent implements SecurityResearchAgent {
           `Constraints: ${JSON.stringify(objective.constraints ?? {})}`,
           "Begin the investigation and produce a concise evidence-grounded final result.",
         ].join("\n"),
-        ...(this.deps.maxSteps === undefined ? {} : { stopWhen: ({ steps }) => steps.length >= this.deps.maxSteps }),
         runtimeContext: { runId, traceId, objectiveId: objective.id },
       });
 
