@@ -42,6 +42,10 @@ function lifecycle(deps: ResearchToolDependencies, tool: string, status: Researc
   deps.emit?.({ runId: deps.runId, traceId: deps.traceId, tool, status, timestamp: new Date().toISOString(), ...(data ? { data } : {}) });
 }
 
+function observation(deps: ResearchToolDependencies, toolName: string, data: Record<string, unknown>): void {
+  deps.emit?.({ runId: deps.runId, traceId: deps.traceId, tool: toolName, status: "completed", timestamp: new Date().toISOString(), data: { kind: "observation", ...data } });
+}
+
 export function createGovernedResearchTools(deps: ResearchToolDependencies): ToolSet {
   return {
     create_lab: tool({
@@ -52,7 +56,7 @@ export function createGovernedResearchTools(deps: ResearchToolDependencies): Too
         try {
           guarded(deps, "create_lab", input);
           await deps.compute.createSandbox({ id: input.id, image: input.image, cpus: input.cpus, memoryMb: input.memoryMb, networkIsolation: input.networkIsolation, ...(input.guestProbeBinary ? { guestProbeBinary: input.guestProbeBinary } : {}) });
-          lifecycle(deps, "create_lab", "completed", { sandboxId: input.id });
+          observation(deps, "create_lab", { sandboxId: input.id, image: input.image, networkIsolation: input.networkIsolation });
           return { success: true, sandboxId: input.id };
         } catch (error) {
           lifecycle(deps, "create_lab", "failed", { error: error instanceof Error ? error.message : String(error) });
@@ -61,7 +65,7 @@ export function createGovernedResearchTools(deps: ResearchToolDependencies): Too
       },
     }),
     execute_workload: tool({
-      description: "Execute an approved workload through the Cusimanse runtime; no arbitrary shell is exposed.",
+      description: "Execute an approved workload through the Cusimanse compute provider; no arbitrary host shell is exposed.",
       inputSchema: z.object({ ...base, command: z.string().min(1), args: z.array(z.string()).default([]) }),
       execute: async (input) => {
         lifecycle(deps, "execute_workload", "started");
@@ -69,7 +73,7 @@ export function createGovernedResearchTools(deps: ResearchToolDependencies): Too
           guarded(deps, "execute_workload", input);
           const result = await deps.compute.exec(input.command, input.args);
           const output = { success: result.exitCode === 0, exitCode: result.exitCode, stdout: result.stdout, stderr: result.stderr, durationMs: result.durationMs };
-          lifecycle(deps, "execute_workload", "completed", { exitCode: result.exitCode, durationMs: result.durationMs });
+          observation(deps, "execute_workload", { exitCode: result.exitCode, stdout: result.stdout, stderr: result.stderr, durationMs: result.durationMs });
           return output;
         } catch (error) {
           lifecycle(deps, "execute_workload", "failed", { error: error instanceof Error ? error.message : String(error) });
@@ -78,13 +82,13 @@ export function createGovernedResearchTools(deps: ResearchToolDependencies): Too
       },
     }),
     observe_network: tool({
-      description: "Record an observation request for the active research lab. Network capture integration is supplied by the runtime adapter.",
+      description: "Request network observation for the active research lab. A real observer must be attached by the runtime adapter.",
       inputSchema: z.object({ ...base, filter: z.string().optional(), durationSeconds: z.number().int().positive().max(3600).default(30) }),
       execute: async (input) => {
         guarded(deps, "observe_network", input);
-        const observation = { observed: false, filter: input.filter ?? "", durationSeconds: input.durationSeconds, reason: "No network observer is attached to this runtime." };
-        lifecycle(deps, "observe_network", "completed", observation);
-        return observation;
+        const result = { observed: false, filter: input.filter ?? "", durationSeconds: input.durationSeconds, reason: "No network observer is attached to this runtime." };
+        observation(deps, "observe_network", result);
+        return result;
       },
     }),
     query_telemetry: tool({
@@ -93,7 +97,7 @@ export function createGovernedResearchTools(deps: ResearchToolDependencies): Too
       execute: async (input) => {
         guarded(deps, "query_telemetry", input);
         const result = { observed: false, query: input.query, reason: "No telemetry query adapter is attached to this runtime." };
-        lifecycle(deps, "query_telemetry", "completed", result);
+        observation(deps, "query_telemetry", result);
         return result;
       },
     }),
@@ -104,17 +108,17 @@ export function createGovernedResearchTools(deps: ResearchToolDependencies): Too
         guarded(deps, "inspect_artifact", input);
         await deps.compute.extractArtifacts(input.guestPath, input.hostPath);
         const result = { success: true, guestPath: input.guestPath, hostPath: input.hostPath };
-        lifecycle(deps, "inspect_artifact", "completed", result);
+        observation(deps, "inspect_artifact", result);
         return result;
       },
     }),
     verify_finding: tool({
-      description: "Record a verification request without treating an unverified claim as evidence.",
+      description: "Request finding verification without treating an unverified claim as evidence.",
       inputSchema: z.object({ ...base, findingId: z.string().min(1), evidenceRefs: z.array(z.string()).default([]) }),
       execute: async (input) => {
         guarded(deps, "verify_finding", input);
         const result = { verified: false, findingId: input.findingId, evidenceRefs: input.evidenceRefs, reason: "Verification requires a configured verifier adapter." };
-        lifecycle(deps, "verify_finding", "completed", result);
+        observation(deps, "verify_finding", result);
         return result;
       },
     }),
