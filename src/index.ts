@@ -18,8 +18,8 @@ export { ComputeProviderRegistry, ComputeProviderError, MockComputeProvider, Lim
 export type { ComputeProvider, SandboxSpec, ExecResult } from "./adapters/compute/index.js";
 export { EvidenceCollector } from "./evidence/index.js";
 export type { RuntimeTelemetry, ExecutionArtifacts } from "./evidence/index.js";
-export { createResearchState, createCusimanseResearchState, applyAutonomousResearchEvent, appendEvent, transitionPhase } from "./state/index.js";
-export type { ResearchState, CusimanseResearchState } from "./state/index.js";
+export { createResearchState, createCusimanseResearchState, applyAutonomousResearchEvent, appendEvent, appendAggregateResearchEvent, appendAggregateRuntimeEvent, transitionPhase } from "./state/index.js";
+export type { ResearchState, CusimanseResearchState, CusimanseEvent, ResearchEventEnvelope, RuntimeEvent } from "./state/index.js";
 export { createAutonomousResearchState, applyResearchEvent, shouldTerminate, transitionResearchPhase } from "./state/index.js";
 export type { AutonomousResearchState, ResearchEvent, ResearchPhase, ResearchHypothesis, ResearchFinding, HypothesisStatus, VerificationStatus } from "./state/index.js";
 export { RuntimeOrchestrator } from "./runtime/index.js";
@@ -39,7 +39,7 @@ export { proposeSkill, validateSkill, promoteSkill, listValidatedSkills } from "
 export { AutonomousThreatResearchAgent, getSecurityResearchAgent } from "./agent/index.js";
 export type { AgentDependencies, AgentTurn, ResearchObjective, ResearchResult, ResearchToolContext, SecurityResearchAgent } from "./agent/index.js";
 export { InMemoryResearchTracer, createAISDKTelemetry } from "./observability/index.js";
-export type { ResearchEvent, ResearchEventKind, ResearchTracer } from "./observability/index.js";
+export type { ResearchEventKind, ResearchTracer } from "./observability/index.js";
 export { connectMCPResearchSource } from "./mcp/index.js";
 export type { MCPServerConfig, MCPToolSource } from "./mcp/index.js";
 export { CARGateway } from "./gateway/server.js";
