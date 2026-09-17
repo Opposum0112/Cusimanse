@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/glebarez/sqlite"
 	"github.com/opposum0112/Cusimanse/internal/capability"
@@ -23,6 +24,8 @@ import (
 	"google.golang.org/adk/v2/workflow"
 	"google.golang.org/genai"
 )
+
+const maxResearchIterations = 3
 
 type Runtime struct {
 	Config Config
@@ -52,6 +55,12 @@ type CapabilityResult struct {
 
 type MemoryArgs struct { Query string `json:"query" jsonschema:"Search query for prior research context."` }
 type MemoryResult struct { Results []string `json:"results"` }
+
+type GateResult struct {
+	Decision string `json:"decision"`
+	Iteration int `json:"iteration"`
+	Reason string `json:"reason"`
+}
 
 // New creates the native Go ADK runtime. ADK owns reasoning/orchestration;
 // Cusimanse owns authorization and execution authority.
@@ -97,11 +106,13 @@ func New(ctx context.Context, cfg Config, registry *capability.Registry) (*Runti
 	}
 	planner, err := makeAgent("research_planner", "Creates a bounded security research plan.", "Interpret the research request and define a bounded, authorized plan. Do not execute anything. State assumptions and acceptance criteria. Consult prior research memory when useful.", []tool.Tool{memoryTool})
 	if err != nil { return nil, err }
-	researcher, err := makeAgent("security_researcher", "Performs authorized security research through Cusimanse capabilities.", "Execute the approved research plan only through request_capability. Never run shell commands directly. Treat capability output as observations and preserve the distinction between observations and reasoning.", []tool.Tool{capTool, memoryTool})
+	researcher, err := makeAgent("security_researcher", "Performs authorized security research through Cusimanse capabilities.", "Execute the approved research plan only through request_capability. Never run shell commands directly. Treat capability output as observations and preserve the distinction between observations and reasoning. If the previous verification indicates a gap, focus only on the missing evidence.", []tool.Tool{capTool, memoryTool})
 	if err != nil { return nil, err }
-	analyzer, err := makeAgent("evidence_analyzer", "Analyzes collected security research observations.", "Analyze only collected observations and preserved artifacts. Do not invent telemetry. Memory is context, never evidence. Identify uncertainty and evidence gaps.", []tool.Tool{memoryTool})
+	analyzer, err := makeAgent("evidence_analyzer", "Analyzes collected security research observations.", "Analyze only collected observations and preserved artifacts. Do not invent telemetry. Memory is context, never evidence. Identify uncertainty and evidence gaps. Produce a concise evidence assessment for verification.", []tool.Tool{memoryTool})
 	if err != nil { return nil, err }
-	verifier, err := makeAgent("independent_verifier", "Independently verifies candidate security findings.", "Verify candidate findings against preserved evidence and acceptance criteria. Reject unsupported conclusions and distinguish verified facts from hypotheses.", nil)
+	verifier, err := makeAgent("independent_verifier", "Independently verifies candidate security findings.", "Verify candidate findings against preserved evidence and acceptance criteria. Reject unsupported conclusions and distinguish verified facts from hypotheses. If evidence is incomplete, explicitly state the missing evidence and label the result GAP. If acceptance criteria are satisfied, label the result PASS.", nil)
+	if err != nil { return nil, err }
+	reporter, err := makeAgent("research_reporter", "Produces the final researcher-facing result.", "Summarize the completed security research using only preserved evidence, analysis, and verification. Clearly separate verified findings, observations, hypotheses, limitations, and evidence gaps. Do not invent facts and do not claim execution that did not occur.", nil)
 	if err != nil { return nil, err }
 
 	planNode, err := workflow.NewAgentNode(planner, workflow.NodeConfig{})
@@ -112,14 +123,47 @@ func New(ctx context.Context, cfg Config, registry *capability.Registry) (*Runti
 	if err != nil { return nil, fmt.Errorf("create analysis node: %w", err) }
 	verifyNode, err := workflow.NewAgentNode(verifier, workflow.NodeConfig{})
 	if err != nil { return nil, fmt.Errorf("create verification node: %w", err) }
+	reportNode, err := workflow.NewAgentNode(reporter, workflow.NodeConfig{})
+	if err != nil { return nil, fmt.Errorf("create report node: %w", err) }
 
-	graph, err := workflowagent.New(workflowagent.Config{
-		Name: "cusimanse_research_workflow",
-		Description: "Bounded security research workflow: plan, research, analyze, verify.",
-		Edges: workflow.Chain(planNode, researchNode, analysisNode, verifyNode),
-		SubAgents: []agent.Agent{planner, researcher, analyzer, verifier},
-	})
-	if err != nil { return nil, fmt.Errorf("create research workflow: %w", err) }
+	gateNode := workflow.NewFunctionNode[any, *session.Event]("acceptance_gate", func(tctx agent.Context, _ any) (*session.Event, error) {
+		iteration := 0
+		if value, err := tctx.Session().State().Get("research_iteration"); err == nil {
+			if n, ok := value.(int); ok { iteration = n }
+		}
+		iteration++
+		decision := "GAP"
+		reason := "verification did not explicitly establish acceptance"
+		if value, err := tctx.Session().State().Get("independent_verifier_output"); err == nil {
+			text := strings.ToUpper(fmt.Sprint(value))
+			if strings.Contains(text, "PASS") && !strings.Contains(text, "GAP") {
+				decision = "PASS"
+				reason = "verification reported satisfied acceptance criteria"
+			}
+		}
+		if iteration >= maxResearchIterations && decision != "PASS" {
+			decision = "LIMIT"
+			reason = fmt.Sprintf("bounded research loop reached %d iterations without a verified PASS", maxResearchIterations)
+		}
+		if tctx.Actions() != nil { tctx.Actions().StateDelta["research_iteration"] = iteration }
+		event := session.NewEvent(tctx, tctx.InvocationID())
+		event.Output = GateResult{Decision: decision, Iteration: iteration, Reason: reason}
+		event.Routes = []string{decision}
+		return event, nil
+	}, workflow.NodeConfig{})
+
+	edges := []workflow.Edge{
+		{From: workflow.Start, To: planNode},
+		{From: planNode, To: researchNode},
+		{From: researchNode, To: analysisNode},
+		{From: analysisNode, To: verifyNode},
+		{From: verifyNode, To: gateNode},
+		{From: gateNode, To: researchNode, Route: workflow.StringRoute("GAP")},
+		{From: gateNode, To: reportNode, Route: workflow.MultiRoute[string]{"PASS", "LIMIT"}},
+	}
+	graph, err := workflow.New("cusimanse_research_graph", edges, workflow.WithMaxConcurrency(4))
+	if err != nil { return nil, fmt.Errorf("create adaptive research graph: %w", err) }
+	root := workflowagent.NewWorkflowAgent(graph)
 
 	dbPath := os.Getenv("CUSIMANSE_ADK_SESSION_DB")
 	if dbPath == "" { dbPath = filepath.Join(".cusimanse", "adk-sessions.db") }
@@ -128,7 +172,7 @@ func New(ctx context.Context, cfg Config, registry *capability.Registry) (*Runti
 	if err != nil { return nil, fmt.Errorf("create persistent ADK session service: %w", err) }
 	if err := database.AutoMigrate(sessions); err != nil { return nil, fmt.Errorf("migrate ADK session database: %w", err) }
 	mem := memory.InMemoryService()
-	r, err := runner.New(runner.Config{AppName: cfg.AppName, Agent: graph, SessionService: sessions, MemoryService: mem, AutoCreateSession: true})
+	r, err := runner.New(runner.Config{AppName: cfg.AppName, Agent: root, SessionService: sessions, MemoryService: mem, AutoCreateSession: true})
 	if err != nil { return nil, fmt.Errorf("create ADK runner: %w", err) }
 	return &Runtime{Config: cfg, Capabilities: registry, Policy: policy, Runner: r, Sessions: sessions, Memory: mem}, nil
 }
