@@ -51,3 +51,5 @@ export { connectMCPResearchSource } from "./mcp/index.js";
 export type { MCPServerConfig, MCPToolSource } from "./mcp/index.js";
 export { CARGateway } from "./gateway/server.js";
 export type { ResearchSession, CARGatewayOptions, ExperimentRunRequest, ExperimentRunResponse, OperatorPort } from "./gateway/contracts.js";
+export { runVercelResearchWorkflow } from "./runtime/vercel/research-workflow.js";
+export type { VercelResearchWorkflowInput, VercelResearchWorkflowResult } from "./runtime/vercel/research-workflow.js";
