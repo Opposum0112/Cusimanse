@@ -18,10 +18,14 @@ export { ComputeProviderRegistry, ComputeProviderError, MockComputeProvider, Lim
 export type { ComputeProvider, SandboxSpec, ExecResult } from "./adapters/compute/index.js";
 export { EvidenceCollector } from "./evidence/index.js";
 export type { RuntimeTelemetry, ExecutionArtifacts } from "./evidence/index.js";
-export { createResearchState, createCusimanseResearchState, applyAutonomousResearchEvent, appendEvent, appendAggregateResearchEvent, appendAggregateRuntimeEvent, transitionPhase } from "./state/index.js";
+export { createResearchState, createCusimanseResearchState, applyAutonomousResearchEvent, appendEvent, appendAggregateResearchEvent, appendAggregateRuntimeEvent, transitionPhase, appendResearchObservation, appendResearchEvidence } from "./state/index.js";
 export type { ResearchState, CusimanseResearchState, CusimanseEvent, ResearchEventEnvelope, RuntimeEvent } from "./state/index.js";
 export { createAutonomousResearchState, applyResearchEvent, shouldTerminate, transitionResearchPhase } from "./state/index.js";
 export type { AutonomousResearchState, ResearchEvent, ResearchPhase, ResearchHypothesis, ResearchFinding, HypothesisStatus, VerificationStatus } from "./state/index.js";
+export { EvidenceJournal, createEvidenceId } from "./state/evidence.js";
+export type { EvidenceRecord } from "./state/evidence.js";
+export { InMemoryResearchStateStore, createResearchStateStore } from "./state/store.js";
+export type { ResearchStateStore } from "./state/store.js";
 export { RuntimeOrchestrator } from "./runtime/index.js";
 export type { RuntimeDependencies, RuntimeCycleResult } from "./runtime/index.js";
 export { getExperimentRuntime } from "./runtime/factory.js";
