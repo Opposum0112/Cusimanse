@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createGovernedResearchTools } from "../../src/agent/research-tools.js";
 import { FailClosedToolApproval } from "../../src/policy/approval.js";
 import { createCapabilityRegistry } from "../../src/capabilities/index.js";
 import { createAutonomousResearchState } from "../../src/state/research.js";
+import { EvidenceJournal } from "../../src/state/evidence.js";
 import { createResearchStateStore } from "../../src/state/store.js";
 import type { ComputeProvider } from "../../src/adapters/compute/types.js";
 import type { ExperimentRuntime } from "../../src/runtime/spi/types.js";
@@ -21,6 +22,8 @@ const objective = { id: "objective-1", question: "test" };
 
 const createStore = () => createResearchStateStore(createAutonomousResearchState(objective.id));
 
+beforeEach(() => vi.clearAllMocks());
+
 describe("governed research tools", () => {
   it("executes typed workload through the compute SPI", async () => {
     const tools = createGovernedResearchTools({ runId: "run-1", traceId: "trace-1", objective, compute, runtime });
@@ -34,7 +37,16 @@ describe("governed research tools", () => {
     const capabilities = createCapabilityRegistry([
       { name: "execute_workload", version: "1.0.0", operationKinds: ["workload.execute"] },
     ]);
-    const tools = createGovernedResearchTools({ runId: "run-2", traceId: "trace-2", objective, compute, runtime, capabilityRegistry: capabilities, evidenceJournal: new (await import("../../src/state/evidence.js")).EvidenceJournal(), stateStore });
+    const tools = createGovernedResearchTools({
+      runId: "run-2",
+      traceId: "trace-2",
+      objective,
+      compute,
+      runtime,
+      capabilityRegistry: capabilities,
+      evidenceJournal: new EvidenceJournal(),
+      stateStore,
+    });
 
     const result = await tools.execute_workload.execute({ experimentId: "exp-1", intentId: "intent-1", command: "npm", args: ["--version"] });
     expect(result).toMatchObject({ success: true, evidenceId: "evidence:run-2:0:execute_workload" });
@@ -50,7 +62,7 @@ describe("governed research tools", () => {
 
     await expect(tools.execute_workload.execute({ experimentId: "exp-1", intentId: "intent-1", command: "npm", args: [] })).rejects.toThrow(/Capability not registered/);
     expect(compute.exec).not.toHaveBeenCalled();
-    expect(events.some(event => event.status === "denied")).toBe(false);
+    expect(events.some(event => event.status === "denied")).toBe(true);
   });
 
   it("fails closed when policy denies a tool", async () => {
