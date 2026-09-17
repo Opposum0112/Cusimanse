@@ -1,48 +1,107 @@
-# ADK Go 2 Migration Plan
+# ADK Go 2 Migration
 
-This branch is the native Go evolution path for Cusimanse. It is intentionally isolated from every other repository and branch.
+`adk-cusimanse` is the native Go evolution path for Cusimanse. It is intentionally isolated from every other repository and branch.
 
-## Completed in this increment
+## Architecture contract
 
-- Created `adk-cusimanse` from `main`.
-- Raised the Go baseline to 1.25.
-- Added official `google.golang.org/adk/v2` dependency.
-- Added a native Go ADK agent package.
-- Added a capability request tool that delegates to the existing Go capability registry and policy engine.
-- Added ADK session and memory services for the development runtime.
-- Added a durable atomic execution-state journal.
-- Added a native `cusimanse-agent` terminal entry point.
-- Added architecture and migration documentation.
+- **ADK Go 2:** reasoning, planning, workflow graph, tool calling, HITL, session state, memory and artifacts.
+- **Cusimanse Go:** contracts, requirements, capability registry, policy, authorization, execution limits, evidence and audit.
+
+**The agent decides what to research. Cusimanse decides what may execute.**
+
+## Completed increment
+
+- Go 1.25 baseline and ADK v2 dependency.
+- Native Go ADK runtime and terminal entry point.
+- Capability request tool bridged to the existing Go registry/policy engine.
+- Fail-closed capability lookup.
+- `Check()` before `Execute()`.
+- ADK session and memory services for development.
+- Atomic durable Cusimanse execution journal.
+- Terminal resume visibility and per-turn durable checkpoints.
+- Legacy Goose-specific agent/recipe scaffolding removed from this branch.
+- End-user architecture and migration documentation.
 
 ## Next implementation increments
 
-### 1. Graph-native research workflow
+### 1. Graph-native adaptive research loop
 
-Build the research loop as an ADK 2 workflow graph with explicit nodes for contract interpretation, planning, capability execution, observation, analysis, verification and final reporting. Use graph routing and bounded retry/iteration semantics rather than a second orchestration framework.
+Express the complete research lifecycle as an ADK Go 2 graph:
 
-### 2. Persistent session state
+```text
+INTAKE → CONTRACT/REQUIREMENTS → PLAN → CAPABILITY RESOLUTION
+                                      ↓
+                                  POLICY GATE
+                              ↙       ↓        ↘
+                           DENY     HITL       ALLOW
+                             ↓       ↓           ↓
+                           REPLAN  PAUSE       EXECUTE
+                                              ↓
+                                     OBSERVE → ANALYZE
+                                                ↓
+                                             VERIFY
+                                                ↓
+                                       ACCEPTANCE CHECK
+                                         ↙           ↘
+                                      GAP             PASS
+                                       ↓               ↓
+                                  bounded replan   PRESERVE
+                                                       ↓
+                                                    REPORT
+                                                       ↓
+                                                 DESTROY LAB
+```
 
-Replace the development in-memory session service with a persistent `session.Service` implementation where appropriate. Preserve the existing `internal/state` journal as the recovery/audit envelope.
+Use ADK graph routing, bounded loops, retries/timeouts and parallel workers where they improve research throughput. Do not introduce another orchestration framework.
 
-### 3. Persistent artifacts and memory
+### 2. Persistent ADK sessions
 
-Wire ADK artifact storage to the evidence lifecycle and provide a persistent memory implementation. Memory remains advisory; evidence remains authoritative.
+Replace the development in-memory session service with a persistent implementation so a paused/interrupted graph can resume from its workflow checkpoint after process restart. Keep `internal/state` as the crash-recovery/audit envelope.
 
-### 4. Provider-neutral model layer
+### 3. Persistent memory and artifacts
 
-Add a model factory/adapter boundary so Gemini, OpenAI-compatible, Anthropic and local models can be selected without leaking provider concerns into capabilities or policy. Localhost LiteLLM/OmniRoute may be supported as transport adapters.
+Separate the data planes:
 
-### 5. Capability surface
+| Plane | Responsibility |
+|---|---|
+| ADK session | Mutable workflow state |
+| ADK memory | Searchable long-term research context |
+| ADK artifacts | Versioned research outputs |
+| Cusimanse evidence | Authoritative observations and provenance |
+| Cusimanse journal | Recovery and audit envelope |
 
-Expose stable typed capabilities for resolve, provision, instrument, execute, observe, collect, analyze, verify, preserve and destroy. Keep the capability registry framework-neutral so CLI, ADK and future adapters use the same authority.
+Memory is advisory; preserved evidence is authoritative.
+
+### 4. Provider-neutral model factory
+
+Keep model selection behind a Go factory. Gemini is the initial adapter. Add Google, OpenAI-compatible, Anthropic, DeepSeek and local/gateway transports without changing capability or policy contracts. LiteLLM/OmniRoute can be treated as optional OpenAI-compatible gateway transports.
+
+### 5. Capability contract hardening
+
+Every capability should define a stable ID/version, typed input schema, preconditions, risk class, authorization requirements, timeout/resource limits, `Check()`, `Execute()`, evidence output, idempotency semantics and cleanup behavior.
+
+The model can request a capability but cannot bypass these controls.
 
 ### 6. Recovery and replay
 
-Add tests for interruption before and after capability execution, duplicate requests, approval pauses, process restart, resume, evidence hashing and failed providers. Mutating operations must be idempotent or produce an explicit ambiguous-effect state.
+Add deterministic run IDs, invocation IDs and idempotency keys. Explicitly model `NOT_STARTED`, `PENDING_APPROVAL`, `RUNNING`, `COMPLETED`, `FAILED`, `AMBIGUOUS_EFFECT`, `PRESERVED` and `CLEANUP_PENDING`. Recovery must revalidate before repeating side effects.
 
 ### 7. Production single binary
 
-Target a single Go binary with terminal operation, structured output, durable sessions, policy enforcement, capability providers and optional API/A2A surfaces. Development web tooling must never become the production security boundary.
+Target one native Go binary with terminal operation, structured output, durable sessions, policy enforcement, capability providers and optional API/A2A surfaces. Python, LangGraph and Goose must not become runtime dependencies.
+
+## Security invariants
+
+1. The LLM never receives a raw shell-execution primitive.
+2. Unknown capabilities fail closed.
+3. Policy is evaluated independently of model output.
+4. HITL cannot override an absolute policy denial.
+5. `Check()` always precedes `Execute()`.
+6. Credentials never belong in prompts, recipes or evidence.
+7. Observations are not silently promoted to verified findings.
+8. Destructive lab actions use explicit lifecycle controls.
+9. Recovery is conservative and idempotent where possible.
+10. Evidence provenance survives model-provider changes.
 
 ## Non-goals
 
@@ -55,4 +114,4 @@ Target a single Go binary with terminal operation, structured output, durable se
 
 ## Validation gate
 
-A feature is considered production-ready only after deterministic tests demonstrate authorization, policy enforcement, recovery, evidence provenance and cleanup behavior.
+A production increment requires deterministic tests covering authorization, policy enforcement, HITL pause/resume, state recovery, memory/artifact separation, evidence provenance, idempotency and cleanup behavior.
