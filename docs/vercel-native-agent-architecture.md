@@ -11,11 +11,23 @@ This branch establishes the migration path toward a Vercel AI SDK 7 native agent
 | Policy and scope | Authoritative, fail-closed | Approval transport |
 | Research state and evidence provenance | Authoritative | Workflow state can persist execution |
 | Agent reasoning and tool loop | Domain instructions/tools | AI SDK 7 |
-| Durable agent execution | Migration target | `WorkflowAgent` + Workflow SDK |
+| Durable agent execution | Migration target / workflow boundary | `WorkflowAgent` + Workflow SDK |
 | Model routing/fallback | Declarative policy | AI Gateway |
 | Disposable hosted compute | Compute SPI | Vercel Sandbox adapter |
 | Telemetry | Research events | AI SDK OpenTelemetry |
 | External capability interoperability | MCP surface | AI SDK MCP client/server integrations |
+
+## Durable workflow boundary
+
+`src/runtime/vercel/research-workflow.ts` is the first explicit Vercel Workflow entrypoint. It is deliberately narrow:
+
+1. Accept only serializable research objective/model configuration.
+2. Validate the objective and bounded step count before model execution.
+3. Instantiate `WorkflowAgent` inside a `'use workflow'` function.
+4. Stream durable `ModelCallStreamPart` events through `getWritable()`.
+5. Return a small serializable workflow result.
+
+The workflow boundary does **not** pass ComputeProvider, PolicyEngine, approval secrets, MCP clients, filesystem handles, or other non-serializable runtime objects as workflow arguments. Those dependencies must enter through workflow-safe tool steps and server-side registries.
 
 ## Target flow
 
@@ -64,16 +76,20 @@ AI SDK tool calling is not authorization. Every research operation remains subje
 
 The agent must not receive an unrestricted shell primitive. Security operations should be exposed as typed domain tools such as `create_lab`, `execute_workload`, `observe_network`, `query_telemetry`, `inspect_artifact`, `verify_finding`, and `destroy_lab`.
 
+For WorkflowAgent specifically, AI SDK's `needsApproval` is a durable approval transport. Cusimanse policy remains the authoritative authorization decision and must be evaluated immediately before the side effect.
+
 ## Migration stages
 
 1. **Foundation** — centralize AI Gateway model configuration and add the Vercel Sandbox compute adapter.
-2. **Durability** — replace the primary in-memory `ToolLoopAgent` loop with `WorkflowAgent` inside a Workflow SDK workflow.
+2. **Durability** — establish the `WorkflowAgent` + Workflow SDK entrypoint and keep the existing agent API compatible during migration.
 3. **Approval** — map high-risk Cusimanse policy decisions to AI SDK `needsApproval` while retaining Cusimanse policy as the authoritative gate.
-4. **Streaming** — expose workflow-aware streams containing tool/research lifecycle events, not private chain-of-thought.
-5. **Observability** — register AI SDK OpenTelemetry and correlate spans with Cusimanse `runId`, `traceId`, and `experimentId`.
-6. **Runtime convergence** — make the Vercel workflow runtime the primary hosted runtime while retaining local compute/runtime adapters for portability and offline research.
-7. **Retirement** — remove Temporal only after equivalent durability, approval, retry, replay, evidence, and integration tests pass.
+4. **Tool steps** — move research capabilities into workflow-safe typed tools with server-side capability/policy resolution.
+5. **State/evidence** — persist Cusimanse research events and evidence references alongside workflow progress without placing secrets or opaque runtime handles in durable arguments.
+6. **Streaming** — expose workflow-aware streams containing tool/research lifecycle events, not private chain-of-thought.
+7. **Observability** — register AI SDK OpenTelemetry and correlate spans with Cusimanse `runId`, `traceId`, and `experimentId`.
+8. **Runtime convergence** — make the Vercel workflow runtime the primary hosted runtime while retaining local compute/runtime adapters for portability and offline research.
+9. **Retirement** — remove Temporal only after equivalent durability, approval, retry, replay, evidence, and integration tests pass.
 
 ## Current branch status
 
-The branch intentionally keeps Temporal and the existing local runtime available. The new Vercel-native seams are additive so the migration can be incremental and reversible.
+The branch intentionally keeps Temporal and the existing local runtime available. The Vercel workflow boundary is now explicit, while the remaining migration work is to bind real governed research tools and the Cusimanse state/evidence journal into that durable workflow.
