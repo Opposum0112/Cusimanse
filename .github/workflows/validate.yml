@@ -36,6 +36,8 @@ jobs:
             bash -n "$f"
             shellcheck --severity=error "$f" || { shellcheck "$f"; exit 1; }
           done < <(find scripts -type f \( -name '*.sh' -o -name 'policyctl' \) -print0)
+      - name: Resolve Go module graph
+        run: go mod tidy
       - name: Validate project and control plane
         run: bash ./scripts/tests/validate.sh
       - name: Run Go tests
