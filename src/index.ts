@@ -9,7 +9,7 @@ export type { CapabilityDescriptor, ResolvedCapability } from "./capabilities/in
 export { PolicyEngine, ApprovalManager, PolicyError } from "./policy/index.js";
 export type { PolicyRule, PolicyDecision, PolicyContext, PolicyEvaluation } from "./policy/index.js";
 export { FailClosedToolApproval } from "./policy/approval.js";
-export type { ApprovalAudit, ApprovalSink } from "./policy/approval.js";
+export type { ApprovalAudit, ApprovalSink, ToolApprovalDecision } from "./policy/approval.js";
 export { OperationEngine, OperationError } from "./operations/index.js";
 export type { Operation, OperationResult } from "./operations/index.js";
 export { AdapterRegistry } from "./adapters/index.js";
@@ -34,5 +34,9 @@ export { resolveConfig } from "./config/index.js";
 export type { ResolverCliOptions, ResolvedConfig } from "./config/index.js";
 export { loadValidatedSkills } from "./skills/loader.js";
 export { proposeSkill, validateSkill, promoteSkill, listValidatedSkills } from "./skills/lifecycle.js";
+export { AutonomousThreatResearchAgent, getSecurityResearchAgent } from "./agent/index.js";
+export type { AgentDependencies, AgentTurn, ResearchObjective, ResearchResult, ResearchToolContext, SecurityResearchAgent } from "./agent/index.js";
+export { InMemoryResearchTracer, createAISDKTelemetry } from "./observability/index.js";
+export type { ResearchEvent, ResearchEventKind, ResearchTracer } from "./observability/index.js";
 export { CARGateway } from "./gateway/server.js";
 export type { ResearchSession, CARGatewayOptions, ExperimentRunRequest, ExperimentRunResponse, OperatorPort } from "./gateway/contracts.js";
