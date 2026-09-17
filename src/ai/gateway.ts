@@ -4,6 +4,10 @@ export interface GatewayModelConfig {
   primary: string;
   fallbacks?: string[];
   providers?: string[];
+  /**
+   * Retained as domain metadata for future routing policy; AI Gateway does
+   * not currently expose tags under providerOptions.gateway.
+   */
   tags?: string[];
 }
 
@@ -15,21 +19,16 @@ export function createGatewayModel(config: GatewayModelConfig): LanguageModel {
   if (!config.primary.includes("/")) {
     throw new Error(`AI Gateway model must use provider/model form: ${config.primary}`);
   }
-
-  // Gateway routing options are supplied per request by the agent layer. Keep
-  // this factory deliberately small so model selection never becomes coupled
-  // to a concrete provider SDK.
   return gateway(config.primary);
 }
 
 export function createGatewayProviderOptions(config: GatewayModelConfig): {
-  gateway: { models?: string[]; order?: string[]; tags?: string[] };
+  gateway: { models?: string[]; order?: string[] };
 } {
   return {
     gateway: {
       ...(config.fallbacks?.length ? { models: config.fallbacks } : {}),
       ...(config.providers?.length ? { order: config.providers } : {}),
-      ...(config.tags?.length ? { tags: config.tags } : {}),
     },
   };
 }
