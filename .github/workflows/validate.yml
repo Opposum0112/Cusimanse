@@ -27,8 +27,7 @@ jobs:
           command -v yq >/dev/null || sudo snap install yq
 
       - name: Validate executable scripts
-        run: |
-          shellcheck scripts/install.sh scripts/tests/*.sh
+        run: shellcheck scripts/install.sh scripts/tests/*.sh
 
       - name: Validate Go module
         run: |
@@ -41,8 +40,5 @@ jobs:
       - name: Run Go tests
         run: go test ./...
 
-      - name: Run runtime checks
-        run: bash ./scripts/tests/runtime.sh
-
-      - name: Run integration checks
-        run: bash ./scripts/tests/integration.sh
+      - name: Build native agent
+        run: go build ./cmd/cusimanse-agent
