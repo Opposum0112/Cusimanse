@@ -4,9 +4,12 @@ import {
   type AutonomousResearchState,
   type ResearchEvent,
 } from "./research.js";
+import { EvidenceJournal, createEvidenceId, type EvidenceRecord } from "./evidence.js";
 
 export type { AutonomousResearchState, HypothesisStatus, ResearchEvent, ResearchFinding, ResearchHypothesis, ResearchPhase, VerificationStatus } from "./research.js";
 export { addFinding, addHypothesis, applyResearchEvent, createAutonomousResearchState, recordEvidence, recordObservation, shouldTerminate, transitionPhase as transitionResearchPhase, updateHypothesisStatus, verifyFinding } from "./research.js";
+export { EvidenceJournal, createEvidenceId } from "./evidence.js";
+export type { EvidenceRecord } from "./evidence.js";
 
 export type RuntimePhase = "created" | "planning" | "awaiting-approval" | "executing" | "observing" | "completed" | "failed" | "destroying";
 export type RuntimeEventType = "experiment.created" | "intent.planned" | "operation.proposed" | "approval.requested" | "approval.granted" | "approval.denied" | "operation.started" | "operation.succeeded" | "operation.failed" | "observation.recorded" | "evidence.recorded" | "experiment.completed" | "experiment.failed" | "compute.destroying" | "compute.destroyed";
@@ -48,6 +51,14 @@ export function appendAggregateRuntimeEvent<T>(state: CusimanseResearchState, ev
   if (event.experimentId !== state.experiment.experimentId) throw new Error(`Event ${event.id} belongs to ${state.experiment.experimentId}.`);
   if (event.sequence !== state.revision + 1) throw new Error(`Invalid aggregate event sequence: expected ${state.revision + 1}, received ${event.sequence}.`);
   return { ...state, experiment: appendEvent(state.experiment, event), events: [...state.events, event], revision: event.sequence };
+}
+
+export function appendResearchObservation(state: CusimanseResearchState, observation: unknown, now = new Date().toISOString(), causationId?: string): CusimanseResearchState {
+  return appendAggregateResearchEvent(state, { type: "observation.recorded", observation }, now, causationId);
+}
+
+export function appendResearchEvidence(state: CusimanseResearchState, evidenceId: string, now = new Date().toISOString(), causationId?: string): CusimanseResearchState {
+  return appendAggregateResearchEvent(state, { type: "evidence.recorded", evidenceId }, now, causationId);
 }
 
 export function transitionPhase(state: ResearchState, phase: RuntimePhase, eventType: RuntimeEventType, payload: unknown = {}, now = new Date().toISOString()): ResearchState {
