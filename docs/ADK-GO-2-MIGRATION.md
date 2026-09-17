@@ -9,86 +9,88 @@
 
 **The agent decides what to research. Cusimanse decides what may execute.**
 
-## Completed increment
+## Completed on this branch
 
-- Go 1.25 baseline and ADK v2 dependency.
-- Native Go ADK runtime and terminal entry point.
-- Capability request tool bridged to the existing Go registry/policy engine.
+- Go 1.26.6 module baseline.
+- `google.golang.org/adk/v2` v2.4.0 dependency.
+- Native Go ADK terminal agent.
+- Capability requests bridged to the existing Go registry/policy engine.
 - Fail-closed capability lookup.
 - `Check()` before `Execute()`.
-- ADK session and memory services for development.
-- Atomic durable Cusimanse execution journal.
-- Terminal resume visibility and per-turn durable checkpoints.
-- Legacy Goose-specific agent/recipe scaffolding removed from this branch.
-- End-user architecture and migration documentation.
+- ADK session/memory integration.
+- Database-backed ADK session persistence for restartable sessions.
+- Atomic Cusimanse durable execution journal.
+- Terminal session IDs and durable checkpoints.
+- Legacy Goose-specific agent scaffolding removed.
+- End-user testing and architecture documentation.
 
-## Next implementation increments
+## Remaining hardening
 
 ### 1. Graph-native adaptive research loop
 
-Express the complete research lifecycle as an ADK Go 2 graph:
+Complete the research graph as:
 
 ```text
-INTAKE → CONTRACT/REQUIREMENTS → PLAN → CAPABILITY RESOLUTION
-                                      ↓
-                                  POLICY GATE
-                              ↙       ↓        ↘
-                           DENY     HITL       ALLOW
-                             ↓       ↓           ↓
-                           REPLAN  PAUSE       EXECUTE
-                                              ↓
-                                     OBSERVE → ANALYZE
-                                                ↓
-                                             VERIFY
-                                                ↓
-                                       ACCEPTANCE CHECK
-                                         ↙           ↘
-                                      GAP             PASS
-                                       ↓               ↓
-                                  bounded replan   PRESERVE
-                                                       ↓
-                                                    REPORT
-                                                       ↓
-                                                 DESTROY LAB
+INTAKE → REQUIREMENTS → PLAN → CAPABILITY REQUEST
+                                  ↓
+                              POLICY GATE
+                           ↙      ↓       ↘
+                        DENY    HITL      ALLOW
+                           ↓      ↓          ↓
+                        REPLAN  PAUSE      CHECK
+                                             ↓
+                                          EXECUTE
+                                             ↓
+                                      OBSERVE → ANALYZE
+                                                  ↓
+                                               VERIFY
+                                                  ↓
+                                           ACCEPTANCE
+                                           ↙         ↘
+                                        GAP           PASS
+                                         ↓             ↓
+                                   bounded replan   PRESERVE
+                                                        ↓
+                                                     REPORT
+                                                        ↓
+                                                     CLEANUP
 ```
 
-Use ADK graph routing, bounded loops, retries/timeouts and parallel workers where they improve research throughput. Do not introduce another orchestration framework.
+Use ADK graph routing, bounded loops, retries/timeouts and parallel workers only where they improve research throughput without weakening the security boundary.
 
-### 2. Persistent ADK sessions
+### 2. Persistent memory and artifacts
 
-Replace the development in-memory session service with a persistent implementation so a paused/interrupted graph can resume from its workflow checkpoint after process restart. Keep `internal/state` as the crash-recovery/audit envelope.
-
-### 3. Persistent memory and artifacts
-
-Separate the data planes:
+Make long-term research memory and artifact storage durable and explicitly separate from authoritative evidence.
 
 | Plane | Responsibility |
 |---|---|
 | ADK session | Mutable workflow state |
-| ADK memory | Searchable long-term research context |
-| ADK artifacts | Versioned research outputs |
-| Cusimanse evidence | Authoritative observations and provenance |
-| Cusimanse journal | Recovery and audit envelope |
+| ADK memory | Searchable reusable context |
+| ADK artifacts | Versioned agent outputs |
+| Cusimanse evidence | Authoritative observations/provenance |
+| Cusimanse journal | Recovery/audit envelope |
 
-Memory is advisory; preserved evidence is authoritative.
+### 3. Provider-neutral model factory
 
-### 4. Provider-neutral model factory
+Keep model selection behind a Go factory. Gemini is the initial adapter. Future OpenAI-compatible, Anthropic-compatible and local/gateway transports must not alter capability or policy contracts.
 
-Keep model selection behind a Go factory. Gemini is the initial adapter. Add Google, OpenAI-compatible, Anthropic, DeepSeek and local/gateway transports without changing capability or policy contracts. LiteLLM/OmniRoute can be treated as optional OpenAI-compatible gateway transports.
+LiteLLM/OmniRoute may be optional transport/routing layers; neither is a security authority.
 
-### 5. Capability contract hardening
+### 4. Capability contract hardening
 
-Every capability should define a stable ID/version, typed input schema, preconditions, risk class, authorization requirements, timeout/resource limits, `Check()`, `Execute()`, evidence output, idempotency semantics and cleanup behavior.
+Every executable capability should expose a stable ID/version, typed input/output, preconditions, risk class, authorization requirements, limits, `Check()`, `Execute()`, evidence hooks and explicit idempotency/cleanup semantics.
 
-The model can request a capability but cannot bypass these controls.
+### 5. Recovery, replay and idempotency
 
-### 6. Recovery and replay
+Add deterministic run IDs, invocation IDs and idempotency keys. Explicitly handle:
 
-Add deterministic run IDs, invocation IDs and idempotency keys. Explicitly model `NOT_STARTED`, `PENDING_APPROVAL`, `RUNNING`, `COMPLETED`, `FAILED`, `AMBIGUOUS_EFFECT`, `PRESERVED` and `CLEANUP_PENDING`. Recovery must revalidate before repeating side effects.
+`NOT_STARTED`, `PENDING_APPROVAL`, `RUNNING`, `COMPLETED`, `FAILED`, `AMBIGUOUS_EFFECT`, `PRESERVED`, `CLEANUP_PENDING`.
 
-### 7. Production single binary
+Never blindly replay a potentially side-effecting operation.
 
-Target one native Go binary with terminal operation, structured output, durable sessions, policy enforcement, capability providers and optional API/A2A surfaces. Python, LangGraph and Goose must not become runtime dependencies.
+### 6. Production single binary
+
+Target one native Go binary with terminal operation, structured output, durable sessions, policy enforcement, capability providers and optional API/A2A surfaces. Python, LangGraph and Goose remain outside this runtime.
 
 ## Security invariants
 
@@ -103,15 +105,26 @@ Target one native Go binary with terminal operation, structured output, durable 
 9. Recovery is conservative and idempotent where possible.
 10. Evidence provenance survives model-provider changes.
 
-## Non-goals
-
-- No Python agent runtime in this branch.
-- No LangGraph dependency.
-- No Goose orchestration dependency.
-- No parallel policy authority.
-- No direct host execution from the LLM.
-- No credentials embedded in prompts, recipes or evidence.
-
 ## Validation gate
 
-A production increment requires deterministic tests covering authorization, policy enforcement, HITL pause/resume, state recovery, memory/artifact separation, evidence provenance, idempotency and cleanup behavior.
+Before calling the branch production-ready, tests should cover:
+
+- capability lookup and authorization;
+- policy denial and approval paths;
+- HITL pause/resume;
+- durable session recovery;
+- memory/artifact/evidence separation;
+- evidence provenance;
+- bounded research-loop termination;
+- idempotent/replay-safe execution;
+- ambiguous-effect recovery;
+- disposable-lab cleanup.
+
+## Non-goals
+
+- No Python agent runtime.
+- No LangGraph dependency.
+- No Goose orchestration dependency.
+- No competing policy authority.
+- No direct host execution from the LLM.
+- No credentials embedded in prompts, recipes or evidence.
