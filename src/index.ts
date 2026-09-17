@@ -38,6 +38,8 @@ export { loadValidatedSkills } from "./skills/loader.js";
 export { proposeSkill, validateSkill, promoteSkill, listValidatedSkills } from "./skills/lifecycle.js";
 export { AutonomousThreatResearchAgent, getSecurityResearchAgent } from "./agent/index.js";
 export type { AgentDependencies, AgentTurn, ResearchObjective, ResearchResult, ResearchToolContext, SecurityResearchAgent } from "./agent/index.js";
+export { createGovernedResearchTools } from "./agent/research-tools.js";
+export type { ResearchToolDependencies, ResearchToolEvent } from "./agent/research-tools.js";
 export { createVercelAgentRuntime } from "./agent/vercel-runtime.js";
 export type { VercelAgentRuntimeConfig, VercelAgentRuntime } from "./agent/vercel-runtime.js";
 export { createResearchAgent } from "./agent/workflow-agent.js";
