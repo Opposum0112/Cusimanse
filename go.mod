@@ -1,6 +1,6 @@
 module github.com/opposum0112/Cusimanse
 
-go 1.25
+go 1.26.6
 
 require (
 	google.golang.org/adk/v2 v2.4.0
