@@ -26,6 +26,14 @@ export interface AutonomousResearchState {
   maxIterations: number;
 }
 
+export type ResearchEvent =
+  | { type: "observation.recorded"; observation: unknown }
+  | { type: "evidence.recorded"; evidenceId: string }
+  | { type: "hypothesis.proposed"; hypothesis: ResearchHypothesis }
+  | { type: "hypothesis.status"; hypothesisId: string; status: HypothesisStatus; evidenceIds?: string[] }
+  | { type: "finding.proposed"; finding: ResearchFinding }
+  | { type: "finding.verified"; findingId: string; evidenceIds?: string[] };
+
 export function createAutonomousResearchState(objectiveId: string, maxIterations = 12): AutonomousResearchState {
   if (!objectiveId.trim()) throw new Error("objectiveId is required");
   if (!Number.isInteger(maxIterations) || maxIterations < 1) throw new Error("maxIterations must be a positive integer");
@@ -63,28 +71,16 @@ export function addHypothesis(state: AutonomousResearchState, hypothesis: Resear
   requireNonEmpty(hypothesis.statement, "hypothesis.statement");
   if (state.hypotheses.some((item) => item.id === hypothesis.id)) throw new Error(`Hypothesis already exists: ${hypothesis.id}`);
   assertEvidenceKnown(state, hypothesis.evidenceIds);
-  return {
-    ...state,
-    hypotheses: [...state.hypotheses, { ...hypothesis, evidenceIds: uniqueIds(hypothesis.evidenceIds) }],
-  };
+  return { ...state, hypotheses: [...state.hypotheses, { ...hypothesis, evidenceIds: uniqueIds(hypothesis.evidenceIds) }] };
 }
 
-export function updateHypothesisStatus(
-  state: AutonomousResearchState,
-  hypothesisId: string,
-  status: HypothesisStatus,
-  evidenceIds: string[] = [],
-): AutonomousResearchState {
+export function updateHypothesisStatus(state: AutonomousResearchState, hypothesisId: string, status: HypothesisStatus, evidenceIds: string[] = []): AutonomousResearchState {
   const hypothesis = state.hypotheses.find((item) => item.id === hypothesisId);
   if (!hypothesis) throw new Error(`Unknown hypothesis: ${hypothesisId}`);
   assertEvidenceKnown(state, evidenceIds);
   return {
     ...state,
-    hypotheses: state.hypotheses.map((item) =>
-      item.id === hypothesisId
-        ? { ...item, status, evidenceIds: uniqueIds([...item.evidenceIds, ...evidenceIds]) }
-        : item,
-    ),
+    hypotheses: state.hypotheses.map((item) => item.id === hypothesisId ? { ...item, status, evidenceIds: uniqueIds([...item.evidenceIds, ...evidenceIds]) } : item),
   };
 }
 
@@ -92,32 +88,30 @@ export function addFinding(state: AutonomousResearchState, finding: ResearchFind
   requireNonEmpty(finding.id, "finding.id");
   requireNonEmpty(finding.statement, "finding.statement");
   if (state.findings.some((item) => item.id === finding.id)) throw new Error(`Finding already exists: ${finding.id}`);
-  if (finding.hypothesisId && !state.hypotheses.some((item) => item.id === finding.hypothesisId)) {
-    throw new Error(`Unknown hypothesis: ${finding.hypothesisId}`);
-  }
+  if (finding.hypothesisId && !state.hypotheses.some((item) => item.id === finding.hypothesisId)) throw new Error(`Unknown hypothesis: ${finding.hypothesisId}`);
   assertEvidenceKnown(state, finding.evidenceIds);
-  return {
-    ...state,
-    findings: [...state.findings, { ...finding, evidenceIds: uniqueIds(finding.evidenceIds) }],
-  };
+  return { ...state, findings: [...state.findings, { ...finding, evidenceIds: uniqueIds(finding.evidenceIds) }] };
 }
 
-export function verifyFinding(
-  state: AutonomousResearchState,
-  findingId: string,
-  evidenceIds: string[] = [],
-): AutonomousResearchState {
+export function verifyFinding(state: AutonomousResearchState, findingId: string, evidenceIds: string[] = []): AutonomousResearchState {
   const finding = state.findings.find((item) => item.id === findingId);
   if (!finding) throw new Error(`Unknown finding: ${findingId}`);
   assertEvidenceKnown(state, evidenceIds);
   return {
     ...state,
-    findings: state.findings.map((item) =>
-      item.id === findingId
-        ? { ...item, verification: "verified", evidenceIds: uniqueIds([...item.evidenceIds, ...evidenceIds]) }
-        : item,
-    ),
+    findings: state.findings.map((item) => item.id === findingId ? { ...item, verification: "verified", evidenceIds: uniqueIds([...item.evidenceIds, ...evidenceIds]) } : item),
   };
+}
+
+export function applyResearchEvent(state: AutonomousResearchState, event: ResearchEvent): AutonomousResearchState {
+  switch (event.type) {
+    case "observation.recorded": return recordObservation(state, event.observation);
+    case "evidence.recorded": return recordEvidence(state, event.evidenceId);
+    case "hypothesis.proposed": return addHypothesis(state, event.hypothesis);
+    case "hypothesis.status": return updateHypothesisStatus(state, event.hypothesisId, event.status, event.evidenceIds ?? []);
+    case "finding.proposed": return addFinding(state, event.finding);
+    case "finding.verified": return verifyFinding(state, event.findingId, event.evidenceIds ?? []);
+  }
 }
 
 export function shouldTerminate(state: AutonomousResearchState): boolean {
