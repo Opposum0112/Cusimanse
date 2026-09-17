@@ -30,14 +30,14 @@ import (
 const maxResearchIterations = 3
 
 type Runtime struct {
-	Config        Config
-	Capabilities  *capability.Registry
-	Policy        *policyengine.Engine
-	Runner        *runner.Runner
-	Sessions      session.Service
-	Memory        memory.Service
-	Journal       *execution.Journal
-	Evidence      *evidence.Store
+	Config       Config
+	Capabilities *capability.Registry
+	Policy       *policyengine.Engine
+	Runner       *runner.Runner
+	Sessions     session.Service
+	Memory       memory.Service
+	Journal      *execution.Journal
+	Evidence     *evidence.Store
 }
 
 type CapabilityArgs struct {
@@ -149,13 +149,15 @@ func New(ctx context.Context, cfg Config, registry *capability.Registry) (*Runti
 		if _, err := journal.Update(opID, execution.Completed, message); err != nil {
 			return CapabilityResult{}, fmt.Errorf("journal completed operation: %w", err)
 		}
-		evidenceID := evidence.NewID(in.SessionID, in.RunID, in.Capability, "capability-observation", message)
+		resultOut := CapabilityResult{Capability: in.Capability, Decision: model.PolicyAllow, Reason: "capability executed by Cusimanse Go runtime", Started: result.Started, Completed: result.Completed, Message: message}
 		if message != "" {
+			evidenceID := evidence.NewID(in.SessionID, in.RunID, in.Capability, "capability-observation", message)
 			if err := evidenceStore.Put(evidence.Record{ID: evidenceID, SessionID: in.SessionID, RunID: in.RunID, Source: in.Capability, Kind: "capability-observation", Content: message, Metadata: map[string]string{"operation_id": opID}}); err != nil {
 				return CapabilityResult{}, fmt.Errorf("preserve capability evidence: %w", err)
 			}
+			resultOut.EvidenceID = evidenceID
 		}
-		return CapabilityResult{Capability: in.Capability, Decision: model.PolicyAllow, Reason: "capability executed by Cusimanse Go runtime", Started: result.Started, Completed: result.Completed, Message: message, EvidenceID: evidenceID}, nil
+		return resultOut, nil
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create capability tool: %w", err)
@@ -231,7 +233,7 @@ func New(ctx context.Context, cfg Config, registry *capability.Registry) (*Runti
 	// The dynamic node is the adaptive controller. ADK persists its run state;
 	// RunNode re-enters children using durable node checkpoints on resume.
 	dynamic := workflow.NewDynamicNode[any, ResearchResult]("adaptive_research", func(tctx agent.Context, input any, _ func(*session.Event) error) (ResearchResult, error) {
-		plan, err := workflow.RunNode[any](tctx, planNode, input, workflow.WithRunID("plan"), workflow.WithUseAsOutput())
+		plan, err := workflow.RunNode[any](tctx, planNode, input, workflow.WithRunID("plan"))
 		if err != nil {
 			return ResearchResult{}, err
 		}
@@ -251,7 +253,7 @@ func New(ctx context.Context, cfg Config, registry *capability.Registry) (*Runti
 			}
 			verificationText := strings.ToUpper(fmt.Sprint(verification))
 			if strings.Contains(verificationText, "PASS") && !strings.Contains(verificationText, "GAP") {
-				report, err := workflow.RunNode[any](tctx, reportNode, verification, workflow.WithRunID(fmt.Sprintf("report-%d", iteration)), workflow.WithUseAsOutput())
+				report, err := workflow.RunNode[any](tctx, reportNode, verification, workflow.WithRunID(fmt.Sprintf("report-%d", iteration)))
 				if err != nil {
 					return ResearchResult{}, err
 				}
@@ -259,7 +261,7 @@ func New(ctx context.Context, cfg Config, registry *capability.Registry) (*Runti
 			}
 			current = fmt.Sprintf("Previous verification was GAP. Refine only the missing evidence. Verification: %s", verification)
 		}
-		report, err := workflow.RunNode[any](tctx, reportNode, current, workflow.WithRunID("report-limit"), workflow.WithUseAsOutput())
+		report, err := workflow.RunNode[any](tctx, reportNode, current, workflow.WithRunID("report-limit"))
 		if err != nil {
 			return ResearchResult{}, err
 		}
