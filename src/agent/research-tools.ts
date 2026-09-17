@@ -53,12 +53,26 @@ function resolveAndGuard<T extends Record<string, unknown>>(
   input: T,
 ): ResolvedCapability<T> {
   const registry = deps.capabilityRegistry ?? defaultCapabilityRegistry();
-  const resolved = registry.resolve<T>(toolName, input);
-  if (!resolved.descriptor.operationKinds.includes(operationKind)) {
-    throw new Error(`Capability ${toolName} does not permit operation ${operationKind}`);
+  try {
+    const resolved = registry.resolve<T>(toolName, input);
+    if (!resolved.descriptor.operationKinds.includes(operationKind)) {
+      throw new Error(`Capability ${toolName} does not permit operation ${operationKind}`);
+    }
+    guarded(deps, toolName, { ...input, capability: resolved.descriptor.name, operationKind, parameters: input });
+    return resolved;
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    if (reason.startsWith("Cusimanse policy denied tool")) throw error;
+    deps.emit?.({
+      runId: deps.runId,
+      traceId: deps.traceId,
+      tool: toolName,
+      status: "denied",
+      timestamp: new Date().toISOString(),
+      data: { reason, capability: toolName, operationKind },
+    });
+    throw error;
   }
-  guarded(deps, toolName, { ...input, capability: resolved.descriptor.name, operationKind, parameters: input });
-  return resolved;
 }
 
 function guarded(deps: ResearchToolDependencies, toolName: string, input: unknown): void {
