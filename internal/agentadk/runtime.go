@@ -48,10 +48,11 @@ type CapabilityResult struct {
 	Message string `json:"message,omitempty"`
 }
 
-// New builds the native Go research runtime. The current graph is intentionally
-// explicit: plan -> research -> analyze -> verify. The workflow state is owned
-// by ADK session state; durable execution metadata is also written by the
-// Cusimanse state journal used by the CLI.
+type MemoryArgs struct { Query string `json:"query" jsonschema:"Search query for prior research context."` }
+type MemoryResult struct { Results []string `json:"results"` }
+
+// New builds the native Go research runtime. The initial model adapter is
+// Gemini; the capability, policy, state, evidence and memory seams are neutral.
 func New(ctx context.Context, cfg Config, registry *capability.Registry) (*Runtime, error) {
 	if registry == nil { registry = capability.NewRegistry() }
 	apiKey := os.Getenv("GOOGLE_API_KEY")
@@ -77,16 +78,28 @@ func New(ctx context.Context, cfg Config, registry *capability.Registry) (*Runti
 	})
 	if err != nil { return nil, fmt.Errorf("create capability tool: %w", err) }
 
+	memoryTool, err := functiontool.New(functiontool.Config{Name: "search_research_memory", Description: "Search ADK long-term memory for prior research context."}, func(tctx agent.Context, in MemoryArgs) (MemoryResult, error) {
+		response, err := tctx.SearchMemory(context.Background(), in.Query)
+		if err != nil { return MemoryResult{}, err }
+		out := MemoryResult{}
+		for _, entry := range response.Memories {
+			if entry.Content == nil { continue }
+			for _, part := range entry.Content.Parts { if part.Text != "" { out.Results = append(out.Results, part.Text) } }
+		}
+		return out, nil
+	})
+	if err != nil { return nil, fmt.Errorf("create memory tool: %w", err) }
+
 	makeAgent := func(name, description, instruction string, tools []tool.Tool) (agent.Agent, error) {
 		return llmagent.New(llmagent.Config{Name: name, Description: description, Model: m, Instruction: instruction, Tools: tools, OutputKey: name + "_output"})
 	}
-	planner, err := makeAgent("research_planner", "Creates a bounded security research plan from the declared request.", "Interpret the research request and define a bounded, authorized plan. Do not execute anything. State assumptions and acceptance criteria.", nil)
+	planner, err := makeAgent("research_planner", "Creates a bounded security research plan from the declared request.", "Interpret the research request and define a bounded, authorized plan. Do not execute anything. State assumptions and acceptance criteria. Consult prior research memory when useful.", []tool.Tool{memoryTool})
 	if err != nil { return nil, err }
-	researcher, err := makeAgent("security_researcher", "Performs authorized security research through Cusimanse capabilities.", "Execute the approved research plan only through request_capability. Never run shell commands directly. Treat capability output as observations and preserve the distinction between observations and reasoning.", []tool.Tool{capTool})
+	researcher, err := makeAgent("security_researcher", "Performs authorized security research through Cusimanse capabilities.", "Execute the approved research plan only through request_capability. Never run shell commands directly. Use memory when prior context is relevant. Treat capability output as observations and preserve the distinction between observations and reasoning.", []tool.Tool{capTool, memoryTool})
 	if err != nil { return nil, err }
-	analyzer, err := makeAgent("evidence_analyzer", "Analyzes collected security research observations and identifies candidate findings.", "Analyze only collected observations and preserved artifacts. Do not invent telemetry. Identify uncertainty and evidence gaps and request additional research only through the workflow.", nil)
+	analyzer, err := makeAgent("evidence_analyzer", "Analyzes collected security research observations and identifies candidate findings.", "Analyze only collected observations and preserved artifacts. Do not invent telemetry. Use memory only as context, never as evidence. Identify uncertainty and evidence gaps.", []tool.Tool{memoryTool})
 	if err != nil { return nil, err }
-	verifier, err := makeAgent("independent_verifier", "Independently verifies security findings against preserved evidence and acceptance criteria.", "Verify candidate findings independently. Reject unsupported conclusions. A verification result must cite the evidence that supports it and clearly distinguish verified facts from hypotheses.", nil)
+	verifier, err := makeAgent("independent_verifier", "Independently verifies security findings against preserved evidence and acceptance criteria.", "Verify candidate findings independently. Reject unsupported conclusions. A verification result must cite preserved evidence and clearly distinguish verified facts from hypotheses.", nil)
 	if err != nil { return nil, err }
 
 	planNode, err := workflow.NewAgentNode(planner, workflow.NodeConfig{})
