@@ -1,4 +1,4 @@
-import { ToolLoopAgent, type LanguageModel, type ToolSet } from "ai";
+import { WorkflowAgent, type LanguageModel, type ToolSet } from "@ai-sdk/workflow";
 import type { ComputeProvider } from "../adapters/compute/types.js";
 import type { ExperimentRuntime } from "../runtime/spi/types.js";
 import type { FailClosedToolApproval } from "../policy/approval.js";
@@ -15,12 +15,10 @@ export interface WorkflowAgentConfig {
 }
 
 /**
- * Transitional adapter for AI SDK 7.
+ * Vercel AI SDK 7 durable agent boundary.
  *
- * The research contract is intentionally kept separate from AI SDK's durable
- * WorkflowAgent so policy/evidence semantics remain Cusimanse-owned. This
- * adapter is the seam where WorkflowAgent replaces the current ToolLoopAgent
- * implementation without changing research tools or callers.
+ * WorkflowAgent owns resumability/durable execution. Cusimanse still owns
+ * authorization, research state, evidence provenance, and compute isolation.
  */
 export function createResearchAgent(config: WorkflowAgentConfig): SecurityResearchAgent {
   return {
@@ -30,7 +28,8 @@ export function createResearchAgent(config: WorkflowAgentConfig): SecurityResear
       const traceId = `trace-${Math.random().toString(36).slice(2, 10)}`;
       const turns: ResearchResult["turns"] = [];
       const researchState = createAutonomousResearchState(objective.id, config.maxSteps ?? 12);
-      const agent = new ToolLoopAgent({
+
+      const agent = new WorkflowAgent({
         model: config.model,
         tools: config.tools,
         instructions: [
@@ -38,6 +37,7 @@ export function createResearchAgent(config: WorkflowAgentConfig): SecurityResear
           "Plan investigations and use only governed research tools.",
           "Cusimanse policy and approval are authoritative; never bypass them.",
           "Do not fabricate observations, evidence, findings, or tool results.",
+          "Treat tool outputs as research observations and preserve evidence provenance.",
         ].join(" "),
         stopWhen: ({ steps }) => steps.length >= (config.maxSteps ?? 12),
         experimental_telemetry: { isEnabled: true, recordInputs: false, recordOutputs: false },
