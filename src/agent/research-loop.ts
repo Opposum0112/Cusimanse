@@ -1,6 +1,25 @@
 import { ToolLoopAgent } from "ai";
 import type { AgentDependencies, AgentTurn, ResearchObjective, ResearchResult, SecurityResearchAgent } from "./types.js";
-import { createAutonomousResearchState, recordObservation } from "./research-state.js";
+import { applyResearchEvent, createAutonomousResearchState, type ResearchEvent, recordObservation } from "./research-state.js";
+
+const RESEARCH_EVENT_TYPES = new Set([
+  "observation.recorded",
+  "evidence.recorded",
+  "hypothesis.proposed",
+  "hypothesis.status",
+  "finding.proposed",
+  "finding.verified",
+]);
+
+function isResearchEvent(value: unknown): value is ResearchEvent {
+  return typeof value === "object" && value !== null && "type" in value && RESEARCH_EVENT_TYPES.has(String((value as { type: unknown }).type));
+}
+
+function readToolOutput(value: unknown): unknown {
+  if (typeof value !== "object" || value === null) return undefined;
+  if ("output" in value) return (value as { output: unknown }).output;
+  return undefined;
+}
 
 export class AutonomousThreatResearchAgent implements SecurityResearchAgent {
   constructor(private readonly deps: AgentDependencies) {}
@@ -35,6 +54,8 @@ export class AutonomousThreatResearchAgent implements SecurityResearchAgent {
         "You are the Cusimanse autonomous threat-research agent.",
         "Investigate the supplied objective using only declared capabilities and available tools.",
         "Treat tool results as observations, form testable hypotheses, and continue until the objective is sufficiently investigated.",
+        "When a trusted research tool returns a structured researchEvent, the runtime will validate and apply it to research state.",
+        "Research events may propose hypotheses or findings, attach evidence, change hypothesis status, or verify findings; never fabricate evidence references.",
         "Never bypass policy, sandbox, scope, approval, or evidence requirements.",
         "If a tool requires approval, stop and surface the approval requirement; never attempt a bypass.",
       ].join("\n"),
@@ -62,12 +83,27 @@ export class AutonomousThreatResearchAgent implements SecurityResearchAgent {
         emit(success ? "observation" : "failed", "tool.finish", observation);
       },
       onStepEnd: ({ stepNumber, usage, finishReason, toolCalls, toolResults }) => {
+        let appliedEvents = 0;
+        for (const toolResult of toolResults) {
+          const candidate = readToolOutput(toolResult);
+          if (!isResearchEvent(candidate)) continue;
+          try {
+            researchState = applyResearchEvent(researchState, candidate);
+            appliedEvents += 1;
+          } catch (error) {
+            emit("failed", "research-event.rejected", {
+              type: candidate.type,
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
         emit("analysis", "agent.step", {
           stepNumber,
           finishReason,
           usage,
           toolCallCount: toolCalls.length,
           toolResultCount: toolResults.length,
+          appliedResearchEvents: appliedEvents,
         });
       },
     });
@@ -89,6 +125,7 @@ export class AutonomousThreatResearchAgent implements SecurityResearchAgent {
         finishReason: result.finishReason,
         usage: result.totalUsage,
         text: result.text,
+        researchState,
       });
       return {
         runId,
