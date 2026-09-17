@@ -1,48 +1,38 @@
 # Cusimanse — Native Go Security Research Agent
 
-> **Branch: `adk-cusimanse` — active ADK Go 2 evolution**
+> **Active branch: `adk-cusimanse`**
 
-Cusimanse is evolving into a **single, native Go security research agent** built on Google ADK Go 2 and governed by a framework-neutral Go capability runtime.
+Cusimanse is evolving into a **single native Go security-research agent** using Google ADK Go 2 for reasoning and workflow orchestration, while the Cusimanse Go runtime remains the security authority.
 
-The design is deliberately split into two responsibilities:
-
-- **ADK Go 2** — agent reasoning, planning, workflow orchestration, tool calling, HITL, session state, memory and artifacts.
-- **Cusimanse Go runtime** — contracts, requirement resolution, capabilities, policy, authorization, execution boundaries, evidence and audit.
-
-> **The agent decides what to research. Cusimanse decides what may execute.**
+**Simple rule:** the agent decides *what to research*; Cusimanse decides *what may execute*.
 
 ![Cusimanse architecture](docs/architecture/cusimanse-architecture.svg)
 
-## Current status
+## What can I test right now?
 
-This branch is an architectural migration and integration track. It is not yet a production release.
+You can run the agent from a terminal, give it a security-research question, and observe the research workflow. The current branch is an **engineering/test track**, not a production security platform.
 
-Implemented in the first increment:
+Good first tests:
 
-- Go 1.25 baseline.
-- Official `google.golang.org/adk/v2` dependency.
-- Native Go ADK research-agent package.
-- Go capability registry bridged into an ADK function tool.
-- Fail-closed policy evaluation before capability execution.
-- ADK session state and memory services.
-- HITL confirmation on capability requests.
-- Atomic durable Cusimanse execution-state journal.
-- Native terminal `cusimanse-agent` entry point.
-- ADK architecture and migration documentation.
+1. Ask the agent to explain how it would investigate a suspicious behavior.
+2. Ask it to identify which Cusimanse capability it needs.
+3. Request an operation that should be denied and verify that the Go policy boundary rejects it.
+4. Run a harmless capability in the disposable research environment.
+5. Stop and restart the process with the same `--session` ID and inspect the durable checkpoint.
+6. Review the resulting evidence separately from the model's reasoning.
 
-ADK Go 2 is the appropriate foundation for this evolution because it provides graph-based workflows, dynamic workflows and collaborative agent workflows; Go 2.0 became generally available on June 30, 2026. citeturn9search11
+Do not point the experimental agent at production systems or provide real credentials.
 
-## Quick start
+## 1. Install
 
 ### Requirements
 
-- Go 1.25+
-- A Google Gemini API key for the current first provider
-- macOS or Linux recommended for the disposable-compute integrations
+- Go **1.26.6+**
+- Gemini API key for the current default model integration
+- macOS or Linux recommended
+- Optional: Lima/QEMU/Docker for disposable execution experiments
 
-ADK's Go quickstart also requires Go 1.25+ and ADK Go 2.0+. citeturn0search2
-
-### Install
+The repository CI validates the Go module and native Go test suite.
 
 ```bash
 git clone https://github.com/Opposum0112/Cusimanse.git
@@ -53,22 +43,35 @@ go mod download
 go test ./...
 ```
 
-### Configure the model
+## 2. Configure a model
+
+The first provider is Gemini through the official ADK Go integration.
 
 ```bash
 export GOOGLE_API_KEY="your-key"
 export CUSIMANSE_MODEL="gemini-2.5-flash"
 ```
 
-The model is currently created through ADK's official Gemini adapter. Provider-neutral model selection is an explicit next migration step rather than being mixed into the security capability layer.
+Never put API keys in prompts, recipes, source files, evidence, or committed configuration.
 
-### Start the native agent
+## 3. Start the agent
 
 ```bash
 go run ./cmd/cusimanse-agent
 ```
 
-Optional:
+You will get an interactive prompt:
+
+```text
+Cusimanse ADK Go 2 security research agent
+model=gemini-2.5-flash session=research-...
+Type /exit to stop. Capability execution is always mediated by the Go policy boundary.
+> 
+```
+
+Enter a research question and press Enter. Use `/exit` or `/quit` to stop.
+
+For repeatable testing, give the session a stable name:
 
 ```bash
 go run ./cmd/cusimanse-agent \
@@ -77,263 +80,402 @@ go run ./cmd/cusimanse-agent \
   --state-dir .cusimanse/state
 ```
 
-The terminal agent uses an ADK runner and session while the durable Cusimanse journal records the last known execution envelope.
+### Useful options
 
-## Architecture
-
-```text
-                         Researcher
-                             |
-                             v
-                  +-----------------------+
-                  |  Cusimanse ADK Agent  |
-                  |       ADK Go 2        |
-                  |-----------------------|
-                  | Reasoning / Planning  |
-                  | Workflow              |
-                  | Research Loop         |
-                  | Tool Calling          |
-                  | HITL                  |
-                  | Session State         |
-                  | Memory / Artifacts    |
-                  +-----------+-----------+
-                              |
-                       capability request
-                              |
-                              v
-                  +-----------------------+
-                  | Cusimanse Go Authority|
-                  |-----------------------|
-                  | Contract              |
-                  | Requirements          |
-                  | Capability Registry   |
-                  | Policy / Authorization|
-                  | Execution Constraints |
-                  | Evidence / Audit      |
-                  +-----------+-----------+
-                              |
-                              v
-                  +-----------------------+
-                  | Disposable Execution  |
-                  | Lima / QEMU / Docker  |
-                  +-----------+-----------+
-                              |
-                              v
-                    Evidence / Verification
-```
-
-ADK's workflow runtime treats agents, tools and functions as workflow nodes, with graph scheduling and resumable workflow state. citeturn11search0turn9search11
-
-## Research loop
-
-The target security-research loop is:
-
-```text
-understand
-   ↓
-load contract + requirements
-   ↓
-plan
-   ↓
-resolve capability
-   ↓
-policy / authorization
-   ↓
-HITL when required
-   ↓
-execute in disposable compute
-   ↓
-observe / collect
-   ↓
-analyze
-   ↓
-independent verification
-   ↓
-acceptance criteria met?
-   ├── no → refine plan → bounded retry
-   └── yes → report → preserve → destroy
-```
-
-The next increment will express this as an explicit ADK Go 2 workflow graph rather than introducing another orchestration framework.
-
-## State, memory and artifacts
-
-ADK separates session state from long-term memory. Session state is the working state for a research session; a persistent `SessionService` determines whether that state survives process restarts. ADK also exposes artifact services for versioned research artifacts. citeturn2search0turn2search1
-
-This branch uses:
-
-| Mechanism | Purpose | Current status |
+| Option | Purpose | Example |
 |---|---|---|
-| ADK session state | Research/workflow working state | Enabled |
-| ADK memory service | Searchable long-term context | Enabled in development |
-| ADK artifacts | Versioned agent artifacts | Integration planned |
-| Cusimanse state journal | Atomic crash-safe execution envelope | Enabled |
-| Persistent ADK session service | Full process-restart workflow resume | Next increment |
-| Persistent memory backend | Durable cross-session research memory | Next increment |
-| Evidence ledger | Authoritative observations/provenance | Existing Cusimanse authority |
+| `--model` | Override the model ID | `--model gemini-2.5-flash` |
+| `--session` | Reuse a research session | `--session webshell-test-01` |
+| `--state-dir` | Store durable execution checkpoints | `--state-dir .cusimanse/state` |
+| `--approved` | Enable explicitly approval-gated policy actions | `--approved` |
 
-The ADK Go runner accepts session, artifact and memory services, and the development `InMemoryService` implementations are intended for local development rather than production durability. citeturn7search1turn7search2
+Start without `--approved` for the safest policy-boundary test.
 
-## Security boundary
+## 4. Try these test scenarios
 
-The LLM must never execute shell commands directly.
+### Test A — Research planning only
 
-All execution follows:
+```text
+> Explain how you would investigate a suspicious npm package installation without executing anything.
+```
+
+Expected behavior:
+
+- the agent creates a research approach;
+- it may identify capabilities it would need;
+- no arbitrary shell execution is exposed to the model;
+- the security authority remains outside the model.
+
+### Test B — Capability resolution
+
+```text
+> I need to inspect an artifact from a disposable security lab. What capability should be requested and why?
+```
+
+Expected behavior: the agent reasons about the required operation and requests a registered capability rather than inventing an execution mechanism.
+
+### Test C — Policy denial
+
+Ask for an operation that is outside the configured policy or uses an unknown capability.
+
+Expected behavior:
 
 ```text
 LLM intent
-   ↓
-ADK tool call
-   ↓
-Go capability registry
-   ↓
-Cusimanse policy
-   ↓
-authorization / HITL
-   ↓
+  ↓
+ADK tool request
+  ↓
+Cusimanse capability registry
+  ↓
+policy check
+  ↓
+DENIED
+```
+
+A model response saying an operation is allowed does **not** authorize it.
+
+### Test D — Disposable workload
+
+For a lab-only experiment, the intended lifecycle is:
+
+```text
+provision → configure → instrument → execute → observe → collect → destroy
+```
+
+Each mutating stage remains subject to the Go capability and policy boundary. Keep workloads disposable and isolated from the host.
+
+### Test E — Durable session resume
+
+Start a named session:
+
+```bash
+go run ./cmd/cusimanse-agent --session resume-demo
+```
+
+Ask a research question, then exit. Start it again with the same session:
+
+```bash
+go run ./cmd/cusimanse-agent --session resume-demo
+```
+
+The terminal should report the previously recorded durable phase/status. The branch also uses a persistent ADK session service so the ADK session is not tied only to process memory.
+
+## 5. Understand the researcher workflow
+
+The agent is designed to behave like a security researcher rather than a shell wrapper.
+
+### Step 1 — Understand the question
+
+The researcher gives a goal, for example:
+
+```text
+Investigate whether a package installation performs unexpected network activity.
+```
+
+The agent identifies the target, scope, constraints and expected evidence.
+
+### Step 2 — Load requirements and research context
+
+The agent uses session state, memory and applicable research guidance. Requirements define what must be demonstrated before the investigation can finish.
+
+Example acceptance criteria:
+
+```text
+- package behavior reproduced in an isolated lab
+- network activity captured
+- process lineage recorded
+- relevant artifact hashes preserved
+- finding independently verified
+```
+
+### Step 3 — Build a research plan
+
+The planner turns the goal into bounded steps:
+
+```text
+prepare lab
+→ install workload
+→ instrument process/network activity
+→ collect telemetry
+→ analyze behavior
+→ verify hypothesis
+```
+
+The plan is adaptive. If evidence is insufficient, the agent can refine the next research step rather than blindly repeating the same operation.
+
+### Step 4 — Resolve a capability
+
+The model does not receive a generic `shell` tool.
+
+Instead it asks for a named capability, such as:
+
+```text
+collect_artifact
+observe_network
+inspect_process
+provision_lab
+```
+
+Cusimanse resolves that request against its registered capability catalog.
+
+### Step 5 — Apply the security boundary
+
+Before execution:
+
+```text
+capability exists?
+       ↓ yes
+policy permits it?
+       ↓ yes
+approval required?
+       ↓
+HITL approval when configured
+       ↓
 capability.Check()
-   ↓
+       ↓
 capability.Execute()
 ```
 
-Unknown capabilities fail closed. Policy decisions are independent of model output. The existing Go capability interface already separates `Check` and `Execute`, which is retained as the stable authority seam. fileciteturn62file0L2-L2
+Unknown capabilities fail closed. Policy is evaluated independently of the LLM's answer.
 
-## Capabilities
+### Step 6 — Execute in controlled compute
 
-The long-term capability surface is:
+Approved capabilities operate through registered execution providers. For security experiments, the preferred target is disposable compute such as Lima/QEMU or another explicitly configured backend.
 
-```text
-resolve
-provision
-configure
-instrument
-execute
-observe
-collect
-inspect_artifact
-analyze_evidence
-verify_finding
-preserve_evidence
-destroy_lab
-```
+The agent does not decide how to bypass the sandbox.
 
-Each capability should have:
+### Step 7 — Observe and collect
 
-- typed input/output;
-- explicit authorization requirements;
-- policy action mapping;
-- bounded execution;
-- audit information;
-- deterministic or explicitly idempotent behavior;
-- evidence/provenance hooks where applicable.
+Telemetry and artifacts are collected through capabilities. Useful observations can include process activity, network connections, files, logs and hashes.
 
-## HITL
+The system keeps **observed data** distinct from **model interpretation**.
 
-ADK Go 2 supports Human-in-the-Loop tool confirmation. The current capability bridge enables confirmation for capability requests. citeturn0search2
+### Step 8 — Analyze
 
-HITL is a safety mechanism, not the authority itself. Cusimanse policy remains authoritative even when ADK requests confirmation.
+The analyzer correlates collected evidence against the research question and requirements.
 
-## Model providers
-
-The first implementation uses Gemini through ADK's official Go model integration. ADK Go is designed as a code-first Go agent toolkit and supports multiple model integrations; the Cusimanse architecture intentionally keeps provider selection outside the capability and policy packages. citeturn0search0turn0search2
-
-Planned provider boundary:
+Example:
 
 ```text
-ADK model.LLM
-      |
-      +-- Gemini
-      +-- OpenAI-compatible / gateway
-      +-- Anthropic-compatible
-      +-- Local / Ollama-compatible
-      +-- future ADK-compatible providers
+Observation: process X opened connection Y.
+
+Analysis: connection Y occurred immediately after package install
+and matches the expected investigation window.
 ```
 
-LiteLLM/OmniRoute may be used as transport/routing infrastructure, but neither is a security boundary.
+The second statement is interpretation; the first is evidence.
 
-## Skills and memory
+### Step 9 — Independently verify
 
-Skills describe how to investigate. Capabilities perform authorized operations. Memory helps the agent recall prior research context. Evidence remains the source of truth for findings.
+A separate verification stage checks whether the evidence actually supports the proposed finding and whether acceptance criteria are satisfied.
+
+If evidence is incomplete:
 
 ```text
-Skill → reasoning guidance
-Memory → reusable context
-Capability → authorized action
-Evidence → authoritative observation
+VERIFY → GAP → refine plan → collect more evidence → VERIFY
 ```
 
-Learning remains approval-gated and cannot mutate policy, trusted profiles or execution authority.
+The loop is bounded so an unresolved investigation cannot run forever.
 
-## Disposable execution
+### Step 10 — Preserve, report and clean up
 
-Normal execution remains inside disposable compute. Lima/QEMU and other providers are capability implementations, not agent responsibilities.
-
-The agent requests:
+Once acceptance criteria are satisfied:
 
 ```text
-provision → instrument → execute → collect → destroy
+verified finding
+   ↓
+preserve evidence + provenance
+   ↓
+generate report
+   ↓
+clean up disposable lab
 ```
 
-The Go authority validates each stage and records the research lifecycle.
+Destroying the lab must not destroy the preserved evidence required to reproduce or audit the result.
 
-## Evidence lifecycle
+## 6. Architecture in one picture
 
 ```text
-collect
-  ↓
-hash
-  ↓
-record provenance
-  ↓
-analyze
-  ↓
-independent verification
-  ↓
-preserve
-  ↓
-destroy disposable compute
+                         SECURITY RESEARCHER
+                                  |
+                                  v
+                    +---------------------------+
+                    |       ADK Go 2 Agent       |
+                    |---------------------------|
+                    | Understand / Plan          |
+                    | Adaptive research loop     |
+                    | Tool calling               |
+                    | HITL                       |
+                    | Session state              |
+                    | Memory / artifacts         |
+                    +-------------+-------------+
+                                  |
+                           named capability
+                                  |
+                                  v
+                    +---------------------------+
+                    |    CUSIMANSE AUTHORITY     |
+                    |---------------------------|
+                    | Contracts / requirements   |
+                    | Capability registry       |
+                    | Policy / authorization    |
+                    | Check / Execute boundary  |
+                    | Evidence / provenance     |
+                    | Durable audit state       |
+                    +-------------+-------------+
+                                  |
+                                  v
+                    +---------------------------+
+                    |    CONTROLLED EXECUTION   |
+                    |---------------------------|
+                    | Lima / QEMU / Docker       |
+                    | Instrumentation            |
+                    | Workload                   |
+                    +-------------+-------------+
+                                  |
+                                  v
+                    +---------------------------+
+                    | OBSERVATIONS / EVIDENCE    |
+                    | Analyze → Verify → Preserve|
+                    +---------------------------+
 ```
 
-Model-generated reasoning is never treated as raw evidence.
+### Responsibility split
 
-## Development commands
+| Component | It does | It must not do |
+|---|---|---|
+| ADK Go 2 | reason, plan, route workflow, call tools, maintain agent context | authorize arbitrary execution |
+| Cusimanse authority | validate contracts, resolve capabilities, enforce policy, authorize, execute, preserve evidence | follow model instructions blindly |
+| Execution provider | run an explicitly authorized workload | become an alternate policy engine |
+| Memory | retain useful research context | become authoritative evidence |
+| Evidence ledger | preserve observations/provenance | store hidden model reasoning as evidence |
+
+## 7. State, memory and evidence
+
+| Data | Meaning | Authority |
+|---|---|---|
+| Session state | current workflow/research state | ADK |
+| Long-term memory | reusable research context | ADK, advisory |
+| Artifacts | versioned research outputs | ADK + evidence controls |
+| Execution journal | crash/recovery envelope | Cusimanse |
+| Evidence | observed, hashed, provenance-linked material | Cusimanse |
+| Verified finding | conclusion supported by preserved evidence | verification stage |
+
+A useful rule is: **memory helps the agent remember; evidence lets the system prove.**
+
+## 8. What happens when the research needs more work?
+
+The target workflow is an adaptive bounded loop:
+
+```text
+INTAKE
+  ↓
+REQUIREMENTS
+  ↓
+PLAN
+  ↓
+CAPABILITY REQUEST
+  ↓
+POLICY / APPROVAL
+  ↓
+EXECUTE
+  ↓
+OBSERVE
+  ↓
+ANALYZE
+  ↓
+VERIFY
+  ↓
+Acceptance criteria met?
+  ├── YES → PRESERVE → REPORT → CLEANUP
+  └── NO  → identify evidence gap
+              ↓
+           refine plan
+              ↓
+           next bounded iteration
+```
+
+A failed or ambiguous operation must not automatically be replayed if it may have caused a side effect. Recovery revalidates the operation first.
+
+## 9. Security rules for testing
+
+- Never give the model a raw shell or unrestricted host command interface.
+- Never use production credentials or production targets for experiments.
+- Unknown capabilities are denied.
+- Policy denial cannot be overridden by model text or a research prompt.
+- `Check()` happens before `Execute()`.
+- Approval is explicit when required.
+- Evidence is preserved separately from model reasoning.
+- Disposable compute is destroyed only after required evidence is preserved.
+- Recovery must be conservative and idempotent where possible.
+
+## 10. Development and sanity checks
+
+Run the smallest useful checks first:
 
 ```bash
 go test ./...
 go vet ./...
-go run ./cmd/cusimanse-agent
 ```
 
-Repository validation remains available through the existing Cusimanse commands where their dependencies are installed:
+Then run the repository validation when the required host tools are installed:
 
 ```bash
-cusimanse validate
-cusimanse preflight
-cusimanse policy validate
-cusimanse test
-cusimanse integration-test
+bash ./scripts/tests/validate.sh
+bash ./scripts/tests/integration.sh
 ```
+
+For a clean local sanity check after dependency changes:
+
+```bash
+go mod tidy
+go test ./...
+go vet ./...
+```
+
+## 11. Repository structure
+
+The branch intentionally keeps the runtime small and separates authority from orchestration:
+
+```text
+cmd/cusimanse-agent/       # interactive terminal agent
+internal/agentadk/         # ADK Go 2 agent/workflow integration
+internal/capability/       # executable capability contracts + registry
+internal/policy/           # authorization and policy decisions
+internal/state/            # durable recovery journal
+internal/evidence/         # evidence/provenance authority
+recipes/                   # declarative research/workload contracts
+scripts/tests/             # repeatable validation
+scripts/install.sh         # host setup
+
+docs/ADK-GO-2-ARCHITECTURE.md
+docs/ADK-GO-2-MIGRATION.md
+```
+
+Legacy Goose-specific runtime scaffolding is not part of this branch.
+
+## 12. Current limitations
+
+This is an active migration/test branch. The architecture is designed for an adaptive ADK Go 2 research loop, durable sessions, persistent memory/artifacts, provider-neutral model routing and stronger replay/idempotency controls. Those areas are being hardened incrementally.
 
 ## Documentation
 
-- [`docs/ADK-GO-2-ARCHITECTURE.md`](docs/ADK-GO-2-ARCHITECTURE.md) — target architecture and authority boundary.
-- [`docs/ADK-GO-2-MIGRATION.md`](docs/ADK-GO-2-MIGRATION.md) — staged migration and production gates.
-- [`docs/INSTRUMENTATION.md`](docs/INSTRUMENTATION.md) — disposable guest instrumentation.
-- [`docs/HOST-TOOLCHAIN.md`](docs/HOST-TOOLCHAIN.md) — host prerequisites and tooling.
+- [`docs/ADK-GO-2-ARCHITECTURE.md`](docs/ADK-GO-2-ARCHITECTURE.md) — architecture and researcher workflow.
+- [`docs/ADK-GO-2-MIGRATION.md`](docs/ADK-GO-2-MIGRATION.md) — implementation stages and security gates.
+- [`docs/INSTRUMENTATION.md`](docs/INSTRUMENTATION.md) — guest instrumentation.
+- [`docs/HOST-TOOLCHAIN.md`](docs/HOST-TOOLCHAIN.md) — host prerequisites.
 
 ## Design principles
 
-1. **Pure Go agent runtime.** No Python agent dependency in this branch.
-2. **ADK for orchestration.** Do not recreate an agent framework inside Cusimanse.
-3. **Cusimanse for authority.** ADK cannot bypass policy or capabilities.
-4. **Evidence over reasoning.** LLM output is not evidence.
-5. **Durability by design.** State, approvals and recovery must be replayable.
-6. **Disposable execution.** Untrusted workloads stay away from the host.
-7. **Provider neutrality.** Model providers must not leak into security policy.
-8. **Fail closed.** Unknown capability, policy or profile decisions are denied.
-9. **Framework-neutral core.** Capability contracts remain usable by future adapters.
-10. **Single-agent product.** The end state is one Go security research agent, not a collection of competing orchestrators.
+1. Native Go agent runtime.
+2. ADK Go 2 for agent orchestration.
+3. Cusimanse for security authority.
+4. Evidence over model reasoning.
+5. Durable state and conservative recovery.
+6. Disposable execution for untrusted workloads.
+7. Provider-neutral security contracts.
+8. Fail-closed authorization.
+9. Framework-neutral capability core.
+10. One coherent security research agent.
 
-## Scope of this branch
-
-Only `Opposum0112/Cusimanse` branch `adk-cusimanse` is being changed for this migration. Other repositories and branches are intentionally outside the scope of this work.
+**Scope:** only `Opposum0112/Cusimanse` on `adk-cusimanse` is being changed for this evolution.
