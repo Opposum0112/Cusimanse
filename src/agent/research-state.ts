@@ -1,5 +1,6 @@
 export type HypothesisStatus = "open" | "supported" | "rejected";
 export type VerificationStatus = "unverified" | "verified";
+export type ResearchPhase = "planning" | "hypothesizing" | "executing" | "observing" | "analyzing" | "verifying" | "replanning" | "completed";
 
 export interface ResearchHypothesis {
   id: string;
@@ -18,6 +19,7 @@ export interface ResearchFinding {
 
 export interface AutonomousResearchState {
   objectiveId: string;
+  phase: ResearchPhase;
   hypotheses: ResearchHypothesis[];
   findings: ResearchFinding[];
   observations: unknown[];
@@ -27,6 +29,7 @@ export interface AutonomousResearchState {
 }
 
 export type ResearchEvent =
+  | { type: "phase.changed"; phase: ResearchPhase }
   | { type: "observation.recorded"; observation: unknown }
   | { type: "evidence.recorded"; evidenceId: string }
   | { type: "hypothesis.proposed"; hypothesis: ResearchHypothesis }
@@ -37,7 +40,7 @@ export type ResearchEvent =
 export function createAutonomousResearchState(objectiveId: string, maxIterations = 12): AutonomousResearchState {
   if (!objectiveId.trim()) throw new Error("objectiveId is required");
   if (!Number.isInteger(maxIterations) || maxIterations < 1) throw new Error("maxIterations must be a positive integer");
-  return { objectiveId, hypotheses: [], findings: [], observations: [], evidenceIds: [], iteration: 0, maxIterations };
+  return { objectiveId, phase: "planning", hypotheses: [], findings: [], observations: [], evidenceIds: [], iteration: 0, maxIterations };
 }
 
 function requireNonEmpty(value: string, field: string): void {
@@ -53,6 +56,23 @@ function assertEvidenceKnown(state: AutonomousResearchState, evidenceIds: string
     requireNonEmpty(evidenceId, "evidenceId");
     if (!state.evidenceIds.includes(evidenceId)) throw new Error(`Unknown evidence: ${evidenceId}`);
   }
+}
+
+const allowedTransitions: Record<ResearchPhase, ResearchPhase[]> = {
+  planning: ["hypothesizing", "executing", "completed"],
+  hypothesizing: ["executing", "replanning"],
+  executing: ["observing", "failed" as ResearchPhase],
+  observing: ["analyzing"],
+  analyzing: ["verifying", "replanning"],
+  verifying: ["completed", "replanning"],
+  replanning: ["planning", "hypothesizing", "executing", "completed"],
+  completed: [],
+};
+
+export function transitionPhase(state: AutonomousResearchState, phase: ResearchPhase): AutonomousResearchState {
+  if (state.phase === phase) return state;
+  if (!allowedTransitions[state.phase].includes(phase)) throw new Error(`Invalid research phase transition: ${state.phase} -> ${phase}`);
+  return { ...state, phase };
 }
 
 export function recordObservation(state: AutonomousResearchState, observation: unknown): AutonomousResearchState {
@@ -78,10 +98,7 @@ export function updateHypothesisStatus(state: AutonomousResearchState, hypothesi
   const hypothesis = state.hypotheses.find((item) => item.id === hypothesisId);
   if (!hypothesis) throw new Error(`Unknown hypothesis: ${hypothesisId}`);
   assertEvidenceKnown(state, evidenceIds);
-  return {
-    ...state,
-    hypotheses: state.hypotheses.map((item) => item.id === hypothesisId ? { ...item, status, evidenceIds: uniqueIds([...item.evidenceIds, ...evidenceIds]) } : item),
-  };
+  return { ...state, hypotheses: state.hypotheses.map((item) => item.id === hypothesisId ? { ...item, status, evidenceIds: uniqueIds([...item.evidenceIds, ...evidenceIds]) } : item) };
 }
 
 export function addFinding(state: AutonomousResearchState, finding: ResearchFinding): AutonomousResearchState {
@@ -97,14 +114,12 @@ export function verifyFinding(state: AutonomousResearchState, findingId: string,
   const finding = state.findings.find((item) => item.id === findingId);
   if (!finding) throw new Error(`Unknown finding: ${findingId}`);
   assertEvidenceKnown(state, evidenceIds);
-  return {
-    ...state,
-    findings: state.findings.map((item) => item.id === findingId ? { ...item, verification: "verified", evidenceIds: uniqueIds([...item.evidenceIds, ...evidenceIds]) } : item),
-  };
+  return { ...state, findings: state.findings.map((item) => item.id === findingId ? { ...item, verification: "verified", evidenceIds: uniqueIds([...item.evidenceIds, ...evidenceIds]) } : item) };
 }
 
 export function applyResearchEvent(state: AutonomousResearchState, event: ResearchEvent): AutonomousResearchState {
   switch (event.type) {
+    case "phase.changed": return transitionPhase(state, event.phase);
     case "observation.recorded": return recordObservation(state, event.observation);
     case "evidence.recorded": return recordEvidence(state, event.evidenceId);
     case "hypothesis.proposed": return addHypothesis(state, event.hypothesis);
