@@ -4,24 +4,26 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/glebarez/sqlite"
 	"github.com/opposum0112/Cusimanse/internal/capability"
 	"github.com/opposum0112/Cusimanse/internal/model"
 	policyengine "github.com/opposum0112/Cusimanse/internal/policy"
 	"google.golang.org/adk/v2/agent"
 	"google.golang.org/adk/v2/agent/llmagent"
+	"google.golang.org/adk/v2/agent/workflowagent"
 	"google.golang.org/adk/v2/memory"
 	"google.golang.org/adk/v2/model/gemini"
 	"google.golang.org/adk/v2/runner"
 	"google.golang.org/adk/v2/session"
+	"google.golang.org/adk/v2/session/database"
 	"google.golang.org/adk/v2/tool"
 	"google.golang.org/adk/v2/tool/functiontool"
 	"google.golang.org/adk/v2/workflow"
 	"google.golang.org/genai"
 )
 
-// Runtime owns the Go capability boundary and the ADK runner. ADK is the
-// orchestration layer; policy and capabilities remain authoritative.
 type Runtime struct {
 	Config Config
 	Capabilities *capability.Registry
@@ -51,8 +53,8 @@ type CapabilityResult struct {
 type MemoryArgs struct { Query string `json:"query" jsonschema:"Search query for prior research context."` }
 type MemoryResult struct { Results []string `json:"results"` }
 
-// New builds the native Go research runtime. The initial model adapter is
-// Gemini; the capability, policy, state, evidence and memory seams are neutral.
+// New creates the native Go ADK runtime. ADK owns reasoning/orchestration;
+// Cusimanse owns authorization and execution authority.
 func New(ctx context.Context, cfg Config, registry *capability.Registry) (*Runtime, error) {
 	if registry == nil { registry = capability.NewRegistry() }
 	apiKey := os.Getenv("GOOGLE_API_KEY")
@@ -93,13 +95,13 @@ func New(ctx context.Context, cfg Config, registry *capability.Registry) (*Runti
 	makeAgent := func(name, description, instruction string, tools []tool.Tool) (agent.Agent, error) {
 		return llmagent.New(llmagent.Config{Name: name, Description: description, Model: m, Instruction: instruction, Tools: tools, OutputKey: name + "_output"})
 	}
-	planner, err := makeAgent("research_planner", "Creates a bounded security research plan from the declared request.", "Interpret the research request and define a bounded, authorized plan. Do not execute anything. State assumptions and acceptance criteria. Consult prior research memory when useful.", []tool.Tool{memoryTool})
+	planner, err := makeAgent("research_planner", "Creates a bounded security research plan.", "Interpret the research request and define a bounded, authorized plan. Do not execute anything. State assumptions and acceptance criteria. Consult prior research memory when useful.", []tool.Tool{memoryTool})
 	if err != nil { return nil, err }
-	researcher, err := makeAgent("security_researcher", "Performs authorized security research through Cusimanse capabilities.", "Execute the approved research plan only through request_capability. Never run shell commands directly. Use memory when prior context is relevant. Treat capability output as observations and preserve the distinction between observations and reasoning.", []tool.Tool{capTool, memoryTool})
+	researcher, err := makeAgent("security_researcher", "Performs authorized security research through Cusimanse capabilities.", "Execute the approved research plan only through request_capability. Never run shell commands directly. Treat capability output as observations and preserve the distinction between observations and reasoning.", []tool.Tool{capTool, memoryTool})
 	if err != nil { return nil, err }
-	analyzer, err := makeAgent("evidence_analyzer", "Analyzes collected security research observations and identifies candidate findings.", "Analyze only collected observations and preserved artifacts. Do not invent telemetry. Use memory only as context, never as evidence. Identify uncertainty and evidence gaps.", []tool.Tool{memoryTool})
+	analyzer, err := makeAgent("evidence_analyzer", "Analyzes collected security research observations.", "Analyze only collected observations and preserved artifacts. Do not invent telemetry. Memory is context, never evidence. Identify uncertainty and evidence gaps.", []tool.Tool{memoryTool})
 	if err != nil { return nil, err }
-	verifier, err := makeAgent("independent_verifier", "Independently verifies security findings against preserved evidence and acceptance criteria.", "Verify candidate findings independently. Reject unsupported conclusions. A verification result must cite preserved evidence and clearly distinguish verified facts from hypotheses.", nil)
+	verifier, err := makeAgent("independent_verifier", "Independently verifies candidate security findings.", "Verify candidate findings against preserved evidence and acceptance criteria. Reject unsupported conclusions and distinguish verified facts from hypotheses.", nil)
 	if err != nil { return nil, err }
 
 	planNode, err := workflow.NewAgentNode(planner, workflow.NodeConfig{})
@@ -110,10 +112,21 @@ func New(ctx context.Context, cfg Config, registry *capability.Registry) (*Runti
 	if err != nil { return nil, fmt.Errorf("create analysis node: %w", err) }
 	verifyNode, err := workflow.NewAgentNode(verifier, workflow.NodeConfig{})
 	if err != nil { return nil, fmt.Errorf("create verification node: %w", err) }
-	graph, err := workflow.New("cusimanse_research_workflow", workflow.Chain(planNode, researchNode, analysisNode, verifyNode))
+
+	graph, err := workflowagent.New(workflowagent.Config{
+		Name: "cusimanse_research_workflow",
+		Description: "Bounded security research workflow: plan, research, analyze, verify.",
+		Edges: workflow.Chain(planNode, researchNode, analysisNode, verifyNode),
+		SubAgents: []agent.Agent{planner, researcher, analyzer, verifier},
+	})
 	if err != nil { return nil, fmt.Errorf("create research workflow: %w", err) }
 
-	sessions := session.InMemoryService()
+	dbPath := os.Getenv("CUSIMANSE_ADK_SESSION_DB")
+	if dbPath == "" { dbPath = filepath.Join(".cusimanse", "adk-sessions.db") }
+	if err := os.MkdirAll(filepath.Dir(dbPath), 0o700); err != nil { return nil, fmt.Errorf("create ADK session database directory: %w", err) }
+	sessions, err := database.NewSessionService(sqlite.Open(dbPath))
+	if err != nil { return nil, fmt.Errorf("create persistent ADK session service: %w", err) }
+	if err := database.AutoMigrate(sessions); err != nil { return nil, fmt.Errorf("migrate ADK session database: %w", err) }
 	mem := memory.InMemoryService()
 	r, err := runner.New(runner.Config{AppName: cfg.AppName, Agent: graph, SessionService: sessions, MemoryService: mem, AutoCreateSession: true})
 	if err != nil { return nil, fmt.Errorf("create ADK runner: %w", err) }
