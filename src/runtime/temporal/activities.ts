@@ -2,7 +2,7 @@ import { getComputeProvider } from "../../adapters/compute/factory.js";
 import { InMemoryRuntime } from "../local-driver.js";
 import type { ExecutionResult } from "../spi/types.js";
 import type { CompiledIR } from "../../ir/types.js";
-import type { ResearchEvent } from "../../agent/research-state.js";
+import type { ResearchEvent } from "../../state/research.js";
 
 export interface RuntimeActivityResult {
   execution: ExecutionResult;
@@ -15,7 +15,7 @@ export async function executeRuntime(input: { runId: string; ir: CompiledIR; pro
   const execution = await runtime.execute({ runId: input.runId, ir: input.ir, compute });
   const researchEvents: ResearchEvent[] = [
     { type: "observation.recorded", observation: execution.telemetry },
-    ...execution.artifacts.references.map((reference) => ({ type: "evidence.recorded" as const, evidenceId: reference.uri })),
+    ...execution.artifacts.references.map((reference, index) => ({ type: "evidence.recorded" as const, evidenceId: `${input.runId}:artifact:${index}:${reference}` })),
   ];
   return { execution, researchEvents };
 }
