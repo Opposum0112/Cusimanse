@@ -1,5 +1,6 @@
 import { ToolLoopAgent } from "ai";
 import type { AgentDependencies, AgentTurn, ResearchObjective, ResearchResult, SecurityResearchAgent } from "./types.js";
+import { createAutonomousResearchState, recordObservation } from "./research-state.js";
 
 export class AutonomousThreatResearchAgent implements SecurityResearchAgent {
   constructor(private readonly deps: AgentDependencies) {}
@@ -10,6 +11,8 @@ export class AutonomousThreatResearchAgent implements SecurityResearchAgent {
     const traceId = crypto.randomUUID();
     const turns: AgentTurn[] = [];
     const maxSteps = this.deps.maxSteps ?? 12;
+    let researchState = createAutonomousResearchState(objective.id, maxSteps);
+
     const emit = (event: AgentTurn["event"], name: string, data?: unknown): void => {
       const turn: AgentTurn = {
         runId,
@@ -54,12 +57,9 @@ export class AutonomousThreatResearchAgent implements SecurityResearchAgent {
         emit("tool-call", "tool.start", { toolName: toolCall.toolName, toolCallId: toolCall.toolCallId });
       },
       experimental_onToolCallFinish: ({ toolCall, durationMs, success }) => {
-        emit(success ? "observation" : "failed", "tool.finish", {
-          toolName: toolCall.toolName,
-          toolCallId: toolCall.toolCallId,
-          durationMs,
-          success,
-        });
+        const observation = { toolName: toolCall.toolName, toolCallId: toolCall.toolCallId, durationMs, success };
+        researchState = recordObservation(researchState, observation);
+        emit(success ? "observation" : "failed", "tool.finish", observation);
       },
       onStepEnd: ({ stepNumber, usage, finishReason, toolCalls, toolResults }) => {
         emit("analysis", "agent.step", {
@@ -98,6 +98,7 @@ export class AutonomousThreatResearchAgent implements SecurityResearchAgent {
         findings: [result.text],
         turns,
         durationMs: Date.now() - started,
+        researchState,
       };
     } catch (error) {
       emit("failed", "research.failed", { message: error instanceof Error ? error.message : String(error) });
@@ -109,6 +110,7 @@ export class AutonomousThreatResearchAgent implements SecurityResearchAgent {
         findings: [],
         turns,
         durationMs: Date.now() - started,
+        researchState,
         error: error instanceof Error ? error : new Error(String(error)),
       };
     }
