@@ -161,9 +161,13 @@ func New(ctx context.Context, cfg Config, registry *capability.Registry) (*Runti
 		{From: gateNode, To: researchNode, Route: workflow.StringRoute("GAP")},
 		{From: gateNode, To: reportNode, Route: workflow.MultiRoute[string]{"PASS", "LIMIT"}},
 	}
-	graph, err := workflow.New("cusimanse_research_graph", edges, workflow.WithMaxConcurrency(4))
-	if err != nil { return nil, fmt.Errorf("create adaptive research graph: %w", err) }
-	root := workflowagent.NewWorkflowAgent(graph)
+	root, err := workflowagent.New(workflowagent.Config{
+		Name: "cusimanse_research_workflow",
+		Description: "Bounded adaptive security research workflow.",
+		Edges: edges,
+		SubAgents: []agent.Agent{planner, researcher, analyzer, verifier, reporter},
+	})
+	if err != nil { return nil, fmt.Errorf("create adaptive research workflow: %w", err) }
 
 	dbPath := os.Getenv("CUSIMANSE_ADK_SESSION_DB")
 	if dbPath == "" { dbPath = filepath.Join(".cusimanse", "adk-sessions.db") }
