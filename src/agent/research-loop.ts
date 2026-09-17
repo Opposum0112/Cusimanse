@@ -83,16 +83,17 @@ export class AutonomousThreatResearchAgent implements SecurityResearchAgent {
             emit("failed", "research-event.rejected", { type: candidate.type, message: error instanceof Error ? error.message : String(error) });
           }
         }
-        if (!shouldTerminate(researchState)) {
-          if (researchState.findings.some((finding) => finding.verification === "unverified")) changePhase("verifying");
-          else changePhase("analyzing");
-          if (!shouldTerminate(researchState)) {
-            changePhase("replanning");
-            changePhase("hypothesizing");
-          }
+
+        if (shouldTerminate(researchState)) {
+          if (researchState.phase !== "completed") changePhase("analyzing");
+          if (researchState.phase !== "completed") changePhase("completed");
         } else {
-          changePhase("completed");
+          if (researchState.phase === "observing") changePhase("analyzing");
+          if (researchState.phase === "analyzing" && researchState.findings.some((finding) => finding.verification === "unverified")) changePhase("verifying");
+          if (researchState.phase === "analyzing" || researchState.phase === "verifying") changePhase("replanning");
+          if (researchState.phase === "replanning") changePhase("hypothesizing");
         }
+
         emit("analysis", "agent.step", { stepNumber, finishReason, usage, toolCallCount: toolCalls.length, toolResultCount: toolResults.length, appliedResearchEvents: appliedEvents, phase: researchState.phase, terminating: shouldTerminate(researchState) });
       },
     });
@@ -105,8 +106,8 @@ export class AutonomousThreatResearchAgent implements SecurityResearchAgent {
       });
 
       if (!shouldTerminate(researchState) && researchState.phase !== "completed") {
-        changePhase("analyzing");
-        changePhase("completed");
+        if (researchState.phase === "hypothesizing") changePhase("analyzing");
+        if (researchState.phase === "analyzing") changePhase("completed");
       }
       emit("completed", "research.complete", { steps: result.steps.length, finishReason: result.finishReason, usage: result.totalUsage, text: result.text, researchState });
       return { runId, traceId, success: true, objective, findings: [result.text], turns, durationMs: Date.now() - started, researchState };
