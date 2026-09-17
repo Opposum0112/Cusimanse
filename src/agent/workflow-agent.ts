@@ -1,4 +1,5 @@
-import { WorkflowAgent, type LanguageModel, type ToolSet } from "@ai-sdk/workflow";
+import { isStepCount, type LanguageModel, type ToolSet } from "ai";
+import { WorkflowAgent } from "@ai-sdk/workflow";
 import type { ComputeProvider } from "../adapters/compute/types.js";
 import type { ExperimentRuntime } from "../runtime/spi/types.js";
 import type { FailClosedToolApproval } from "../policy/approval.js";
@@ -27,7 +28,8 @@ export function createResearchAgent(config: WorkflowAgentConfig): SecurityResear
       const runId = `run-${Math.random().toString(36).slice(2, 10)}`;
       const traceId = `trace-${Math.random().toString(36).slice(2, 10)}`;
       const turns: ResearchResult["turns"] = [];
-      const researchState = createAutonomousResearchState(objective.id, config.maxSteps ?? 12);
+      const maxSteps = config.maxSteps ?? 12;
+      const researchState = createAutonomousResearchState(objective.id, maxSteps);
 
       const agent = new WorkflowAgent({
         model: config.model,
@@ -39,18 +41,67 @@ export function createResearchAgent(config: WorkflowAgentConfig): SecurityResear
           "Do not fabricate observations, evidence, findings, or tool results.",
           "Treat tool outputs as research observations and preserve evidence provenance.",
         ].join(" "),
-        stopWhen: ({ steps }) => steps.length >= (config.maxSteps ?? 12),
-        experimental_telemetry: { isEnabled: true, recordInputs: false, recordOutputs: false },
+        stopWhen: isStepCount(maxSteps),
+        ...(config.approval ? { toolApproval: config.approval.configuration() } : {}),
+        telemetry: { isEnabled: true, recordInputs: false, recordOutputs: false },
+        runtimeContext: {
+          runId,
+          traceId,
+          objectiveId: objective.id,
+        },
       });
 
-      turns.push({ runId, traceId, step: 0, event: "planning", name: "research.start", data: { objectiveId: objective.id }, timestamp: new Date().toISOString() });
+      turns.push({
+        runId,
+        traceId,
+        step: 0,
+        event: "planning",
+        name: "research.start",
+        data: { objectiveId: objective.id },
+        timestamp: new Date().toISOString(),
+      });
+
       try {
         await agent.generate({ prompt: objective.question });
-        turns.push({ runId, traceId, step: 1, event: "completed", name: "research.complete", timestamp: new Date().toISOString() });
-        return { runId, traceId, success: true, objective, findings: [], turns, durationMs: Date.now() - started, researchState };
+        turns.push({
+          runId,
+          traceId,
+          step: 1,
+          event: "completed",
+          name: "research.complete",
+          timestamp: new Date().toISOString(),
+        });
+        return {
+          runId,
+          traceId,
+          success: true,
+          objective,
+          findings: [],
+          turns,
+          durationMs: Date.now() - started,
+          researchState,
+        };
       } catch (error) {
-        turns.push({ runId, traceId, step: 1, event: "failed", name: "research.failed", data: error instanceof Error ? error.message : String(error), timestamp: new Date().toISOString() });
-        return { runId, traceId, success: false, objective, findings: [], turns, durationMs: Date.now() - started, researchState, error: error instanceof Error ? error : new Error(String(error)) };
+        turns.push({
+          runId,
+          traceId,
+          step: 1,
+          event: "failed",
+          name: "research.failed",
+          data: error instanceof Error ? error.message : String(error),
+          timestamp: new Date().toISOString(),
+        });
+        return {
+          runId,
+          traceId,
+          success: false,
+          objective,
+          findings: [],
+          turns,
+          durationMs: Date.now() - started,
+          researchState,
+          error: error instanceof Error ? error : new Error(String(error)),
+        };
       }
     },
   };
