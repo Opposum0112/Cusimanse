@@ -2,6 +2,7 @@ import type { LanguageModel, ToolSet } from "ai";
 import type { ComputeProvider } from "../adapters/compute/types.js";
 import type { ExperimentRuntime } from "../runtime/spi/types.js";
 import type { FailClosedToolApproval } from "../policy/approval.js";
+import type { AutonomousResearchState } from "./research-state.js";
 
 export interface ResearchObjective {
   id: string;
@@ -36,6 +37,7 @@ export interface ResearchResult {
   findings: unknown[];
   turns: AgentTurn[];
   durationMs: number;
+  researchState: AutonomousResearchState;
   error?: Error;
 }
 
