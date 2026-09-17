@@ -38,5 +38,7 @@ export { AutonomousThreatResearchAgent, getSecurityResearchAgent } from "./agent
 export type { AgentDependencies, AgentTurn, ResearchObjective, ResearchResult, ResearchToolContext, SecurityResearchAgent } from "./agent/index.js";
 export { InMemoryResearchTracer, createAISDKTelemetry } from "./observability/index.js";
 export type { ResearchEvent, ResearchEventKind, ResearchTracer } from "./observability/index.js";
+export { connectMCPResearchSource } from "./mcp/index.js";
+export type { MCPServerConfig, MCPToolSource } from "./mcp/index.js";
 export { CARGateway } from "./gateway/server.js";
 export type { ResearchSession, CARGatewayOptions, ExperimentRunRequest, ExperimentRunResponse, OperatorPort } from "./gateway/contracts.js";
