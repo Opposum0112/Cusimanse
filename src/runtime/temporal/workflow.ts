@@ -1,13 +1,15 @@
 import { proxyActivities } from "@temporalio/workflow";
+import { applyResearchEvent, createAutonomousResearchState, type AutonomousResearchState, type ResearchEvent } from "../../agent/research-state.js";
 import type { ExecutionResult } from "../spi/types.js";
 import type { CompiledIR } from "../../ir/types.js";
+import type { RuntimeActivityResult } from "./activities.js";
 
 /**
  * Temporal workflow owns the durable orchestration boundary. All runtime work
  * remains in Activities so the workflow stays deterministic and replay-safe.
  */
 type RuntimeActivity = {
-  executeRuntime(input: { runId: string; ir: CompiledIR; providerId: string }): Promise<ExecutionResult>;
+  executeRuntime(input: { runId: string; ir: CompiledIR; providerId: string }): Promise<RuntimeActivityResult>;
 };
 
 const activities = proxyActivities<RuntimeActivity>({
@@ -19,14 +21,14 @@ export interface TemporalResearchRun {
   runId: string;
   ir: CompiledIR;
   providerId: string;
+  objectiveId?: string;
+  maxIterations?: number;
 }
 
 export interface TemporalResearchState {
   runId: string;
   phase: "created" | "executing" | "completed" | "failed";
-  iteration: number;
-  observations: unknown[];
-  evidenceIds: string[];
+  research: AutonomousResearchState;
   lastError?: string;
 }
 
@@ -39,21 +41,20 @@ export async function executeResearchRun(input: TemporalResearchRun): Promise<Te
   let state: TemporalResearchState = {
     runId: input.runId,
     phase: "created",
-    iteration: 0,
-    observations: [],
-    evidenceIds: [],
+    research: createAutonomousResearchState(input.objectiveId ?? input.runId, input.maxIterations ?? 12),
   };
 
   try {
-    state = { ...state, phase: "executing", iteration: state.iteration + 1 };
-    const execution = await activities.executeRuntime(input);
+    state = { ...state, phase: "executing" };
+    const activity = await activities.executeRuntime(input);
+    for (const event of activity.researchEvents as ResearchEvent[]) {
+      state = { ...state, research: applyResearchEvent(state.research, event) };
+    }
     state = {
       ...state,
-      phase: execution.success ? "completed" : "failed",
-      observations: [execution.telemetry],
-      evidenceIds: execution.artifacts.references.map((reference) => reference.uri),
+      phase: activity.execution.success ? "completed" : "failed",
     };
-    return { execution, state };
+    return { execution: activity.execution, state };
   } catch (error) {
     state = {
       ...state,
