@@ -18,7 +18,6 @@ describe("Vercel-native runtime seams", () => {
       gateway: {
         models: ["anthropic/claude-sonnet-4.6", "google/gemini-3-pro"],
         order: ["openai", "anthropic"],
-        tags: ["security-research"],
       },
     });
   });
