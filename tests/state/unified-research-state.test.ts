@@ -7,6 +7,8 @@ test("unified state keeps runtime and autonomous research state together", () =>
   assert.equal(state.experiment.experimentId, "experiment-1");
   assert.equal(state.autonomous.objectiveId, "objective-1");
   assert.equal(state.autonomous.phase, "planning");
+  assert.equal(state.events.length, 1);
+  assert.equal(state.events[0]?.sequence, 0);
 
   state = applyAutonomousResearchEvent(state, { type: "phase.changed", phase: "hypothesizing" });
   state = applyAutonomousResearchEvent(state, {
@@ -17,9 +19,18 @@ test("unified state keeps runtime and autonomous research state together", () =>
   assert.equal(state.autonomous.phase, "hypothesizing");
   assert.equal(state.autonomous.hypotheses[0]?.id, "h-1");
   assert.equal(state.experiment.revision, 0);
+  assert.equal(state.revision, 2);
+  assert.deepEqual(state.events.map((event) => event.sequence), [0, 1, 2]);
+  assert.deepEqual(state.events.map((event) => event.type), ["research", "research", "research"]);
 });
 
-test("unified aggregate rejects invalid autonomous transitions", () => {
-  const state = createCusimanseResearchState("experiment-2");
+test("unified aggregate preserves causation and rejects invalid transitions atomically", () => {
+  let state = createCusimanseResearchState("experiment-2");
+  const before = state.events.length;
+
   assert.throws(() => applyAutonomousResearchEvent(state, { type: "phase.changed", phase: "verifying" }), /Invalid research phase transition/);
+  assert.equal(state.events.length, before);
+
+  state = applyAutonomousResearchEvent(state, { type: "phase.changed", phase: "hypothesizing" });
+  assert.equal(state.events[1]?.causationId, undefined);
 });
