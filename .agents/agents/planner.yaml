@@ -1,6 +1,0 @@
-version: 1
-name: planner
-description: "Plan scope and experiment lifecycle"
-skills: ["experiment-run"]
-capabilities: ["resolve"]
-managed_by: cmd/cusimanse
