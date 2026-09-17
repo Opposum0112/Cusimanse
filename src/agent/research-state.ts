@@ -59,13 +59,13 @@ function assertEvidenceKnown(state: AutonomousResearchState, evidenceIds: string
 }
 
 const allowedTransitions: Record<ResearchPhase, ResearchPhase[]> = {
-  planning: ["hypothesizing", "executing", "completed"],
+  planning: ["hypothesizing", "completed"],
   hypothesizing: ["executing", "replanning"],
-  executing: ["observing", "failed" as ResearchPhase],
+  executing: ["observing"],
   observing: ["analyzing"],
-  analyzing: ["verifying", "replanning"],
+  analyzing: ["verifying", "replanning", "completed"],
   verifying: ["completed", "replanning"],
-  replanning: ["planning", "hypothesizing", "executing", "completed"],
+  replanning: ["planning", "hypothesizing", "completed"],
   completed: [],
 };
 
