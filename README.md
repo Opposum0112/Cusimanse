@@ -1,85 +1,116 @@
 # Cusimanse
 
-**Composable Autonomous Threat Research Agent Platform**
+**A terminal-driven, provider-neutral security research agent for evidence-backed investigation.**
 
-Cusimanse is a dedicated security-research agent that plans investigations, calls governed research tools, operates disposable labs, observes behavior, analyzes evidence, verifies findings, and produces reproducible research results.
+Cusimanse helps security researchers turn a research question into a controlled investigation. It can plan research with an LLM, remember previous findings, select governed capabilities, request human approval, operate disposable testbeds, collect telemetry, analyze evidence, verify findings, and produce reproducible results.
 
-> **The agent decides what to investigate next. Cusimanse policy decides what it is allowed to execute.**
+> **The agent decides what to investigate. Cusimanse policy decides what it is allowed to execute.**
 
-Cusimanse is provider-neutral across **models, agent tools, execution runtimes, and compute backends**. Vercel AI SDK 7 provides the model and tool-calling substrate; Cusimanse provides the security-research methodology, governance, isolation, evidence, and research state.
+**Status:** active development / technical preview. The architecture and core workflows are implemented, but provider integrations, observability, MCP, and production deployment paths should be validated on your target environment before being treated as production infrastructure.
 
-## Vercel-native agent direction
+---
 
-The `cusimanse-agent` branch establishes an incremental path toward a Vercel-native runtime:
+## Why use Cusimanse?
 
-- **AI SDK 7** — agent/tool substrate and provider-neutral model interface.
-- **WorkflowAgent** — target durable, resumable agent execution and approval suspension.
-- **AI Gateway** — centralized model routing with ordered provider/model fallbacks.
-- **Vercel Sandbox** — hosted disposable Firecracker-backed compute through the Cusimanse ComputeProvider SPI.
-- **AI SDK OpenTelemetry** — model/tool telemetry without recording sensitive prompt or output payloads by default.
-- **MCP** — interoperable research capability surface alongside native AI SDK tools.
-- **Cusimanse state/policy/evidence** — remains authoritative and is not delegated to the model or execution substrate.
+Security research often involves the same difficult cycle:
 
-The migration is deliberately additive: Temporal, local, Lima, Multipass, and other adapters remain available until equivalent durability, approval, evidence, and regression coverage is demonstrated.
+1. Define a hypothesis.
+2. Build an isolated environment.
+3. Run a controlled workload.
+4. Observe what happened.
+5. Preserve the evidence.
+6. Analyze the observations.
+7. Decide what to investigate next.
+8. Reproduce and verify the result.
 
-See `docs/vercel-native-agent-architecture.md` for the ownership model and migration stages.
+Cusimanse automates that loop while keeping **policy, isolation, evidence, and human approval outside the authority of the model**.
 
-## What can it investigate?
+It is designed for:
 
-Cusimanse is designed for repeatable, evidence-driven security research:
+- Supply-chain and package-installation research
+- Malware and suspicious-workload analysis in controlled environments
+- Vulnerability reproduction and validation
+- Detection engineering
+- Threat hunting and threat research
+- Process, filesystem, network, and kernel telemetry research
+- Agentic security experiments
+- Repeatable security experiments that need preserved evidence
 
-- **Software supply-chain research** — observe package installation and build behavior.
-- **Malware analysis** — investigate suspicious workloads inside disposable compute.
-- **Vulnerability validation** — reproduce declared behavior within a bounded research scope.
-- **Detection engineering** — collect process, filesystem, network, and kernel evidence.
-- **Threat research** — test hypotheses and iteratively investigate observations.
-- **Agentic security experiments** — let the researcher agent autonomously select the next governed research action.
+---
 
-## The autonomous research loop
+## How it works
 
-A Cusimanse investigation is not just one model response. It is a controlled research loop:
+At a high level:
 
 ```text
-Research objective
-       │
-       ▼
-     PLAN
-       │
-       ▼
-Select capability / tool
-       │
-       ▼
-Policy + approval ───────► DENY
-       │
-       ▼
-    EXECUTE
-       │
-       ▼
-    OBSERVE
-       │
-       ▼
-Analyze evidence
-       │
-       ▼
-Update research state
-       │
-       ├──── More evidence needed ────► PLAN
-       │
-       ▼
-     VERIFY
-       │
-       ▼
-  Seal evidence
-       │
-       ▼
- Research result
+Researcher
+   │
+   │ research objective / recipe
+   ▼
+Cusimanse Agent
+   │
+   ├── recall previous research
+   ├── plan with selected LLM
+   ├── discover available capabilities
+   ├── compile intent into typed operations
+   └── validate the proposed operation
+   │
+   ▼
+Policy + Approval
+   │
+   ├── DENY ───────────────► stop safely
+   │
+   └── APPROVE
+          │
+          ▼
+   Execution Runtime
+          │
+          ▼
+   Disposable Testbed
+          │
+          ├── workload
+          ├── process telemetry
+          ├── network / PCAP
+          └── filesystem / other probes
+          │
+          ▼
+       Evidence
+          │
+          ├── hash
+          ├── analyze
+          ├── verify
+          └── preserve
+          │
+          ▼
+    Research Result
+          │
+          ▼
+    Long-term Memory
 ```
 
-Autonomy does **not** mean unrestricted shell access. Model decisions are translated into typed research operations and remain subject to the declared research contract and fail-closed policy.
+The model is **not** the security boundary. A model response cannot authorize an operation, expand scope, bypass policy, or directly execute arbitrary host commands.
 
-## Try it in minutes
+---
 
-### 1. Install
+# Quick start
+
+## 1. Requirements
+
+You need:
+
+- Node.js **22 or newer**
+- npm
+- Git
+- A supported model provider if you want LLM-assisted planning
+- Docker for the Docker execution path
+- Lima for disposable VM execution with the Lima provider
+- Proxmox only if you intend to use the Proxmox provider
+
+The package currently targets Node.js >=22. fileciteturn44file0
+
+> Start with the mock provider if you only want to understand the workflow or run deterministic development tests.
+
+## 2. Install Cusimanse
 
 ```bash
 git clone https://github.com/Opposum0112/Cusimanse.git
@@ -89,39 +120,112 @@ npm run build
 npm link
 ```
 
-### 2. Compile a research recipe
+Check the CLI:
+
+```bash
+cusimanse --help
+```
+
+The package exposes the `cusimanse` command. fileciteturn44file0
+
+## 3. Run the deterministic checks
+
+Before running an experiment:
+
+```bash
+npm run check-types
+npm run lint
+npm test
+npm run validate:recipes
+```
+
+For development, also run coverage:
+
+```bash
+npm run test:coverage
+```
+
+These are the repository's current type-checking, linting, test, recipe-validation, and coverage commands. fileciteturn44file0
+
+## 4. Try a safe mock experiment
+
+Start with the mock provider so no real testbed needs to be provisioned:
 
 ```bash
 cusimanse compile recipes/examples/npm-install.yaml
-```
-
-The recipe is validated and compiled before execution.
-
-### 3. Run with the hermetic Mock lab
-
-```bash
 cusimanse run recipes/examples/npm-install.yaml --provider mock --runtime local
 ```
 
-Use `mock` for development and CI when you want a deterministic provider without a hypervisor.
+The mock provider is intended for deterministic development and CI workflows.
 
-### 4. Run on disposable compute
+## 5. Run against disposable compute
+
+When you are ready to use a real isolated environment:
 
 ```bash
 cusimanse run recipes/examples/npm-install.yaml --provider lima --runtime local
 ```
 
-or:
+Or, where configured:
 
 ```bash
 cusimanse run recipes/examples/npm-install.yaml --provider multipass --runtime local
 ```
 
-Lima requires `limactl`; Multipass requires `multipass`. Cloud/Firecracker is exposed through the compute-provider SPI and requires a configured adapter.
+Review the experiment recipe, network policy, mounts, workload, evidence requirements, and provider configuration before allowing a real execution.
 
-## Research recipes
+---
 
-Recipes describe **research intent**, not arbitrary shell commands.
+# Your first research investigation
+
+There are two ways to use Cusimanse.
+
+### Option A — Use a research recipe
+
+Use this when you want a **repeatable, version-controlled experiment**.
+
+```bash
+cusimanse compile recipes/examples/npm-install.yaml
+cusimanse run recipes/examples/npm-install.yaml --provider mock --runtime local
+```
+
+### Option B — Use the agent to investigate a question
+
+Use the agent workflow when you want the LLM to help formulate and iterate on the research plan.
+
+Conceptually:
+
+```text
+research question
+      ↓
+agent planning
+      ↓
+capability discovery
+      ↓
+validation
+      ↓
+approval
+      ↓
+execution
+      ↓
+observation
+      ↓
+evidence analysis
+      ↓
+verification
+      ↓
+next research action / final result
+```
+
+The agent can use previous research context when deciding what to investigate next, but stored findings never become an authorization mechanism.
+
+---
+
+# Research recipes
+
+A recipe describes **what you are trying to learn and what evidence you require**. It is not intended to be an unrestricted shell script.
+
+A minimal research recipe can express:
 
 ```yaml
 research_question:
@@ -145,11 +249,31 @@ evidence_required:
   - type: log
 ```
 
-The complete example is `recipes/examples/npm-install.yaml`. See `docs/recipe-authoring.md` for the contract.
+The reference example is:
 
-## Agent tools and composable skills
+```text
+recipes/examples/npm-install.yaml
+```
 
-The agent operates through typed research tools rather than unrestricted commands:
+For recipe authoring, see:
+
+- `docs/getting-started.md`
+- `docs/architecture.md`
+- `docs/capabilities.md`
+- `docs/policy.md`
+- `docs/evidence.md`
+
+A useful rule is:
+
+> **Put research intent in the recipe; put enforcement in policy and the runtime.**
+
+---
+
+# What the agent can do
+
+Cusimanse exposes research operations as typed capabilities rather than giving the model unrestricted shell access.
+
+Core operations include:
 
 ```text
 create_lab
@@ -165,97 +289,131 @@ seal_evidence
 destroy_lab
 ```
 
-Validated skills extend this toolset without changing the agent core:
+The normal lifecycle is:
 
 ```text
-skills/validated/<skill>/
-├── SKILL.md       # research instructions
-└── schema.json    # typed input contract
+create → instrument → execute → observe → collect
+       → analyze → verify → seal → destroy
 ```
 
-Cusimanse converts validated schemas into AI SDK tools and routes execution through policy and the active compute provider. Candidate skills remain non-executable until validated and promoted:
+Execution remains subject to the active research contract, capability registry, policy, and approval requirements.
 
-```bash
-cusimanse skills promote skills/candidate/my-skill
+---
+
+# Human approval and safety
+
+By default, sensitive execution should cross an explicit approval boundary.
+
+```text
+LLM proposes operation
+        ↓
+Typed operation
+        ↓
+Scope / capability validation
+        ↓
+Policy evaluation
+        ↓
+Human approval when required
+        ↓
+Provider execution
 ```
 
-## Model neutrality with Vercel AI SDK 7
+Important principles:
 
-Vercel AI SDK 7 is the **agent/model/tool-calling substrate**, not the security policy engine.
+- A model response is not authorization.
+- Unknown capabilities are rejected.
+- Policy failures are fail-closed.
+- Disposable environments are preferred for untrusted workloads.
+- Host credentials should never be placed in research recipes.
+- Unrestricted host mounts should not be granted to workloads.
+- Network access should be explicitly declared and constrained.
+- Evidence should be preserved before destroying a disposable environment.
+- Important findings should be independently verified.
 
-Supported provider families include:
+For the detailed policy model, see `docs/policy.md`.
+
+---
+
+# Configure an LLM
+
+Cusimanse uses **Vercel AI SDK 7** as its model/tool-calling substrate. The model layer is deliberately separate from the security policy and execution boundary.
+
+The current package includes integrations for provider families such as:
 
 | Provider | Typical use |
 |---|---|
-| OpenAI | Hosted models |
-| Anthropic | Hosted models |
+| OpenAI | Hosted reasoning and analysis |
+| Anthropic | Hosted reasoning and analysis |
 | Google | Gemini models |
-| DeepSeek | API or OpenAI-compatible endpoint |
-| Ollama | Local models through OpenAI-compatible endpoint |
+| DeepSeek | API / compatible endpoints |
+| Ollama | Local model execution |
 
-Credentials can be supplied with:
+The package dependencies include the AI SDK provider packages and AI SDK itself. fileciteturn44file0
 
-- CLI: `--model`, `--api-key`, `--base-url`
-- Environment: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPSEEK_API_KEY`, `OLLAMA_BASE_URL`
-- Project/user configuration files
+## Configure credentials
 
-Secrets are configuration inputs and are not part of research recipes.
+Use environment variables or another supported configuration mechanism. Do **not** put credentials in YAML recipes or commit them to Git.
 
-## Tool calling and governance
+Examples:
 
-The model can choose the next tool, but a tool call is **not** an authorization.
-
-```text
-AI SDK 7 tool call
-       │
-       ▼
-Typed Cusimanse operation
-       │
-       ▼
-Research contract
-       │
-       ▼
-Fail-closed policy
-       │
-       ▼
-Approval where required
-       │
-       ▼
-Execution runtime
-       │
-       ▼
-Disposable compute
+```bash
+export OPENAI_API_KEY='...'
+export ANTHROPIC_API_KEY='...'
+export GEMINI_API_KEY='...'
+export DEEPSEEK_API_KEY='...'
+export OLLAMA_BASE_URL='http://127.0.0.1:11434'
 ```
 
-Unknown capabilities and operations are denied. The agent cannot use a model response to bypass scope, network, filesystem, lifecycle, or evidence requirements.
-
-## Unified observability
-
-Every investigation should be traceable from model activity through the security lab:
+For provider-specific configuration, see:
 
 ```text
-AI/model event
-      │
-Tool call
-      │
-Policy decision
-      │
-Runtime step
-      │
-Compute operation
-      │
-labprobe telemetry
-      │
-Evidence
-      │
-Research state
+docs/llm.md
 ```
 
-Cusimanse correlates agent, model, tool, policy, runtime, compute, and evidence events using a shared `runId`/`traceId`. Application telemetry describes observable execution; it does not expose private model chain-of-thought.
+## Important security boundary
 
-## Provider-neutral execution
+The LLM can:
 
-### Execution runtimes
+- interpret the research question
+- propose a research plan
+- select from available capabilities
+- analyze collected observations
+- suggest the next research step
+
+The LLM cannot independently:
+
+- grant itself permissions
+- change trusted policy
+- expand experiment scope
+- turn an unknown capability into an approved capability
+- treat its own generated text as evidence
+
+---
+
+# Memory and durable execution
+
+Cusimanse separates **execution state** from **research knowledge**.
+
+```text
+Current investigation
+        │
+        ├── plan
+        ├── validation state
+        ├── approvals
+        ├── execution state
+        └── telemetry references
+
+Long-term research knowledge
+        │
+        ├── findings
+        ├── observations
+        ├── experiment outcomes
+        └── reusable research context
+```
+
+This allows an investigation to evolve over multiple steps without treating a conversation transcript as the source of truth.
+
+The branch also supports multiple execution-runtime choices:
 
 ```bash
 cusimanse run recipe.yaml --runtime local --provider mock
@@ -263,44 +421,146 @@ cusimanse run recipe.yaml --runtime temporal --provider lima
 cusimanse run recipe.yaml --runtime graph --provider lima
 ```
 
-### Compute providers
+The runtime and compute provider are independent choices.
 
-| Provider | Purpose |
-|---|---|
-| `mock` | Hermetic development and CI |
-| `lima` | Disposable VM research |
-| `multipass` | Disposable Ubuntu VM research |
-| `cloud` / Firecracker | Isolated provider boundary |
+---
 
-The model, execution runtime, and compute provider are independent choices.
+# Choose an execution provider
 
-## Dual-surface MCP interoperability
+| Provider | Use it when | Isolation model |
+|---|---|---|
+| `mock` | Development, CI, deterministic tests | No real testbed |
+| `lima` | Local Linux VM research | Disposable VM |
+| `multipass` | Ubuntu-oriented VM research | Disposable VM |
+| `cloud` / Firecracker | Isolated hosted execution | Provider-dependent |
 
-MCP is an **interoperability surface**, not the internal agent framework.
+The important design principle is that the **agent should not care which compute backend executes a governed operation**.
 
-Cusimanse can expose an MCP surface for external agents/harnesses and can consume MCP-compatible research capabilities alongside native AI SDK tools:
+---
+
+# Instrumentation and evidence
+
+Security research is only useful when another researcher can understand what actually happened.
+
+Cusimanse therefore separates:
 
 ```text
-External Agent ──► Cusimanse MCP ──► Agent Core
-
-Cusimanse Agent ──► Native Tools
-              └──► MCP Research Tools
-                         │
-                         ▼
-                   Policy Boundary
+Model reasoning
+      ≠
+Observed telemetry
+      ≠
+Evidence
+      ≠
+Verified finding
 ```
 
-This keeps Cusimanse useful as a dedicated autonomous researcher while allowing other agents and research-tool ecosystems to interoperate with it.
+The intended evidence path is:
 
-## Operator API
+```text
+Workload
+   ↓
+Instrumentation
+   ↓
+Raw observations
+   ↓
+Evidence records
+   ↓
+SHA-256 integrity
+   ↓
+Analysis
+   ↓
+Independent verification
+   ↓
+Research result
+```
 
-Run the gateway when another application or agent should operate Cusimanse:
+Typical evidence can include:
+
+- Process activity
+- Network activity / PCAP
+- Filesystem observations
+- Logs
+- Tool output
+- Runtime metadata
+- Evidence hashes
+- Verification results
+
+See `docs/instrumentation.md` and `docs/evidence.md` for the detailed model.
+
+---
+
+# Observability
+
+Cusimanse is designed to correlate research activity across the agent and execution environment.
+
+Conceptually:
+
+```text
+Research run
+    │
+    ├── agent activity
+    ├── model activity
+    ├── tool calls
+    ├── policy decisions
+    ├── runtime operations
+    ├── compute operations
+    ├── instrumentation
+    └── evidence
+```
+
+A shared run/trace identity allows researchers to connect these events without treating model output as evidence.
+
+Application telemetry should describe observable execution; it should not be used as a mechanism for exposing private model chain-of-thought.
+
+---
+
+# MCP interoperability
+
+MCP is an **interoperability layer**, not Cusimanse's internal security boundary.
+
+Cusimanse is designed to support both directions:
+
+```text
+External Agent / Harness
+        │
+        ▼
+   Cusimanse MCP
+        │
+        ▼
+   Governed Agent Core
+
+Cusimanse Agent
+        │
+        ├── Native research tools
+        └── MCP research capabilities
+                    │
+                    ▼
+              Policy boundary
+```
+
+This lets researchers use Cusimanse as a dedicated research agent while still integrating it with other agent and tool ecosystems.
+
+See the adapter and capability documentation before exposing MCP capabilities to another process.
+
+---
+
+# Operator API
+
+Cusimanse can expose an operator interface for applications or external agents.
+
+Start the local service with:
 
 ```bash
 cusimanse serve --host 127.0.0.1 --port 8080
 ```
 
-The Operator ABI provides HTTP/REST, JSON-RPC 2.0, and SSE telemetry. Primary operations include:
+The intended operator interface includes:
+
+- HTTP/REST
+- JSON-RPC 2.0
+- SSE telemetry
+
+Primary operations include:
 
 ```text
 experiment.run
@@ -309,45 +569,363 @@ skills.promote
 providers.list
 ```
 
-See `docs/operator-abi.md` for the interface.
+See `docs/operator-abi.md` before integrating an external client.
 
-## Architecture
+Keep operator services bound to localhost unless you have explicitly designed and validated the authentication, authorization, network exposure, and deployment model.
 
-```mermaid
-flowchart TD
-  USER[Researcher] --> OBJECTIVE[Threat Research Objective]
-  OBJECTIVE --> AGENT[Autonomous Cusimanse Agent]
-  AGENT --> AI[Vercel AI SDK 7]
-  AI --> TOOLS[Native + Validated Skill Tools]
-  AI --> MCPIN[MCP Research Tools]
-  TOOLS --> POLICY[Research Contract + Fail-Closed Policy]
-  MCPIN --> POLICY
-  POLICY --> RUNTIME[Execution Runtime SPI]
-  RUNTIME --> COMPUTE[Compute Provider SPI]
-  COMPUTE --> LAB[Disposable Research Lab]
-  LAB --> PROBE[Go labprobe + Workloads + Tracing]
-  PROBE --> EVIDENCE[Evidence + Research State]
-  EVIDENCE --> AGENT
-  AGENT --> REPORT[Verified Research Result]
-  EXT[External Agent / Harness] --> MCPOUT[Dual-Surface MCP]
-  MCPOUT --> AGENT
+---
+
+# Skills
+
+Skills provide reusable research instructions without changing the core agent implementation.
+
+A validated skill contains a human-reviewable instruction set and typed input contract, for example:
+
+```text
+skills/validated/<skill>/
+├── SKILL.md
+└── schema.json
 ```
 
-### Architecture in one sentence
+Candidate skills should not become executable merely because an agent generated them.
 
-**The agent researches; AI SDK 7 provides model/tool calling; policy governs; runtimes orchestrate; compute isolates; labprobe observes; evidence verifies.**
+Promotion is an explicit lifecycle:
 
-## Development
+```text
+candidate
+   ↓
+review
+   ↓
+validation
+   ↓
+verification
+   ↓
+approval
+   ↓
+validated skill
+```
+
+For the current CLI and skill lifecycle, see `docs/capabilities.md` and the repository's skill tooling.
+
+---
+
+# Providers and adapters
+
+Cusimanse separates several kinds of provider:
+
+```text
+Model Provider
+      │
+      ▼
+AI SDK 7
+      │
+      ▼
+Agent / Tool Layer
+      │
+      ▼
+Execution Runtime
+      │
+      ▼
+Compute Provider
+      │
+      ▼
+Disposable Lab
+```
+
+This means you can change a model provider without redesigning the security execution path, and you can change the compute backend without changing the research methodology.
+
+See `docs/adapters.md` for integration guidance.
+
+---
+
+# Common workflows
+
+## Development / CI
+
+Use the mock provider and deterministic checks:
 
 ```bash
+npm install
 npm run check-types
 npm run lint
+npm run validate:recipes
 npm test
 npm run test:coverage
 ```
 
-Before contributing, read `CONTRIBUTING.md` and `SECURITY.md`.
+Then run a mock experiment:
 
-## Project status
+```bash
+cusimanse run recipes/examples/npm-install.yaml --provider mock --runtime local
+```
 
-Cusimanse is under active development. The autonomous agent loop, full AI SDK observability, dual-surface MCP implementation, and production-grade provider integrations should be treated as incremental work rather than assumed complete merely from the architecture documentation.
+## Local VM research
+
+```text
+1. Review recipe
+2. Review policy
+3. Check Lima installation
+4. Validate the workload and evidence plan
+5. Start the governed run
+6. Review approval request
+7. Execute in disposable VM
+8. Collect and preserve evidence
+9. Verify important findings
+10. Destroy the VM only after preservation
+```
+
+Example:
+
+```bash
+cusimanse run recipes/examples/npm-install.yaml --provider lima --runtime local
+```
+
+## Long-running research
+
+For research that needs durable execution, recovery, or external orchestration, select an appropriate runtime such as Temporal and configure the required infrastructure before running real experiments.
+
+Do not assume that selecting a runtime name means the complete production deployment has been validated on your environment.
+
+---
+
+# Troubleshooting
+
+### `cusimanse: command not found`
+
+Build and link the package again:
+
+```bash
+npm install
+npm run build
+npm link
+```
+
+Or run the compiled CLI directly:
+
+```bash
+node dist/bin/cli.js --help
+```
+
+### Type or dependency errors
+
+Check the supported Node.js version:
+
+```bash
+node --version
+npm --version
+```
+
+The package currently requires Node.js >=22. fileciteturn44file0
+
+Then reinstall dependencies:
+
+```bash
+rm -rf node_modules
+npm install
+```
+
+### Recipe validation fails
+
+Run:
+
+```bash
+npm run validate:recipes
+```
+
+Then inspect the referenced recipe and its capability/provider requirements.
+
+### A provider is unavailable
+
+Do not silently substitute another provider. Check which provider is configured, verify its prerequisites, and use the mock provider for deterministic development if appropriate.
+
+### A run is blocked by policy
+
+Treat this as an intentional security control. Review:
+
+- experiment scope
+- requested capability
+- network requirements
+- filesystem requirements
+- provider configuration
+- approval requirements
+
+Do not weaken the policy simply to make an experiment run.
+
+---
+
+# Repository layout
+
+The main implementation is organized around the agent, execution, evidence, and provider boundaries:
+
+```text
+src/
+├── agent/                 # research workflow and agent behavior
+├── infra/                 # compute providers
+├── instrumentation/       # probes and evidence collection
+├── llm/                   # model/provider connectivity
+├── runtime/               # execution runtimes and state
+├── gateway/               # operator/API surface
+├── registry/              # capabilities and provider registration
+└── ...
+
+recipes/                   # declarative research experiments
+skills/                    # reusable research skills
+docs/                      # user and developer documentation
+tests/                     # automated validation
+```
+
+The package is published as `@cusimanse/agent-runtime` and exposes both the CLI and library entry points. fileciteturn44file0
+
+---
+
+# Architecture at a glance
+
+```mermaid
+flowchart TD
+    USER[Researcher] --> OBJ[Research Objective]
+    OBJ --> AGENT[Cusimanse Agent]
+
+    AGENT --> MEM[Research Memory]
+    AGENT --> AI[Vercel AI SDK 7]
+    AI --> TOOLS[Typed Research Tools]
+    AGENT --> DISC[Capability Discovery]
+
+    TOOLS --> VALIDATE[Contract + Capability Validation]
+    DISC --> VALIDATE
+    VALIDATE --> POLICY[Fail-Closed Policy]
+
+    POLICY -->|deny| STOP[Stop / Explain]
+    POLICY -->|approval required| HITL[Human Approval]
+    POLICY -->|allowed| RUNTIME[Execution Runtime]
+    HITL --> RUNTIME
+
+    RUNTIME --> COMPUTE[Compute Provider]
+    COMPUTE --> LAB[Disposable Research Environment]
+    LAB --> PROBES[Instrumentation]
+    PROBES --> EVIDENCE[Evidence + Integrity]
+
+    EVIDENCE --> ANALYSIS[Analysis]
+    ANALYSIS --> VERIFY[Independent Verification]
+    VERIFY --> RESULT[Research Result]
+    RESULT --> MEM
+    RESULT --> REPORT[Reproducible Report]
+
+    EXT[External Agent / Harness] --> MCP[MCP]
+    MCP --> VALIDATE
+```
+
+### In one sentence
+
+> **The researcher defines the question; the agent plans; the model assists; policy governs; the runtime orchestrates; the compute provider isolates; instrumentation observes; evidence proves; verification establishes the result.**
+
+---
+
+# Security model
+
+Cusimanse is intended for authorized security research only.
+
+Recommended operating rules:
+
+1. Test only systems, software, and workloads you own or are explicitly authorized to test.
+2. Use disposable environments for untrusted workloads.
+3. Keep credentials outside recipes and source control.
+4. Avoid unrestricted host mounts.
+5. Keep external network access disabled unless the experiment explicitly requires it and policy allows it.
+6. Require approval for privileged, destructive, or infrastructure-changing operations.
+7. Start instrumentation before the target workload whenever possible.
+8. Preserve and hash evidence before destroying disposable resources.
+9. Independently verify important findings.
+10. Treat AI-generated plans and explanations as fallible analysis, not proof.
+
+The LLM, prompt, skill, MCP layer, and UI are **not** the security boundary. Enforcement belongs in policy, execution controls, host/VM isolation, provider restrictions, and evidence handling.
+
+See `SECURITY.md` for vulnerability reporting and `docs/policy.md` for the detailed policy model.
+
+---
+
+# Current status and expectations
+
+This branch is an **active technical-preview implementation**, not a claim that every documented integration is production-ready.
+
+Implemented architecture includes the agent/tool substrate, provider abstractions, research recipes, policy boundaries, execution-runtime choices, evidence flow, and model/provider integration described above. The package also includes automated type checking, linting, recipe validation, tests, coverage tooling, and a Temporal worker entry point. fileciteturn44file0
+
+Before using Cusimanse for a production deployment, validate the exact combination of:
+
+- operating system and architecture
+- Node.js/runtime version
+- model provider
+- execution runtime
+- compute provider
+- instrumentation stack
+- persistence configuration
+- MCP/operator exposure
+- security controls
+- recovery and replay behavior
+- evidence preservation
+
+A capability should be considered **validated only after it has actually been exercised and its behavior demonstrated with evidence**.
+
+---
+
+# Documentation map
+
+Start here:
+
+| Document | Purpose |
+|---|---|
+| `README.md` | End-user overview and quick start |
+| `docs/getting-started.md` | Initial setup and first use |
+| `docs/architecture.md` | Detailed architecture |
+| `docs/llm.md` | Model/provider configuration |
+| `docs/capabilities.md` | Capability and tool model |
+| `docs/policy.md` | Security policy and authorization |
+| `docs/evidence.md` | Evidence lifecycle and integrity |
+| `docs/instrumentation.md` | Telemetry and probes |
+| `docs/lima.md` | Lima execution environment |
+| `docs/planner.md` | Planning behavior |
+| `docs/adapters.md` | Adapter integration |
+| `docs/operator-abi.md` | External operator API |
+| `docs/operations.md` | Operational guidance |
+| `SECURITY.md` | Security reporting |
+| `CONTRIBUTING.md` | Contribution workflow |
+
+---
+
+# Contributing
+
+Contributions are welcome.
+
+Before opening a pull request:
+
+```bash
+npm run check-types
+npm run lint
+npm run validate:recipes
+npm test
+```
+
+When changing security-sensitive behavior, include:
+
+- the security boundary affected
+- the policy decision being changed
+- tests demonstrating the behavior
+- evidence/reproduction steps where appropriate
+- any new provider/runtime assumptions
+
+Read `CONTRIBUTING.md` and `SECURITY.md` before contributing.
+
+---
+
+# Responsible use
+
+Cusimanse is a security-research tool. Use it only for authorized testing and research.
+
+AI-generated output can be incorrect, incomplete, stale, or unsafe. Human researchers remain responsible for authorization, scope, approvals, safety, interpretation, and final conclusions.
+
+Do not provide an agent with unrestricted host access or credentials merely because a prompt requests them.
+
+---
+
+# License
+
+See `LICENSE` for the project license and applicable third-party notices.
