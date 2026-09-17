@@ -18,8 +18,8 @@ export { ComputeProviderRegistry, ComputeProviderError, MockComputeProvider, Lim
 export type { ComputeProvider, SandboxSpec, ExecResult } from "./adapters/compute/index.js";
 export { EvidenceCollector } from "./evidence/index.js";
 export type { RuntimeTelemetry, ExecutionArtifacts } from "./evidence/index.js";
-export { createResearchState, appendEvent, transitionPhase } from "./state/index.js";
-export type { ResearchState } from "./state/index.js";
+export { createResearchState, createCusimanseResearchState, applyAutonomousResearchEvent, appendEvent, transitionPhase } from "./state/index.js";
+export type { ResearchState, CusimanseResearchState } from "./state/index.js";
 export { createAutonomousResearchState, applyResearchEvent, shouldTerminate, transitionResearchPhase } from "./state/index.js";
 export type { AutonomousResearchState, ResearchEvent, ResearchPhase, ResearchHypothesis, ResearchFinding, HypothesisStatus, VerificationStatus } from "./state/index.js";
 export { RuntimeOrchestrator } from "./runtime/index.js";
