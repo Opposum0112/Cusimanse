@@ -1,6 +1,6 @@
 import { Client, Connection } from "@temporalio/client";
 import type { ExperimentRuntime, RuntimeContext, ExecutionResult } from "./spi/types.js";
-import { executeResearchRun } from "./temporal/workflow.js";
+import { executeResearchRun, type TemporalResearchRunResult } from "./temporal/workflow.js";
 
 export interface TemporalRuntimeOptions {
   address?: string;
@@ -13,7 +13,7 @@ export class TemporalDurableRuntime implements ExperimentRuntime {
   private readonly options: Required<TemporalRuntimeOptions>;
   private connection?: Connection;
   private client?: Client;
-  private readonly runs = new Map<string, { workflowId: string }>();
+  private readonly runs = new Map<string, { workflowId: string; state?: TemporalResearchRunResult["state"] }>();
 
   constructor(options: TemporalRuntimeOptions = {}) {
     this.options = {
@@ -39,7 +39,14 @@ export class TemporalDurableRuntime implements ExperimentRuntime {
       taskQueue: this.options.taskQueue,
       args: [{ runId: ctx.runId, ir: ctx.ir, providerId: ctx.compute.id }],
     });
-    return handle.result();
+    const result = await handle.result();
+    const run = this.runs.get(ctx.runId);
+    if (run) run.state = result.state;
+    return result.execution;
+  }
+
+  getResearchState(runId: string): TemporalResearchRunResult["state"] | undefined {
+    return this.runs.get(runId)?.state;
   }
 
   async abort(runId: string): Promise<void> {
