@@ -1,3 +1,25 @@
+export type {
+  AutonomousResearchState,
+  HypothesisStatus,
+  ResearchEvent,
+  ResearchFinding,
+  ResearchHypothesis,
+  ResearchPhase,
+  VerificationStatus,
+} from "./research.js";
+export {
+  addFinding,
+  addHypothesis,
+  applyResearchEvent,
+  createAutonomousResearchState,
+  recordEvidence,
+  recordObservation,
+  shouldTerminate,
+  transitionPhase as transitionResearchPhase,
+  updateHypothesisStatus,
+  verifyFinding,
+} from "./research.js";
+
 export type RuntimePhase =
   | "created"
   | "planning"
@@ -78,49 +100,16 @@ export function createResearchState(experimentId: string, now = new Date().toISO
     timestamp: now,
     payload: { phase: "created" },
   };
-
-  return {
-    experimentId,
-    phase: "created",
-    revision: 0,
-    observations: [],
-    evidence: [],
-    operations: [],
-    events: [event],
-  };
+  return { experimentId, phase: "created", revision: 0, observations: [], evidence: [], operations: [], events: [event] };
 }
 
 export function appendEvent<T>(state: ResearchState, event: RuntimeEvent<T>): ResearchState {
-  if (event.experimentId !== state.experimentId) {
-    throw new Error(`Event ${event.id} belongs to ${event.experimentId}, not ${state.experimentId}.`);
-  }
-
-  return {
-    ...state,
-    revision: state.revision + 1,
-    events: [...state.events, event],
-  };
+  if (event.experimentId !== state.experimentId) throw new Error(`Event ${event.id} belongs to ${event.experimentId}, not ${state.experimentId}.`);
+  return { ...state, revision: state.revision + 1, events: [...state.events, event] };
 }
 
-export function transitionPhase(
-  state: ResearchState,
-  phase: RuntimePhase,
-  eventType: RuntimeEventType,
-  payload: unknown = {},
-  now = new Date().toISOString(),
-): ResearchState {
-  return appendEvent(
-    { ...state, phase },
-    {
-      id: `evt-${cryptoRandomId()}`,
-      type: eventType,
-      experimentId: state.experimentId,
-      timestamp: now,
-      payload,
-    },
-  );
+export function transitionPhase(state: ResearchState, phase: RuntimePhase, eventType: RuntimeEventType, payload: unknown = {}, now = new Date().toISOString()): ResearchState {
+  return appendEvent({ ...state, phase }, { id: `evt-${cryptoRandomId()}`, type: eventType, experimentId: state.experimentId, timestamp: now, payload });
 }
 
-function cryptoRandomId(): string {
-  return Math.random().toString(36).slice(2, 10);
-}
+function cryptoRandomId(): string { return Math.random().toString(36).slice(2, 10); }
