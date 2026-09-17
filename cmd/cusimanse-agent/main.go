@@ -34,7 +34,13 @@ func main() {
 	if err != nil { fatal(err) }
 	store, err := state.New(*stateDir)
 	if err != nil { fatal(err) }
-	_ = store.Save(state.Record{SessionID: *sessionID, RunID: *sessionID, Phase: "start", Status: "RUNNING"})
+
+	if previous, err := store.Load(*sessionID); err == nil {
+		fmt.Printf("Resuming durable session %s (phase=%s status=%s updated=%s)\n", previous.SessionID, previous.Phase, previous.Status, previous.UpdatedAt.Format(time.RFC3339))
+	} else if !os.IsNotExist(err) {
+		fatal(fmt.Errorf("load durable session: %w", err))
+	}
+	if err := store.Save(state.Record{SessionID: *sessionID, RunID: *sessionID, Phase: "start", Status: "RUNNING"}); err != nil { fatal(err) }
 
 	fmt.Printf("Cusimanse ADK Go 2 security research agent\nmodel=%s session=%s\n", cfg.Model, *sessionID)
 	fmt.Println("Type /exit to stop. Capability execution is always mediated by the Go policy boundary.")
@@ -47,15 +53,25 @@ func main() {
 		line = strings.TrimSpace(line)
 		if line == "" { continue }
 		if line == "/exit" || line == "/quit" { break }
+
+		if err := store.Save(state.Record{SessionID: *sessionID, RunID: *sessionID, Phase: "turn-running", Status: "RUNNING", State: map[string]any{"request": line}}); err != nil { fatal(err) }
 		msg := genai.NewContentFromText(line, "user")
+		failed := false
 		for event, runErr := range rt.Runner.Run(ctx, userID, *sessionID, msg, agent.RunConfig{}) {
-			if runErr != nil { fmt.Fprintf(os.Stderr, "agent error: %v\n", runErr); _ = store.Save(state.Record{SessionID: *sessionID, RunID: *sessionID, Phase: "error", Status: "FAILED", State: map[string]any{"error": runErr.Error()}}); break }
+			if runErr != nil {
+				failed = true
+				fmt.Fprintf(os.Stderr, "agent error: %v\n", runErr)
+				_ = store.Save(state.Record{SessionID: *sessionID, RunID: *sessionID, Phase: "error", Status: "FAILED", State: map[string]any{"error": runErr.Error(), "request": line}})
+				break
+			}
 			if event != nil && event.Content != nil {
 				for _, part := range event.Content.Parts { if part.Text != "" { fmt.Print(part.Text) } }
 				fmt.Println()
 			}
 		}
-		_ = store.Save(state.Record{SessionID: *sessionID, RunID: *sessionID, Phase: "turn-complete", Status: "RUNNING"})
+		if !failed {
+			_ = store.Save(state.Record{SessionID: *sessionID, RunID: *sessionID, Phase: "turn-complete", Status: "RUNNING", State: map[string]any{"request": line}})
+		}
 	}
 	_ = store.Save(state.Record{SessionID: *sessionID, RunID: *sessionID, Phase: "stop", Status: "COMPLETED"})
 }
