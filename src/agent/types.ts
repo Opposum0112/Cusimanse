@@ -1,6 +1,7 @@
-import type { LanguageModel } from "ai";
+import type { LanguageModel, ToolSet } from "ai";
 import type { ComputeProvider } from "../adapters/compute/types.js";
 import type { ExperimentRuntime } from "../runtime/spi/types.js";
+import type { FailClosedToolApproval } from "../policy/approval.js";
 
 export interface ResearchObjective {
   id: string;
@@ -44,9 +45,10 @@ export interface SecurityResearchAgent {
 
 export interface AgentDependencies {
   model: LanguageModel;
-  tools: Record<string, unknown>;
+  tools: ToolSet;
   compute: ComputeProvider;
   runtime: ExperimentRuntime;
+  approval?: FailClosedToolApproval;
   maxSteps?: number;
   onTurn?: (turn: AgentTurn) => void;
 }
